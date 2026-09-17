@@ -1,0 +1,6 @@
+{
+  "name": "@iron-ledger/event-bus",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/event-bus.interface.ts"
+}

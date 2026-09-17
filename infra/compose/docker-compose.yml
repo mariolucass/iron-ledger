@@ -1,0 +1,4 @@
+# O Compose principal fica na raiz para manter `docker compose up -d`
+# compatível com o fluxo documentado no README.
+include:
+  - ../../docker-compose.yml

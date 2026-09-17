@@ -1,0 +1,14 @@
+{
+  "name": "iron-ledger",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @iron-ledger/api dev",
+    "build": "pnpm --filter @iron-ledger/api build",
+    "test": "pnpm --filter @iron-ledger/api test",
+    "db:generate": "pnpm --filter @iron-ledger/api prisma:generate",
+    "db:migrate": "pnpm --filter @iron-ledger/api prisma:migrate",
+    "db:seed": "pnpm --filter @iron-ledger/api prisma:seed"
+  }
+}

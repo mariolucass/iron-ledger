@@ -103,30 +103,54 @@ POST /inventory/transactions
 ## Como rodar
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/iron-ledger.git
-cd iron-ledger
-
-# Suba a infraestrutura
+# PostgreSQL, RabbitMQ, Redis e API (migração e seed são automáticos)
 docker compose up -d
-
-# Instale dependências do backend
-cd apps/api && pnpm install
-
-# Rode as migrations
-pnpm prisma migrate dev
-
-# Inicie o servidor
-pnpm dev
-
-# Em outro terminal, inicie o worker Temporal
-cd apps/temporal-worker && pnpm dev
-
-# Serviço Python de analytics
-cd services/analytics
-pip install -r requirements.txt
-python main.py
 ```
+
+A API fica em `http://localhost:3000`, e o painel do RabbitMQ em
+`http://localhost:15672` (`iron_ledger` / `iron_ledger`). O Compose cria um
+usuário local para testes (`admin@ironledger.local` / `ChangeMe123!`). Troque
+esses segredos fora do ambiente local.
+
+Para executar a API fora do Docker:
+
+```bash
+pnpm install
+cp apps/api/.env.example apps/api/.env
+pnpm db:generate
+pnpm db:migrate
+pnpm db:seed
+pnpm dev
+```
+
+### Autenticação e evento de teste
+
+```bash
+# Obtenha o accessToken
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@ironledger.local","password":"ChangeMe123!"}'
+
+# Publique no exchange iron-ledger.domain usando o token retornado
+curl -X POST http://localhost:3000/events/test \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"eventName":"Inventory.StockUpdated","payload":{"sku":"SKU-001","quantity":10}}'
+```
+
+O worker Temporal, Kafka e frontend permanecem previstos na arquitetura, mas
+não fazem parte deste primeiro incremento executável. O laboratório de
+analytics abaixo pode ser executado de forma independente.
+
+### Laboratorio de analytics com a Olist
+
+O primeiro incremento experimental do contexto `analytics` usa dados historicos
+da Olist para criar observacoes semanais, detectar mudancas persistentes e expor
+os resultados por API. O laboratorio e separado do fluxo transacional e nao
+trata sinais indiretos como ruptura de estoque confirmada.
+
+Consulte [`docs/analytics/olist-first-step.md`](./docs/analytics/olist-first-step.md)
+para baixar os dados, executar o pipeline e consultar os endpoints.
 
 ---
 
