@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Production and test artifacts
+build/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local environment files (keep an example file if one is added)
+.env*
+!.env.example
+
+# Deployment providers
+.vercel/
+
+# Local Figma source material and generated handoff files
+figma/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+pnpm-debug.log*
