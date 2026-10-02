@@ -377,7 +377,11 @@ function InventoryDrawer({
 // 4. Componente Principal
 export function InventoryPage() {
   const [search, setSearch] = useState("");
-  const [warehouse, setWarehouse] = useState("Todos os estoques");
+  const [warehouse, setWarehouse] = useState("all");
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
+  const [warehouseOptions, setWarehouseOptions] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<InventoryItem | null>(null);
   const [items, setItems] = useState<InventoryItem[]>(fallbackInventory);
@@ -422,7 +426,7 @@ export function InventoryPage() {
 
   const filtered = items.filter(
     (r) =>
-      (warehouse === "Todos os estoques" || r.warehouse === warehouse) &&
+      (warehouse === "all" || r.warehouseId === warehouse) &&
       (r.sku.toLowerCase().includes(search.toLowerCase()) ||
         r.product.toLowerCase().includes(search.toLowerCase())),
   );
@@ -581,6 +585,7 @@ export function InventoryPage() {
                   "SKU",
                   "Produto",
                   "Depósito",
+                  "Saldo total",
                   "Disponível",
                   "Reservado",
                   "Estoque Mín",
@@ -685,6 +690,9 @@ export function InventoryPage() {
                       >
                         {row.warehouse}
                       </td>
+                      <td style={{ padding: "16px", color: theme.textSecondary, fontFamily: "var(--font-jetbrains-mono)" }}>
+                        {row.quantity} {row.unit ?? "un"}
+                      </td>
                       <td
                         style={{
                           padding: "16px",
@@ -746,7 +754,7 @@ export function InventoryPage() {
                     {/* Tabela Expandida (Nested) */}
                     {isExpanded && (
                       <tr style={{ background: "rgba(0,0,0,0.4)" }}>
-                        <td colSpan={9} style={{ padding: 0 }}>
+                        <td colSpan={10} style={{ padding: 0 }}>
                           <div
                             style={{
                               padding: "24px 24px 24px 64px",
