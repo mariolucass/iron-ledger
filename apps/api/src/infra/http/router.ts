@@ -8,6 +8,7 @@ import { jwtGuard, type AuthenticatedRequest } from "../../modules/identity/infr
 import { AuthController } from "../../modules/identity/infra/http/auth.controller";
 import { createAuthRouter } from "../../modules/identity/infra/http/auth.routes";
 import { PrismaLoginUserRepository } from "../../modules/identity/infra/repositories/prisma-login-user.repository";
+import { createInventoryRouter } from "../../modules/inventory/infra/http/inventory.routes";
 
 const eventSchema = z.object({
   eventName: z.string().min(3).regex(/^[A-Za-z][A-Za-z0-9.]*$/),
@@ -27,6 +28,7 @@ export function createRouter(rabbitMq: RabbitMqClient): Router {
     response.json({ status: "ok", service: "iron-ledger-api", timestamp: new Date().toISOString() });
   });
   router.use("/auth", createAuthRouter(new AuthController(login)));
+  router.use("/inventory", createInventoryRouter());
 
   router.post("/events/test", jwtGuard(env.JWT_SECRET), async (request: AuthenticatedRequest, response, next) => {
     try {
