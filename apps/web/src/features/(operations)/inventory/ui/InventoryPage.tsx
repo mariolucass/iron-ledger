@@ -11,14 +11,12 @@ import {
   Search,
   X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerContainer, staggerItem, spring1 } from "@/shared/lib/animation";
 import {
   InventoryItem,
-  inventoryData,
   movementHistory,
-  warehouses,
 } from "@/features/(operations)/inventory/model/inventoryData";
 import { Layout } from "@/widgets/layout/Layout";
 
@@ -371,13 +369,36 @@ function InventoryDrawer({
 // 4. Componente Principal
 export function InventoryPage() {
   const [search, setSearch] = useState("");
-  const [warehouse, setWarehouse] = useState("Todos os estoques");
+  const [warehouse, setWarehouse] = useState("all");
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
+  const [warehouseOptions, setWarehouseOptions] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<InventoryItem | null>(null);
 
+  useEffect(() => {
+    let active = true;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+    fetch(`${apiUrl}/inventory`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Não foi possível consultar o inventário.");
+        return response.json();
+      })
+      .then((result: { data: InventoryItem[]; warehouses: { id: string; name: string }[] }) => {
+        if (!active) return;
+        setInventoryData(result.data);
+        setWarehouseOptions(result.warehouses);
+        setLoadError(null);
+      })
+      .catch(() => { if (active) setLoadError("Não foi possível carregar os saldos. Verifique se a API está disponível."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
   const filtered = inventoryData.filter(
     (r) =>
-      (warehouse === "Todos os estoques" || r.warehouse === warehouse) &&
+      (warehouse === "all" || r.warehouseId === warehouse) &&
       (r.sku.toLowerCase().includes(search.toLowerCase()) ||
         r.product.toLowerCase().includes(search.toLowerCase())),
   );
@@ -463,9 +484,10 @@ export function InventoryPage() {
             onFocus={inputFocus}
             onBlur={inputBlur}
           >
-            {warehouses.map((w) => (
-              <option key={w} value={w} style={{ background: theme.bg }}>
-                {w}
+            <option value="all" style={{ background: theme.bg }}>Todos os depósitos</option>
+            {warehouseOptions.map((w) => (
+              <option key={w.id} value={w.id} style={{ background: theme.bg }}>
+                {w.name}
               </option>
             ))}
           </select>
@@ -529,6 +551,7 @@ export function InventoryPage() {
                   "SKU",
                   "Produto",
                   "Depósito",
+                  "Saldo total",
                   "Disponível",
                   "Reservado",
                   "Estoque Mín",
@@ -558,7 +581,7 @@ export function InventoryPage() {
               animate="show"
             >
               <AnimatePresence>
-                {filtered.map((row) => {
+                {loading ? <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: theme.textSecondary }}>Carregando inventário…</td></tr> : loadError ? <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: theme.danger }}>{loadError}</td></tr> : filtered.length === 0 ? <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: theme.textSecondary }}>Nenhum saldo encontrado para esta consulta.</td></tr> : filtered.map((row) => {
                 const sColor = statusColor(row.status);
                 const isExpanded = expanded === row.sku;
 
@@ -626,6 +649,9 @@ export function InventoryPage() {
                       >
                         {row.warehouse}
                       </td>
+                      <td style={{ padding: "16px", color: theme.textSecondary, fontFamily: "var(--font-jetbrains-mono)" }}>
+                        {row.quantity} {row.unit ?? "un"}
+                      </td>
                       <td
                         style={{
                           padding: "16px",
@@ -687,7 +713,7 @@ export function InventoryPage() {
                     {/* Tabela Expandida (Nested) */}
                     {isExpanded && (
                       <tr style={{ background: "rgba(0,0,0,0.4)" }}>
-                        <td colSpan={9} style={{ padding: 0 }}>
+                        <td colSpan={10} style={{ padding: 0 }}>
                           <div
                             style={{
                               padding: "24px 24px 24px 64px",
