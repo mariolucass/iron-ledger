@@ -1,0 +1,41 @@
+import { ArrowLeftRight, BarChart3, Bell, BookOpen, LayoutDashboard, Package, ScrollText, Settings, TrendingUp, Users, Warehouse } from "lucide-react";
+import type { NavigationItem } from "./types";
+
+export const navigationItems: NavigationItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", section: "Principal", shortcut: "⌘1" },
+  { icon: Package, label: "Estoque", path: "/inventory", section: "Principal", shortcut: "⌘2" },
+  { icon: Warehouse, label: "Armazéns", path: "/warehouses", section: "Principal", shortcut: "⌘3" },
+  { icon: ArrowLeftRight, label: "Transações", path: "/transactions", section: "Principal", shortcut: "⌘4" },
+  { icon: ScrollText, label: "Log de Auditoria", path: "/audit-log", section: "Análises", shortcut: "⌘5" },
+  { icon: TrendingUp, label: "Previsões", path: "/forecasting", section: "Análises", shortcut: "⌘6" },
+  { icon: BarChart3, label: "Relatórios", path: "/reports", section: "Análises", shortcut: "⌘7" },
+  { icon: Bell, label: "Alertas", path: "/alerts", section: "Análises", shortcut: "⌘8", badge: 3 },
+  { icon: Users, label: "Usuários", path: "/users", section: "Sistema", shortcut: "⌘9" },
+  { icon: Settings, label: "Configurações", path: "/settings", section: "Sistema" },
+  { icon: BookOpen, label: "Design System", path: "/design-system", section: "Sistema" },
+];
+
+export const navigationSections = Object.entries(
+  navigationItems.reduce<Record<string, NavigationItem[]>>((sections, item) => {
+    (sections[item.section] ??= []).push(item);
+    return sections;
+  }, {}),
+);
+
+export const pathLabels: Record<string, string> = {
+  dashboard: "Dashboard",
+  inventory: "Estoque",
+  warehouses: "Armazéns",
+  transactions: "Transações",
+  "audit-log": "Log de Auditoria",
+  forecasting: "Previsões",
+  reports: "Relatórios",
+  alerts: "Alertas",
+  users: "Usuários",
+  settings: "Configurações",
+  "design-system": "Design System",
+};
+
+export function isNavigationItemActive(pathname: string, path: string) {
+  return pathname === path || (path !== "/dashboard" && pathname.startsWith(`${path}/`));
+}

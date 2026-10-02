@@ -1,0 +1,47 @@
+services:
+  postgres:
+    restart: always
+    ports: !reset []
+
+  rabbitmq:
+    restart: always
+    ports: !reset []
+
+  redis:
+    restart: always
+    ports: !reset []
+
+  api-setup:
+    environment:
+      NODE_ENV: production
+    command: ["pnpm", "--dir", "apps/api", "prisma:deploy"]
+
+  api:
+    build:
+      target: production
+    environment:
+      NODE_ENV: production
+    restart: always
+    volumes: !reset []
+
+  kafka:
+    restart: always
+
+  temporal:
+    restart: always
+
+  temporal-ui:
+    restart: always
+
+  analytics:
+    restart: always
+    volumes: !override
+      - analytics_data:/app/data
+      - analytics_reports:/app/reports
+
+  jaeger:
+    restart: always
+
+volumes:
+  analytics_data:
+  analytics_reports:

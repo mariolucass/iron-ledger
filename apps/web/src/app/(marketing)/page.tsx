@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LandingPage } from "@/features/(marketing)/landing/ui/LandingPage";
+import { LandingPage } from "@/features/(marketing)/landing";
 
 export const metadata: Metadata = {
   title: "Iron Ledger - O Sistema Operacional Financeiro",

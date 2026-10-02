@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LoginPage } from "@/features/(identity)/auth/ui/LoginPage";
+import { LoginPage } from "@/features/(identity)/auth";
 
 export const metadata: Metadata = {
   title: "Entrar - Iron Ledger",

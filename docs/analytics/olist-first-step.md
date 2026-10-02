@@ -36,15 +36,16 @@ Os arquivos brutos e o banco derivado estao ignorados pelo Git.
 ## Execucao local
 
 ```bash
+# Na raiz do repositório: cria/reutiliza o .venv e instala os requirements
+npm run setup:python
+
+# Depois, no diretório do serviço
 cd services/analytics
-python -m venv .venv
-.venv/Scripts/activate
-pip install -r requirements.txt
-python -m src.cli run
-python main.py
+.venv/Scripts/python -m src.cli run
+.venv/Scripts/python main.py
 ```
 
-No Linux ou macOS, use `source .venv/bin/activate`.
+No Linux ou macOS, substitua `.venv/Scripts/python` por `.venv/bin/python`.
 
 O pipeline gera:
 

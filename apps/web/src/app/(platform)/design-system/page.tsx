@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DesignSystemPage } from "@/features/(platform)/design-system/ui/DesignSystemPage";
+import { DesignSystemPage } from "@/features/(platform)/design-system";
 
 export const metadata: Metadata = {
   title: "Design System - Iron Ledger",

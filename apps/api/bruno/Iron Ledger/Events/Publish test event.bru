@@ -1,0 +1,32 @@
+meta {
+  name: Publish test event
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseurl}}/events/test
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "eventName": "Demo.BrunoEvent",
+    "payload": {
+      "source": "bruno"
+    }
+  }
+}
+
+docs {
+  Publica uma mensagem no RabbitMQ e retorna 202. eventName deve começar com letra e conter somente letras, números e pontos; aggregateId é opcional; payload deve ser um objeto. Não use Inventory.StockUpdated para testes isolados, pois consumidores reais podem reagir a esse nome.
+}

@@ -1,0 +1,24 @@
+meta {
+  name: List stock
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseurl}}/inventory?page=1&pageSize=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  pageSize: 20
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Lista saldos de estoque. Filtros opcionais: sku e warehouseId (UUID). page começa em 1; pageSize aceita de 1 a 100. Copie o ID de um saldo para stockLevelId no ambiente antes de consultar movimentações ou criar reservas.
+}

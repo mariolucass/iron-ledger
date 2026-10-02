@@ -1,4 +1,4 @@
-/** Runtime references to the canonical tokens in `src/styles/theme.css`. Prefer Tailwind classes in JSX. */
+/** Runtime references to the canonical tokens in `src/app/globals.css`. Prefer Tailwind classes in JSX. */
 export const colors = {
   bg: "var(--background)",
   bgDeep: "var(--background-deep)",

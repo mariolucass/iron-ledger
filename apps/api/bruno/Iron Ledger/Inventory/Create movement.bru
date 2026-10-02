@@ -1,0 +1,34 @@
+meta {
+  name: Create movement
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseurl}}/inventory/movements
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "stockLevelId": "{{stockLevelId}}",
+    "type": "INBOUND",
+    "quantity": 1,
+    "referenceId": "BRUNO-DEMO",
+    "referenceType": "manual",
+    "notes": "Movimentação de exemplo pelo Bruno"
+  }
+}
+
+docs {
+  Altera o saldo real e publica um evento. Use somente com stockLevelId existente. type aceita INBOUND, OUTBOUND, ADJUSTMENT ou RETURN; quantity deve ser um número finito diferente de zero. referenceId, referenceType e notes são opcionais.
+}

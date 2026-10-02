@@ -34,7 +34,7 @@ import {
   dashboardRecentTransactions as recentTransactions,
   DashboardStockAlert as StockAlert,
   dashboardStockAlerts as stockAlerts,
-} from "@/features/(intelligence)/dashboard/model/dashboardData";
+} from "../model/dashboardData";
 
 // ─── Design Tokens (synchronized with Layout "Cryptix" theme) ────────────────
 
@@ -144,7 +144,7 @@ const quickActions = [
     soft: "rgba(248,113,113,0.12)",
     path: "/alerts",
   },
-];
+] as const;
 
 // ─── Sparkline Tooltip ────────────────────────────────────────────────────────
 function SparkTooltip({
@@ -194,8 +194,11 @@ function KpiCard({ kpi, index }: { kpi: KPI; index: number }) {
       transition={spring4}
       style={{
         background: hovered ? theme.surfaceElevated : theme.surface,
-        border: `1px solid ${hovered ? theme.borderStrong : theme.border}`,
-        borderLeft: `3px solid ${kpi.accentColor}`,
+        borderColor: hovered ? theme.borderStrong : theme.border,
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderLeftColor: kpi.accentColor,
+        borderLeftWidth: 3,
         borderRadius: 16,
         padding: "20px 22px",
         cursor: "default",
@@ -621,8 +624,11 @@ function AlertCard({ alert }: { alert: StockAlert }) {
       transition={spring4}
       style={{
         background: hovered ? `${cfg.color}08` : "transparent",
-        border: `1px solid ${hovered ? cfg.color + "30" : theme.border}`,
-        borderLeft: `3px solid ${cfg.color}`,
+        borderColor: hovered ? `${cfg.color}30` : theme.border,
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderLeftColor: cfg.color,
+        borderLeftWidth: 3,
         borderRadius: 12,
         padding: "14px 16px",
         transition: "background 0.2s ease, border-color 0.2s ease",

@@ -2,7 +2,7 @@
 
 import { colors as theme } from "@/shared/config/tokens";
 import { Calendar, Filter, Lock, Search, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerContainer, staggerItem, spring1 } from "@/shared/lib/animation";
 import { Layout } from "@/widgets/layout/Layout";
@@ -59,12 +59,13 @@ const resourceLabels: Record<string, string> = {
 };
 
 import {
-  AuditEntry,
+  type AuditEntry,
   actions,
-  auditEntries,
+  auditEntries as fallbackAuditEntries,
   beforeAfterData,
   resourceTypes,
-} from "@/features/(governance)/audit-log/model/auditData";
+} from "../model/auditData";
+import { fetchAuditEntries } from "../api/client";
 
 // 3. Sub-componentes
 function ActionBadge({ action }: { action: string }) {
@@ -214,6 +215,9 @@ function AuditDrawer({
 }) {
   const displayAction = actionLabels[entry.action] || entry.action;
   const displayResource = resourceLabels[entry.resource] || entry.resource;
+  const hasLiveDiff = entry.payload?.previousQuantity !== undefined && entry.payload?.resultingQuantity !== undefined;
+  const before = hasLiveDiff ? { quantity: entry.payload?.previousQuantity } : beforeAfterData.before;
+  const after = hasLiveDiff ? { quantity: entry.payload?.resultingQuantity } : beforeAfterData.after;
 
   return (
     <div
@@ -347,8 +351,8 @@ function AuditDrawer({
           {[
             { label: "Usuário", value: entry.user },
             { label: "Data/Hora", value: entry.ts },
-            { label: "Endereço IP", value: "10.0.1.42" },
-            { label: "User Agent", value: "Mozilla/5.0 (X11; Linux)" },
+            { label: "Evento", value: entry.eventName ?? "Evento de demonstração" },
+            { label: "Origem", value: entry.eventName ? "RabbitMQ" : "Dados de demonstração" },
             {
               label: "ID do Rastreio (Trace ID)",
               value: "trc-" + entry.corrId.slice(5),
@@ -391,8 +395,8 @@ function AuditDrawer({
         </div>
 
         <DiffViewer
-          before={beforeAfterData.before}
-          after={beforeAfterData.after}
+          before={before}
+          after={after}
         />
 
         <div
@@ -410,8 +414,8 @@ function AuditDrawer({
         >
           <Lock size={14} />
           <span>
-            Este registro criptográfico é imutável e verificado por meio de
-            anexo de log do Kafka.
+            Este registro é append-only e foi persistido a partir de um evento
+            de domínio consumido pelo módulo de auditoria.
           </span>
         </div>
       </motion.div>
@@ -424,10 +428,29 @@ export function AuditLogPage() {
   const [resourceType, setResourceType] = useState("Todos");
   const [action, setAction] = useState("Todas");
   const [corrSearch, setCorrSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [drawer, setDrawer] = useState<AuditEntry | null>(null);
+  const [entries, setEntries] = useState<AuditEntry[]>(fallbackAuditEntries);
+  const [dataSource, setDataSource] = useState<"loading" | "live" | "fallback">("loading");
+  const [dataMessage, setDataMessage] = useState("");
 
-  const filtered = auditEntries.filter(
-    (e) =>
+  useEffect(() => {
+    void fetchAuditEntries()
+      .then((liveEntries) => { setEntries(liveEntries); setDataSource("live"); })
+      .catch((error: unknown) => {
+        setEntries(fallbackAuditEntries);
+        setDataSource("fallback");
+        setDataMessage(error instanceof Error ? error.message : "Exibindo dados de demonstração.");
+      });
+  }, []);
+
+  const filtered = entries.filter((e) => {
+    const occurredAt = new Date(e.occurredAt ?? `${e.ts.replace(" ", "T")}Z`);
+    const matchesPeriod =
+      (!dateFrom || occurredAt >= new Date(`${dateFrom}T00:00:00`)) &&
+      (!dateTo || occurredAt <= new Date(`${dateTo}T23:59:59.999`));
+    return (
       (resourceType === "Todos" ||
         (resourceType === "Inventário" && e.resource === "Inventory") ||
         (resourceType === "Transação" && e.resource === "Transaction") ||
@@ -440,8 +463,10 @@ export function AuditLogPage() {
         (action === "DELETAR" && e.action === "DELETE") ||
         (action === "LOGIN" && e.action === "LOGIN") ||
         (action === "ALTERAR PERMISSÃO" && e.action === "PERMISSION_CHANGE")) &&
-      (corrSearch === "" || e.corrId.includes(corrSearch)),
-  );
+      (corrSearch === "" || e.corrId.includes(corrSearch)) &&
+      matchesPeriod
+    );
+  });
 
   const inputStyle = {
     background: theme.surface,
@@ -470,6 +495,12 @@ export function AuditLogPage() {
         ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.6; transition: 0.2s; }
         ::-webkit-calendar-picker-indicator:hover { opacity: 1; }
       `}</style>
+
+      {dataSource !== "live" && (
+        <div className="mb-4 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-xs text-warning">
+          {dataSource === "loading" ? "Conectando à API de auditoria…" : `Dados de demonstração · ${dataMessage}`}
+        </div>
+      )}
 
       {/* Control Bar (Filters) */}
       <div
@@ -565,7 +596,8 @@ export function AuditLogPage() {
           <Calendar size={14} color={theme.textSecondary} />
           <input
             type="date"
-            defaultValue="2026-06-01"
+            value={dateFrom}
+            onChange={(event) => setDateFrom(event.target.value)}
             style={{ ...inputStyle, cursor: "pointer" }}
             onFocus={inputFocus}
             onBlur={inputBlur}
@@ -573,7 +605,8 @@ export function AuditLogPage() {
           <span style={{ color: theme.textSecondary }}>-</span>
           <input
             type="date"
-            defaultValue="2026-06-09"
+            value={dateTo}
+            onChange={(event) => setDateTo(event.target.value)}
             style={{ ...inputStyle, cursor: "pointer" }}
             onFocus={inputFocus}
             onBlur={inputBlur}

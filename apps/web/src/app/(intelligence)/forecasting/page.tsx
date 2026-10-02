@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ForecastingPage } from "@/features/(intelligence)/forecasting/ui/ForecastingPage";
+import { ForecastingPage } from "@/features/(intelligence)/forecasting";
 
 export const metadata: Metadata = {
   title: "Previsoes com IA - Iron Ledger",

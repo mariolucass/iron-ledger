@@ -1,0 +1,21 @@
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  eventId       String   @unique @map("event_id")
+  eventName     String   @map("event_name")
+  occurredAt    DateTime @map("occurred_at")
+  actorId       String?  @db.Uuid @map("actor_id")
+  entityType    String   @map("entity_type")
+  entityId      String   @map("entity_id")
+  action        String
+  correlationId String?  @map("correlation_id")
+  payload       Json
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([eventName, occurredAt])
+  @@index([entityType, entityId])
+  @@index([actorId, occurredAt])
+  @@index([occurredAt])
+  @@map("audit_logs")
+}

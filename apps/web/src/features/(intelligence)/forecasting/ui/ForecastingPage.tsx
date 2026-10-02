@@ -27,8 +27,8 @@ import {
   generateData,
   periods,
   stockAlertsForecasting as stockAlerts,
-} from "@/features/(intelligence)/forecasting/model/forecastingData";
-import { mockWarehouses } from "@/features/(operations)/warehouses/model/warehousesData";
+} from "../model/forecastingData";
+import { mockWarehouses } from "@/features/(operations)/warehouses";
 
 const severityColor = {
   CRITICAL: { color: "#FF1A1A", bg: "rgba(255, 26, 26, 0.12)" },

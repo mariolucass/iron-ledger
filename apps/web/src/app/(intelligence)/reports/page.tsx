@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ReportsPage } from "@/features/(intelligence)/reports/ui/ReportsPage";
+import { ReportsPage } from "@/features/(intelligence)/reports";
 
 export const metadata: Metadata = {
   title: "Relatorios - Iron Ledger",
