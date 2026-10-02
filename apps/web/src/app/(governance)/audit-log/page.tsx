@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AuditLogPage } from "@/features/(governance)/audit-log/ui/AuditLogPage";
+import { AuditLogPage } from "@/features/(governance)/audit-log";
 
 export const metadata: Metadata = {
   title: "Log de Auditoria - Iron Ledger",

@@ -104,6 +104,7 @@ def migrate(connection: sqlite3.Connection) -> None:
             robust_score REAL NOT NULL,
             confidence REAL NOT NULL,
             severity TEXT NOT NULL,
+            classification TEXT,
             explanation TEXT NOT NULL,
             evidence TEXT NOT NULL,
             source TEXT NOT NULL,
@@ -114,4 +115,10 @@ def migrate(connection: sqlite3.Connection) -> None:
             ON inflection_points(severity, metric, detected_at DESC);
         """
     )
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(inflection_points)")
+    }
+    if "classification" not in columns:
+        connection.execute("ALTER TABLE inflection_points ADD COLUMN classification TEXT")
     connection.commit()

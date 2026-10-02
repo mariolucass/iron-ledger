@@ -4,6 +4,43 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+const demoWarehouses = [
+  {
+    id: "10000000-0000-4000-8000-000000000001",
+    code: "WH-CENTRO",
+    name: "Loja Centro",
+    address: "São Paulo, SP",
+  },
+  {
+    id: "10000000-0000-4000-8000-000000000002",
+    code: "WH-SUL",
+    name: "Estoque Sul",
+    address: "Curitiba, PR",
+  },
+  {
+    id: "10000000-0000-4000-8000-000000000003",
+    code: "WH-NORTE",
+    name: "Estoque Norte",
+    address: "Manaus, AM",
+  },
+] as const;
+
+const demoProducts = [
+  { id: "20000000-0000-4000-8000-000000000001", sku: "SKU-4821-A", name: "Tênis Esportivo Nike Air", minStock: 5, maxStock: 100, category: "Calçados" },
+  { id: "20000000-0000-4000-8000-000000000002", sku: "SKU-3910-B", name: "Camiseta de Algodão Premium", minStock: 15, maxStock: 300, category: "Vestuário" },
+  { id: "20000000-0000-4000-8000-000000000003", sku: "SKU-2201-C", name: "Jaqueta de Couro Sintético", minStock: 8, maxStock: 100, category: "Vestuário" },
+  { id: "20000000-0000-4000-8000-000000000004", sku: "SKU-1092-D", name: "Calça Jeans Slim Fit", minStock: 15, maxStock: 200, category: "Vestuário" },
+  { id: "20000000-0000-4000-8000-000000000005", sku: "SKU-7832-F", name: "Moletom com Capuz", minStock: 20, maxStock: 300, category: "Vestuário" },
+] as const;
+
+const demoStock = [
+  { product: 0, warehouse: 0, quantity: 3, reserved: 1 },
+  { product: 1, warehouse: 1, quantity: 10, reserved: 2 },
+  { product: 2, warehouse: 0, quantity: 3, reserved: 0 },
+  { product: 3, warehouse: 2, quantity: 17, reserved: 3 },
+  { product: 4, warehouse: 0, quantity: 142, reserved: 14 },
+] as const;
+
 async function main(): Promise<void> {
   const email = (process.env.SEED_ADMIN_EMAIL ?? "admin@ironledger.local").toLowerCase();
   const password = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
@@ -27,56 +64,108 @@ async function main(): Promise<void> {
     create: { userId: user.id, roleId: adminRole.id },
   });
 
-  const warehouseInputs = [
-    { code: "WH-CENTRO", name: "Loja Centro", address: "São Paulo, SP" },
-    { code: "WH-SUL", name: "Estoque Sul", address: "Curitiba, PR" },
-    { code: "WH-NORTE", name: "Estoque Norte", address: "Manaus, AM" },
-  ];
-  const warehouseByCode = new Map<string, string>();
-  for (const input of warehouseInputs) {
-    const warehouse = await prisma.warehouse.upsert({
-      where: { code: input.code },
-      update: { name: input.name, address: input.address, isActive: true },
-      create: input,
+  const warehousesByCode = new Map<string, { id: string }>();
+  for (const warehouse of demoWarehouses) {
+    const savedWarehouse = await prisma.warehouse.upsert({
+      where: { code: warehouse.code },
+      update: { name: warehouse.name, address: warehouse.address, isActive: true },
+      create: warehouse,
     });
-    warehouseByCode.set(input.code, warehouse.id);
+    warehousesByCode.set(warehouse.code, savedWarehouse);
   }
 
-  const productInputs = [
-    { sku: "SKU-4821-A", name: "Tênis Esportivo", unit: "par", minStock: 5 },
-    { sku: "SKU-3910-B", name: "Camiseta Premium", unit: "un", minStock: 15 },
-    { sku: "SKU-2201-C", name: "Jaqueta Urbana", unit: "un", minStock: 8 },
-    { sku: "SKU-1092-D", name: "Calça Jeans Slim", unit: "un", minStock: 15 },
-    { sku: "SKU-7832-F", name: "Moletom com Capuz", unit: "un", minStock: 20 },
-  ];
-  const productBySku = new Map<string, string>();
-  for (const input of productInputs) {
-    const product = await prisma.product.upsert({
-      where: { sku: input.sku },
-      update: { name: input.name, unit: input.unit, minStock: input.minStock, isActive: true, deletedAt: null },
-      create: input,
+  const productsBySku = new Map<string, { id: string }>();
+  for (const product of demoProducts) {
+    const savedProduct = await prisma.product.upsert({
+      where: { sku: product.sku },
+      update: {
+        name: product.name,
+        minStock: product.minStock,
+        maxStock: product.maxStock,
+        metadata: { category: product.category },
+        isActive: true,
+        deletedAt: null,
+      },
+      create: {
+        id: product.id,
+        sku: product.sku,
+        name: product.name,
+        minStock: product.minStock,
+        maxStock: product.maxStock,
+        metadata: { category: product.category },
+      },
     });
-    productBySku.set(input.sku, product.id);
+    productsBySku.set(product.sku, savedProduct);
   }
 
-  const balances: [string, string, number, number][] = [
-    ["SKU-4821-A", "WH-CENTRO", 3, 1], ["SKU-4821-A", "WH-SUL", 12, 0],
-    ["SKU-3910-B", "WH-SUL", 10, 2], ["SKU-3910-B", "WH-NORTE", 32, 0],
-    ["SKU-2201-C", "WH-CENTRO", 3, 0], ["SKU-2201-C", "WH-NORTE", 11, 1],
-    ["SKU-1092-D", "WH-NORTE", 17, 3], ["SKU-1092-D", "WH-SUL", 28, 0],
-    ["SKU-7832-F", "WH-CENTRO", 142, 14], ["SKU-7832-F", "WH-SUL", 65, 5],
-  ];
-  for (const [sku, warehouseCode, quantity, reserved] of balances) {
-    const productId = productBySku.get(sku)!;
-    const warehouseId = warehouseByCode.get(warehouseCode)!;
+  for (const [index, stock] of demoStock.entries()) {
+    const productConfig = demoProducts[stock.product];
+    const warehouseConfig = demoWarehouses[stock.warehouse];
+    const product = productsBySku.get(productConfig.sku);
+    const warehouse = warehousesByCode.get(warehouseConfig.code);
+    if (!product || !warehouse) throw new Error("Falha ao resolver a massa de demonstração.");
     await prisma.stockLevel.upsert({
-      where: { productId_warehouseId: { productId, warehouseId } },
-      update: { quantity, reserved },
-      create: { productId, warehouseId, quantity, reserved },
+      where: {
+        productId_warehouseId: {
+          productId: product.id,
+          warehouseId: warehouse.id,
+        },
+      },
+      update: { quantity: stock.quantity, reserved: stock.reserved },
+      create: {
+        id: `30000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+        productId: product.id,
+        warehouseId: warehouse.id,
+        quantity: stock.quantity,
+        reserved: stock.reserved,
+      },
+    });
+
+    if (stock.reserved > 0) {
+      await prisma.stockReservation.upsert({
+        where: { id: `40000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}` },
+        update: { quantity: stock.reserved, status: "ACTIVE" },
+        create: {
+          id: `40000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+          productId: product.id,
+          warehouseId: warehouse.id,
+          quantity: stock.reserved,
+        },
+      });
+    }
+  }
+
+  const demoMovements = [
+    { id: "50000000-0000-4000-8000-000000000001", product: 0, warehouse: 0, type: "OUTBOUND" as const, quantity: 3, previousQty: 6, resultingQty: 3, referenceId: "TXN-00483910", createdAt: new Date("2026-06-09T14:32:00Z") },
+    { id: "50000000-0000-4000-8000-000000000002", product: 0, warehouse: 0, type: "INBOUND" as const, quantity: 5, previousQty: 1, resultingQty: 6, referenceId: "TXN-00483905", createdAt: new Date("2026-06-08T10:15:00Z") },
+    { id: "50000000-0000-4000-8000-000000000003", product: 0, warehouse: 0, type: "ADJUSTMENT" as const, quantity: -1, previousQty: 2, resultingQty: 1, referenceId: "ADJ-00000821", createdAt: new Date("2026-06-07T09:00:00Z") },
+  ];
+
+  for (const movement of demoMovements) {
+    const product = productsBySku.get(demoProducts[movement.product].sku);
+    const warehouse = warehousesByCode.get(demoWarehouses[movement.warehouse].code);
+    if (!product || !warehouse) throw new Error("Falha ao resolver a massa de demonstração.");
+    await prisma.stockMovement.upsert({
+      where: { id: movement.id },
+      update: {},
+      create: {
+        id: movement.id,
+        productId: product.id,
+        warehouseId: warehouse.id,
+        type: movement.type,
+        quantity: movement.quantity,
+        previousQty: movement.previousQty,
+        resultingQty: movement.resultingQty,
+        referenceId: movement.referenceId,
+        referenceType: movement.type === "ADJUSTMENT" ? "ADJUSTMENT" : "TRANSACTION",
+        performedBy: user.id,
+        createdAt: movement.createdAt,
+      },
     });
   }
 
-  console.log(`Usuário inicial e inventário de demonstração criados/atualizados: ${email}`);
+  console.log(`Usuário inicial criado/atualizado: ${email}`);
+  console.log(`${demoWarehouses.length} depósitos, ${demoProducts.length} produtos e ${demoStock.length} saldos preparados para demonstração.`);
 }
 
 main()

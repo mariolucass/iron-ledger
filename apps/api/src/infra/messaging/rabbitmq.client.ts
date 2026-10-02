@@ -34,6 +34,39 @@ export class RabbitMqClient {
     if (!accepted) await new Promise<void>((resolve) => this.channel?.once("drain", resolve));
   }
 
+  async subscribe(
+    queue: string,
+    bindingKey: string,
+    handler: (event: DomainEvent) => Promise<void>,
+  ): Promise<void> {
+    if (!this.channel) throw new Error("RabbitMQ não conectado");
+    const channel = this.channel;
+    await channel.assertQueue(queue, { durable: true });
+    await channel.bindQueue(queue, this.exchange, bindingKey);
+    await channel.prefetch(10);
+    await channel.consume(queue, (message) => {
+      if (!message) return;
+      let event: DomainEvent;
+      try {
+        event = JSON.parse(message.content.toString("utf8")) as DomainEvent;
+        if (!event.eventId || !event.eventName || !event.occurredAt || !event.payload) {
+          throw new Error("Evento de domínio inválido");
+        }
+      } catch (error) {
+        console.error("Evento inválido descartado da fila", error);
+        channel.ack(message);
+        return;
+      }
+
+      void handler(event)
+        .then(() => channel.ack(message))
+        .catch((error) => {
+          console.error(`Falha ao consumir ${event.eventName}`, error);
+          channel.nack(message, false, true);
+        });
+    });
+  }
+
   async close(): Promise<void> {
     await this.channel?.close();
     await this.connection?.close();

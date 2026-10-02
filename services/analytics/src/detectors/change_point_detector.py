@@ -47,6 +47,14 @@ def _severity(score: float, relative_effect: float) -> str:
     return "LOW"
 
 
+def _classification(previous: float, current: float, floor: float) -> str:
+    if previous <= 0 < current:
+        return "ACTIVATION"
+    if current <= floor or (previous > 0 and current <= previous * 0.20):
+        return "POSSIBLE_INTERRUPTION"
+    return "GROWTH" if current > previous else "DECLINE"
+
+
 def _weeks(start: date, end: date):
     current = start
     while current <= end:
@@ -107,7 +115,9 @@ def detect_inflection_points(
                     continue
 
                 prior_values = [float(value) for value in prior if value is not None]
-                current_values = [float(value) for value in current_window if value is not None]
+                current_values = [
+                    float(value) for value in current_window if value is not None
+                ]
                 previous_value = median(prior_values)
                 current_value = median(current_values)
                 absolute_change = current_value - previous_value
@@ -118,7 +128,9 @@ def detect_inflection_points(
                 if rule.zero_fill and previous_value <= 0:
                     continue
 
-                relative_effect = abs(absolute_change) / max(abs(previous_value), rule.floor)
+                relative_effect = abs(absolute_change) / max(
+                    abs(previous_value), rule.floor
+                )
                 robust_scale = max(1.4826 * _mad(prior_values), rule.floor)
                 robust_score = abs(absolute_change) / robust_scale
 
@@ -200,7 +212,10 @@ def detect_inflection_points(
                     score,
                     confidence,
                     _severity(score, relative_effect),
-                    _explanation(rule.label, previous_value, current_value, current_weeks),
+                    _classification(previous_value, current_value, rule.floor),
+                    _explanation(
+                        rule.label, previous_value, current_value, current_weeks
+                    ),
                     evidence,
                     "OLIST",
                 )
@@ -214,8 +229,8 @@ def detect_inflection_points(
                 id, event_name, detected_at, entity_type, entity_id, seller_id,
                 product_category, metric, previous_value, current_value,
                 absolute_change, change_percentage, robust_score, confidence,
-                severity, explanation, evidence, source
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                severity, classification, explanation, evidence, source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             results,
         )

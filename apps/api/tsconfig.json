@@ -1,17 +1,36 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
     "rootDir": "src",
     "outDir": "dist",
+
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+
     "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": false,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+
     "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "sourceMap": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+
+    "sourceMap": true,
+
+    "types": ["node", "vitest/globals"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "prisma.config.ts"]
 }

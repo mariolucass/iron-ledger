@@ -8,7 +8,6 @@ from src.config import database_path
 from src.repository import get_inflection_point, list_inflection_points, summary
 from src.storage import connect
 
-
 app = FastAPI(
     title="Iron Ledger Analytics",
     version="0.1.0",
@@ -61,6 +60,13 @@ def inflection_point(point_id: str) -> dict[str, object]:
 
 
 def run() -> None:
+    import os
+
     import uvicorn
 
-    uvicorn.run("src.api.server:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run(
+        "src.api.server:app",
+        host="0.0.0.0",
+        port=int(os.getenv("ANALYTICS_PORT", "8000")),
+        reload=False,
+    )

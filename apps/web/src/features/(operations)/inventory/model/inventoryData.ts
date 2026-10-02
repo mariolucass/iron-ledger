@@ -1,4 +1,5 @@
 export interface InventoryItem {
+  stockLevelId?: string;
   sku: string;
   product: string;
   warehouse: string;

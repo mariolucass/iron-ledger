@@ -1,0 +1,20 @@
+meta {
+  name: List points
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseurl}}/analytics/inflection-points?limit=100&offset=0
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 100
+  offset: 0
+}
+
+docs {
+  Lista pontos de inflexão. Filtros opcionais na query: seller_id, metric e severity (LOW, MEDIUM, HIGH ou CRITICAL). limit aceita de 1 a 500; offset deve ser não negativo. Copie o id de um item para pointId no ambiente.
+}

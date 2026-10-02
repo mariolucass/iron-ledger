@@ -1,8 +1,18 @@
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+
+@source "../**/*.{js,ts,jsx,tsx}";
+
 @custom-variant dark (&:is(.dark *));
 
-/* Iron Ledger design tokens: single source of truth for the visual theme. */
 :root {
   --font-size: 16px;
+  --font-dm-sans: Arial, Helvetica, sans-serif;
+  --font-instrument-serif: Georgia, "Times New Roman", serif;
+  --font-jetbrains-mono-next: Consolas, "Courier New", monospace;
+  --font-manrope: var(--font-dm-sans), sans-serif;
+  --font-dm-serif-display: var(--font-instrument-serif), serif;
+  --font-jetbrains-mono: var(--font-jetbrains-mono-next), monospace;
   --background: #080808;
   --background-deep: #050505;
   --panel: #0b0c0b;
@@ -66,10 +76,14 @@
   --sidebar-ring: #00e5a0;
 }
 
-.dark { color-scheme: dark; }
+.dark {
+  color-scheme: dark;
+}
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-deep: var(--background-deep);
+  --color-panel: var(--panel);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-elevated: var(--card-elevated);
@@ -80,6 +94,8 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
+  --color-primary-glow: var(--primary-glow);
+  --color-primary-border: var(--primary-border);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -90,12 +106,15 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-glow: var(--destructive-glow);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+  --color-warning-glow: var(--warning-glow);
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-info-glow: var(--info-glow);
   --color-info-foreground: var(--info-foreground);
   --color-purple: var(--purple);
   --color-purple-soft: var(--purple-soft);
@@ -114,6 +133,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-manrope);
+  --font-serif: var(--font-dm-serif-display);
+  --font-mono: var(--font-jetbrains-mono);
   --shadow-card: var(--elevation-card);
   --shadow-elevated: var(--elevation-elevated);
   --color-sidebar: var(--sidebar);
@@ -134,10 +156,10 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   html { font-size: var(--font-size); color-scheme: dark; }
-  body { @apply bg-background text-foreground; }
-  h1 { font-size: var(--text-2xl); font-weight: var(--font-weight-medium); line-height: 1.5; }
-  h2 { font-size: var(--text-xl); font-weight: var(--font-weight-medium); line-height: 1.5; }
-  h3 { font-size: var(--text-lg); font-weight: var(--font-weight-medium); line-height: 1.5; }
-  h4, label, button { font-size: var(--text-base); font-weight: var(--font-weight-medium); line-height: 1.5; }
-  input { font-size: var(--text-base); font-weight: var(--font-weight-normal); line-height: 1.5; }
+  body { @apply bg-background font-sans text-foreground; }
+  h1 { @apply text-2xl leading-normal font-medium; }
+  h2 { @apply text-xl leading-normal font-medium; }
+  h3 { @apply text-lg leading-normal font-medium; }
+  h4, label, button { @apply text-base leading-normal font-medium; }
+  input { @apply text-base leading-normal font-normal; }
 }

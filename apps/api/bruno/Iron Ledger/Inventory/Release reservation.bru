@@ -1,0 +1,19 @@
+meta {
+  name: Release reservation
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseurl}}/inventory/reservations/{{reservationId}}/release
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Substitua reservationId pelo UUID de uma reserva ativa. Esta operação libera o estoque reservado.
+}

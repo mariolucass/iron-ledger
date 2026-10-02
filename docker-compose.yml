@@ -1,78 +1,209 @@
 name: iron-ledger
 
+x-service-defaults: &service-defaults
+  init: true
+  restart: unless-stopped
+  stop_grace_period: 30s
+
+x-node-build: &node-build
+  context: .
+  dockerfile: infra/docker/api.Dockerfile
+
 services:
   postgres:
+    <<: *service-defaults
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: iron_ledger
-      POSTGRES_USER: iron_ledger
-      POSTGRES_PASSWORD: iron_ledger
+      POSTGRES_DB: ${POSTGRES_DB:-iron_ledger}
+      POSTGRES_USER: ${POSTGRES_USER:-iron_ledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iron_ledger}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U iron_ledger -d iron_ledger"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 10s
+    networks: [data, app]
 
   rabbitmq:
+    <<: *service-defaults
     image: rabbitmq:3.13-management-alpine
     environment:
-      RABBITMQ_DEFAULT_USER: iron_ledger
-      RABBITMQ_DEFAULT_PASS: iron_ledger
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-iron_ledger}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-iron_ledger}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 20s
+    networks: [messaging, app]
 
   redis:
+    <<: *service-defaults
     image: redis:7.4-alpine
-    command: redis-server --appendonly yes
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 5s
+    networks: [data, app]
+
+  # Migrations and seed run once, independently from API replicas.
+  api-setup:
+    build:
+      <<: *node-build
+      target: development
+    restart: "no"
+    environment: &api-environment
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-iron_ledger}:${POSTGRES_PASSWORD:-iron_ledger}@postgres:5432/${POSTGRES_DB:-iron_ledger}?schema=public
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-iron_ledger}:${RABBITMQ_PASSWORD:-iron_ledger}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-before-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@ironledger.local}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe123!}
+    command: ["sh", "-c", "pnpm --dir apps/api prisma:deploy && pnpm --dir apps/api prisma:seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [data]
 
   api:
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: infra/docker/api.Dockerfile
+      <<: *node-build
       target: development
-    environment:
-      NODE_ENV: development
-      PORT: 3000
-      DATABASE_URL: postgresql://iron_ledger:iron_ledger@postgres:5432/iron_ledger?schema=public
-      RABBITMQ_URL: amqp://iron_ledger:iron_ledger@rabbitmq:5672
-      JWT_SECRET: local-development-secret-change-before-production
-      JWT_EXPIRES_IN: 1h
-      SEED_ADMIN_EMAIL: admin@ironledger.local
-      SEED_ADMIN_PASSWORD: ChangeMe123!
+    environment: *api-environment
     ports:
-      - "3000:3000"
+      - "${API_PORT:-3000}:3000"
     volumes:
       - ./apps/api/src:/workspace/apps/api/src
       - ./apps/api/prisma:/workspace/apps/api/prisma
     depends_on:
-      postgres:
-        condition: service_healthy
+      api-setup:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
-    command: sh -c "pnpm --dir apps/api prisma:deploy && pnpm --dir apps/api prisma:seed && pnpm --dir apps/api dev"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks: [app, data, messaging]
+
+  # Optional event-streaming infrastructure: --profile platform
+  kafka:
+    <<: *service-defaults
+    profiles: ["platform"]
+    image: apache/kafka:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:29092,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:${KAFKA_PORT:-9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    networks: [messaging]
+
+  temporal:
+    <<: *service-defaults
+    profiles: ["platform"]
+    image: temporalio/auto-setup:1.27.2
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-iron_ledger}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-iron_ledger}
+      POSTGRES_SEEDS: postgres
+      BIND_ON_IP: 0.0.0.0
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/docker.yaml
+    ports:
+      - "${TEMPORAL_PORT:-7233}:7233"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 45s
+    networks: [app, data]
+
+  temporal-ui:
+    <<: *service-defaults
+    profiles: ["platform"]
+    image: temporalio/ui:2.34.0
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:${WEB_PORT:-3001}
+    ports:
+      - "${TEMPORAL_UI_PORT:-8088}:8080"
+    depends_on:
+      temporal:
+        condition: service_healthy
+    networks: [app]
+
+  temporal-worker:
+    <<: *service-defaults
+    profiles: ["worker"]
+    build:
+      context: .
+      dockerfile: infra/docker/temporal-worker.Dockerfile
+      target: development
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE:-iron-ledger-tasks}
+      API_URL: http://host.docker.internal:${API_PORT:-3000}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@ironledger.local}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe123!}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./apps/temporal-worker/src:/workspace/apps/temporal-worker/src
+    depends_on:
+      temporal:
+        condition: service_healthy
+    networks: [app]
 
   analytics:
+    <<: *service-defaults
     profiles: ["analytics"]
     build:
       context: .
@@ -80,12 +211,39 @@ services:
     environment:
       ANALYTICS_DATABASE_PATH: /app/data/processed/analytics.db
     ports:
-      - "8000:8000"
+      - "${ANALYTICS_PORT:-8000}:8000"
     volumes:
       - ./services/analytics/data:/app/data
       - ./services/analytics/reports:/app/reports
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks: [app]
+
+  jaeger:
+    <<: *service-defaults
+    profiles: ["observability"]
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${OTEL_GRPC_PORT:-4317}:4317"
+      - "${OTEL_HTTP_PORT:-4318}:4318"
+    networks: [app]
+
+networks:
+  app:
+  data:
+    internal: true
+  messaging:
+    internal: true
 
 volumes:
   postgres_data:
   rabbitmq_data:
   redis_data:
+  kafka_data:

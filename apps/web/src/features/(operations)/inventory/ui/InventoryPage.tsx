@@ -15,10 +15,15 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerContainer, staggerItem, spring1 } from "@/shared/lib/animation";
 import {
-  InventoryItem,
-  movementHistory,
-} from "@/features/(operations)/inventory/model/inventoryData";
+  type InventoryItem,
+  type Movement,
+  inventoryData as fallbackInventory,
+  movementHistory as fallbackMovements,
+  warehouses as fallbackWarehouses,
+} from "../model/inventoryData";
 import { Layout } from "@/widgets/layout/Layout";
+import { fetchInventory, fetchMovements, fetchWarehouses } from "../api/client";
+import { MovementDialog } from "./components/MovementDialog";
 
 // 1. Tema "Cryptix" Integrado
 
@@ -53,9 +58,11 @@ const movColor = (type: string) => {
 
 function InventoryDrawer({
   item,
+  movements,
   onClose,
 }: {
   item: InventoryItem;
+  movements: Movement[];
   onClose: () => void;
 }) {
   return (
@@ -252,7 +259,7 @@ function InventoryDrawer({
             Histórico de Movimentações
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {(movementHistory[item.sku] ?? []).length === 0 ? (
+            {movements.length === 0 ? (
               <div
                 style={{
                   color: theme.textSecondary,
@@ -266,7 +273,7 @@ function InventoryDrawer({
                 Nenhuma movimentação recente encontrada.
               </div>
             ) : (
-              (movementHistory[item.sku] ?? []).map((m, i) => {
+              movements.map((m, i) => {
                 const colors = movColor(m.type);
                 return (
                   <div
@@ -332,6 +339,7 @@ function InventoryDrawer({
         </div>
 
         <button
+          onClick={() => window.location.assign("/audit-log")}
           style={{
             marginTop: "auto",
             background: theme.surface,
@@ -376,27 +384,47 @@ export function InventoryPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<InventoryItem | null>(null);
+  const [items, setItems] = useState<InventoryItem[]>(fallbackInventory);
+  const [warehouseOptions, setWarehouseOptions] = useState(fallbackWarehouses);
+  const [movements, setMovements] = useState<Record<string, Movement[]>>(fallbackMovements);
+  const [dataSource, setDataSource] = useState<"loading" | "live" | "fallback">("loading");
+  const [dataMessage, setDataMessage] = useState("");
+  const [movementDialogOpen, setMovementDialogOpen] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
-    fetch(`${apiUrl}/inventory`)
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Não foi possível consultar o inventário.");
-        return response.json();
-      })
-      .then((result: { data: InventoryItem[]; warehouses: { id: string; name: string }[] }) => {
-        if (!active) return;
-        setInventoryData(result.data);
-        setWarehouseOptions(result.warehouses);
-        setLoadError(null);
-      })
-      .catch(() => { if (active) setLoadError("Não foi possível carregar os saldos. Verifique se a API está disponível."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
+  const loadInventory = async () => {
+    try {
+      const [liveItems, liveWarehouses] = await Promise.all([fetchInventory(), fetchWarehouses()]);
+      setItems(liveItems);
+      setWarehouseOptions(liveWarehouses);
+      setMovements({});
+      setDataSource("live");
+      return true;
+    } catch (error) {
+      setItems(fallbackInventory);
+      setWarehouseOptions(fallbackWarehouses);
+      setMovements(fallbackMovements);
+      setDataSource("fallback");
+      setDataMessage(error instanceof Error ? error.message : "Exibindo dados de demonstração.");
+      return false;
+    }
+  };
 
-  const filtered = inventoryData.filter(
+  useEffect(() => { void loadInventory(); }, []);
+
+  const toggleExpanded = async (row: InventoryItem) => {
+    if (expanded === row.sku) { setExpanded(null); return; }
+    setExpanded(row.sku);
+    if (dataSource === "live" && row.stockLevelId && !movements[row.sku]) {
+      try {
+        const history = await fetchMovements(row.stockLevelId);
+        setMovements((current) => ({ ...current, [row.sku]: history }));
+      } catch (error) {
+        setDataMessage(error instanceof Error ? error.message : "Não foi possível carregar os movimentos.");
+      }
+    }
+  };
+
+  const filtered = items.filter(
     (r) =>
       (warehouse === "all" || r.warehouseId === warehouse) &&
       (r.sku.toLowerCase().includes(search.toLowerCase()) ||
@@ -428,6 +456,9 @@ export function InventoryPage() {
         @keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
+
+      {dataSource !== "live" && <div className="mb-4 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-xs text-warning">{dataSource === "loading" ? "Conectando à API de inventário…" : `Dados de demonstração · ${dataMessage}`}</div>}
+      {dataSource === "live" && dataMessage && <div className="mb-4 rounded-lg border border-primary/30 bg-primary-soft px-4 py-3 text-xs text-primary">{dataMessage}</div>}
 
       {/* Top bar / Controls */}
       <div
@@ -484,10 +515,9 @@ export function InventoryPage() {
             onFocus={inputFocus}
             onBlur={inputBlur}
           >
-            <option value="all" style={{ background: theme.bg }}>Todos os depósitos</option>
             {warehouseOptions.map((w) => (
-              <option key={w.id} value={w.id} style={{ background: theme.bg }}>
-                {w.name}
+              <option key={w} value={w} style={{ background: theme.bg }}>
+                {w}
               </option>
             ))}
           </select>
@@ -495,6 +525,9 @@ export function InventoryPage() {
 
         {/* CTA Neon */}
         <button
+          type="button"
+          onClick={() => setMovementDialogOpen(true)}
+          disabled={dataSource !== "live" || items.length === 0}
           style={{
             display: "flex",
             alignItems: "center",
@@ -506,7 +539,8 @@ export function InventoryPage() {
             padding: "10px 20px",
             fontSize: 13,
             fontWeight: 700,
-            cursor: "pointer",
+            cursor: dataSource === "live" ? "pointer" : "not-allowed",
+            opacity: dataSource === "live" ? 1 : 0.55,
             boxShadow: `0 0 16px ${theme.accentGlow}`,
             transition: "transform 0.2s",
           }}
@@ -581,7 +615,14 @@ export function InventoryPage() {
               animate="show"
             >
               <AnimatePresence>
-                {loading ? <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: theme.textSecondary }}>Carregando inventário…</td></tr> : loadError ? <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: theme.danger }}>{loadError}</td></tr> : filtered.length === 0 ? <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: theme.textSecondary }}>Nenhum saldo encontrado para esta consulta.</td></tr> : filtered.map((row) => {
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={9} style={{ padding: 40, textAlign: "center", color: theme.textSecondary }}>
+                      Nenhum saldo de estoque encontrado para os filtros informados.
+                    </td>
+                  </tr>
+                )}
+                {filtered.map((row) => {
                 const sColor = statusColor(row.status);
                 const isExpanded = expanded === row.sku;
 
@@ -599,7 +640,7 @@ export function InventoryPage() {
                         cursor: "pointer",
                         transition: "background 0.15s",
                       }}
-                      onClick={() => setExpanded(isExpanded ? null : row.sku)}
+                      onClick={() => void toggleExpanded(row)}
                       onMouseOver={(e) => {
                         if (!isExpanded)
                           e.currentTarget.style.background = theme.surfaceHover;
@@ -809,7 +850,7 @@ export function InventoryPage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {(movementHistory[row.sku] ?? []).map(
+                                {(movements[row.sku] ?? []).map(
                                   (m, i) => {
                                     const c = movColor(m.type);
                                     return (
@@ -818,7 +859,7 @@ export function InventoryPage() {
                                         style={{
                                           borderBottom:
                                             i ===
-                                            (movementHistory[row.sku] ?? [])
+                                            (movements[row.sku] ?? [])
                                               .length -
                                               1
                                               ? "none"
@@ -901,8 +942,11 @@ export function InventoryPage() {
 
       <AnimatePresence>
         {drawer && (
-          <InventoryDrawer item={drawer} onClose={() => setDrawer(null)} />
+          <InventoryDrawer item={drawer} movements={movements[drawer.sku] ?? []} onClose={() => setDrawer(null)} />
         )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {movementDialogOpen && <MovementDialog items={items} onClose={() => setMovementDialogOpen(false)} onSuccess={async (message) => { await loadInventory(); setMovements({}); setDataMessage(message); }} />}
       </AnimatePresence>
     </Layout>
   );

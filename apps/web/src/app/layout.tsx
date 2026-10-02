@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { dmSans, instrumentSerif } from "@/shared/config/font";
-import "../styles/index.css";
+import { fontFamilyClass } from "@/shared/config/font";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Iron Ledger - O Sistema Operacional Financeiro",
@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${dmSans.variable} ${instrumentSerif.variable}`}>
+      <body className={fontFamilyClass}>
         {children}
       </body>
     </html>

@@ -18,11 +18,14 @@ export const actions = [
 
 export interface AuditEntry {
   ts: string;
+  occurredAt?: string;
   user: string;
   action: string;
   resource: string;
   resourceId: string;
   corrId: string;
+  eventName?: string;
+  payload?: Record<string, unknown>;
 }
 
 export const auditEntries: AuditEntry[] = [

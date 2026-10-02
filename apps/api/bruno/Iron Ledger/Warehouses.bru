@@ -1,0 +1,19 @@
+meta {
+  name: Warehouses
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseurl}}/warehouses
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Rota de depósitos no nível raiz. Retorna os mesmos dados de GET /inventory/warehouses.
+}

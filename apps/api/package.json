@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/main.js",
     "test": "vitest run",
     "prisma:generate": "prisma generate",
@@ -13,9 +14,11 @@
     "prisma:seed": "prisma db seed"
   },
   "prisma": {
+    "schema": "prisma",
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@temporalio/client": "1.24.0",
     "@prisma/client": "^5.0.0",
     "amqplib": "^0.10.4",
     "bcryptjs": "^2.4.3",

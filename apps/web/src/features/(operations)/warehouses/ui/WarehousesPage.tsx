@@ -22,7 +22,7 @@ import { Layout } from "@/widgets/layout/Layout";
 
 // 1. Tema "Cryptix" Integrado
 
-import { Warehouse, mockWarehouses } from "@/features/(operations)/warehouses/model/warehousesData";
+import { mockWarehouses, type Warehouse } from "../model/warehousesData";
 
 // Utilitários Visuais
 const getStatusColor = (status: Warehouse["status"]) => {

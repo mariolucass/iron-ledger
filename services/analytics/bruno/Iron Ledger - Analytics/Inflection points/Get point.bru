@@ -1,0 +1,15 @@
+meta {
+  name: Get point
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseurl}}/analytics/inflection-points/{{pointId}}
+  body: none
+  auth: none
+}
+
+docs {
+  Consulta um ponto de inflexão pelo id retornado na listagem. Retorna 404 quando não existe.
+}

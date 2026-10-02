@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { InventoryPage } from "@/features/(operations)/inventory/ui/InventoryPage";
+import { InventoryPage } from "@/features/(operations)/inventory";
 
 export const metadata: Metadata = {
   title: "Estoque - Iron Ledger",

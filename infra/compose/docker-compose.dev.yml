@@ -1,0 +1,14 @@
+services:
+  api:
+    build:
+      target: development
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/api/src:/workspace/apps/api/src
+      - ./apps/api/prisma:/workspace/apps/api/prisma
+
+  analytics:
+    volumes:
+      - ./services/analytics/data:/app/data
+      - ./services/analytics/reports:/app/reports

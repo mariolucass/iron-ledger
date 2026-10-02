@@ -1,0 +1,30 @@
+meta {
+  name: Create reservation
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseurl}}/inventory/reservations
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "stockLevelId": "{{stockLevelId}}",
+    "quantity": 1
+  }
+}
+
+docs {
+  Reserva uma unidade de um saldo existente. quantity deve ser positivo; transactionId (UUID) e expiresAt (data ISO) são opcionais. A resposta contém o ID da reserva para usar em Release reservation.
+}

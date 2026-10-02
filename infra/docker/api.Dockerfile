@@ -1,29 +1,43 @@
+# syntax=docker/dockerfile:1.7
 FROM node:20-alpine AS base
-RUN corepack enable
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN apk add --no-cache openssl \
+    && corepack enable
 WORKDIR /workspace
 
 FROM base AS dependencies
-COPY package.json pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
-RUN pnpm install --filter @iron-ledger/api... --no-frozen-lockfile
+COPY apps/temporal-worker/package.json apps/temporal-worker/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/event-bus/package.json packages/event-bus/package.json
+COPY packages/logger/package.json packages/logger/package.json
+COPY packages/shared-types/package.json packages/shared-types/package.json
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --filter @iron-ledger/api... --frozen-lockfile
 
 FROM dependencies AS development
+ENV NODE_ENV=development
 COPY apps/api apps/api
+RUN pnpm --dir apps/api prisma:generate
 EXPOSE 3000
-CMD ["pnpm", "--filter", "@iron-ledger/api", "dev"]
+CMD ["pnpm", "--dir", "apps/api", "dev"]
 
 FROM dependencies AS build
 COPY apps/api apps/api
-RUN pnpm --filter @iron-ledger/api prisma:generate && pnpm --filter @iron-ledger/api build
+RUN pnpm --dir apps/api prisma:generate && pnpm --dir apps/api build
 
 FROM node:20-alpine AS production
-RUN corepack enable
-WORKDIR /workspace
 ENV NODE_ENV=production
-COPY --from=build /workspace/node_modules ./node_modules
-COPY --from=build /workspace/apps/api/node_modules ./apps/api/node_modules
-COPY --from=build /workspace/apps/api/package.json ./apps/api/package.json
-COPY --from=build /workspace/apps/api/prisma ./apps/api/prisma
-COPY --from=build /workspace/apps/api/dist ./apps/api/dist
+WORKDIR /workspace
+RUN apk add --no-cache dumb-init openssl
+COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
+COPY --from=build --chown=node:node /workspace/apps/api/node_modules ./apps/api/node_modules
+COPY --from=build --chown=node:node /workspace/apps/api/package.json ./apps/api/package.json
+COPY --from=build --chown=node:node /workspace/apps/api/prisma ./apps/api/prisma
+COPY --from=build --chown=node:node /workspace/apps/api/dist ./apps/api/dist
+USER node
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm --dir apps/api prisma:deploy && node apps/api/dist/main.js"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "apps/api/dist/main.js"]

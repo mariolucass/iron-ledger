@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WarehousesPage } from "@/features/(operations)/warehouses/ui/WarehousesPage";
+import { WarehousesPage } from "@/features/(operations)/warehouses";
 
 export const metadata: Metadata = {
   title: "Armazens - Iron Ledger",

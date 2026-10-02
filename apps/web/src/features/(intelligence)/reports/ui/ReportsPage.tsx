@@ -32,7 +32,7 @@ import {
   formats,
   recentReports,
   reportTypes,
-} from "@/features/(intelligence)/reports/model/reportsData";
+} from "../model/reportsData";
 
 // Componente Tooltip Customizado para o Gráfico
 const CustomTooltip = ({ active, payload, label }: any) => {

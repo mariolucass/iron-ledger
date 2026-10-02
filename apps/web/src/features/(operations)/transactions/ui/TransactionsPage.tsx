@@ -13,7 +13,7 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
-import { statusTabs, transactions, txDetail } from "@/features/(operations)/transactions/model/transactionsData";
+import { statusTabs, transactions, txDetail } from "../model/transactionsData";
 import { Layout } from "@/widgets/layout/Layout";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
