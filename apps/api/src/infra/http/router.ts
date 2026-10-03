@@ -26,7 +26,7 @@ export function createRouter(rabbitMq: RabbitMqClient): Router {
   router.get("/health", (_request, response) => {
     response.json({ status: "ok", service: "iron-ledger-api", timestamp: new Date().toISOString() });
   });
-  router.use("/auth", createAuthRouter(new AuthController(login)));
+  router.use("/auth", createAuthRouter(new AuthController(login), env.JWT_SECRET));
 
   router.post("/events/test", jwtGuard(env.JWT_SECRET), async (request: AuthenticatedRequest, response, next) => {
     try {

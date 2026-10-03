@@ -26,6 +26,8 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ease2, spring1, spring4 } from "@/shared/lib/animation";
+import { clearSession } from "@/shared/lib/api-client";
+import { AuthGuard } from "./AuthGuard";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const theme = {
@@ -1217,7 +1219,8 @@ function UserDropdown({ onClose }: { onClose: () => void }) {
       <div style={{ padding: "6px", borderTop: `1px solid ${theme.border}` }}>
         <button
           onClick={() => {
-            router.push("/login");
+            clearSession();
+            router.replace("/login");
             onClose();
           }}
           style={{
@@ -2082,6 +2085,20 @@ function Header({
 
 // ─── Layout Root ──────────────────────────────────────────────────────────────
 export function Layout({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string;
+}) {
+  return (
+    <AuthGuard>
+      <LayoutShell title={title}>{children}</LayoutShell>
+    </AuthGuard>
+  );
+}
+
+function LayoutShell({
   children,
   title,
 }: {

@@ -4,6 +4,7 @@ import { colors as t } from "@/shared/config/tokens";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
+  CircleAlert,
   Check,
   CheckCircle2,
   Eye,
@@ -19,6 +20,7 @@ import {
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ease2, spring4 } from "@/shared/lib/animation";
+import { API_BASE_URL, saveAccessToken } from "@/shared/lib/api-client";
 
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -75,6 +77,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeIsError, setNoticeIsError] = useState(false);
 
   const emailError = submitted
     ? !email.trim()
@@ -83,8 +86,14 @@ export function LoginPage() {
         ? "Digite um endereço de email válido."
         : ""
     : "";
-  const passwordError = submitted && !password ? "Informe sua senha." : "";
-  const canSubmit = emailPattern.test(email) && password.length > 0;
+  const passwordError = submitted
+    ? !password
+      ? "Informe sua senha."
+      : password.length < 8
+        ? "A senha deve ter pelo menos 8 caracteres."
+        : ""
+    : "";
+  const canSubmit = emailPattern.test(email) && password.length >= 8;
 
   useEffect(() => {
     emailRef.current?.focus({ preventScroll: true });
@@ -94,14 +103,54 @@ export function LoginPage() {
     event.preventDefault();
     setSubmitted(true);
     setNotice("");
+    setNoticeIsError(false);
     if (!canSubmit || isLoading) return;
 
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    router.push("/dashboard");
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("E-mail ou senha inválidos.");
+        }
+        if (response.status === 403) {
+          throw new Error("Este usuário está inativo. Entre em contato com o administrador.");
+        }
+        throw new Error(result?.message ?? "Não foi possível entrar. Confira os dados e tente novamente.");
+      }
+
+      if (typeof result?.accessToken !== "string") {
+        throw new Error("A API respondeu sem um token de acesso válido.");
+      }
+
+      saveAccessToken(result.accessToken, remember);
+      const requestedPath = new URLSearchParams(window.location.search).get("returnTo");
+      const redirectTo = requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
+        ? requestedPath
+        : "/dashboard";
+      router.replace(redirectTo);
+    } catch (error) {
+      setNoticeIsError(true);
+      setNotice(
+        error instanceof TypeError
+          ? "Não foi possível conectar à API. Confira se o servidor está em execução."
+          : error instanceof Error
+            ? error.message
+            : "Não foi possível entrar. Tente novamente.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
+    setNoticeIsError(false);
     setNotice(
       emailPattern.test(email)
         ? `Enviaremos instruções para ${email} quando a recuperação estiver conectada.`
@@ -111,6 +160,7 @@ export function LoginPage() {
   };
 
   const handleEnterpriseAccess = (method: "SSO" | "passkey") => {
+    setNoticeIsError(false);
     setNotice(
       method === "SSO"
         ? "O login corporativo estará disponível quando o provedor de identidade for conectado."
@@ -543,6 +593,11 @@ export function LoginPage() {
           font-size: 10.5px;
           line-height: 1.5;
         }
+        .notice-error {
+          border-color: rgba(255,69,58,0.35);
+          background: rgba(255,69,58,0.08);
+          color: ${t.danger};
+        }
 
         .security-note {
           display: flex;
@@ -829,13 +884,17 @@ export function LoginPage() {
             <AnimatePresence initial={false}>
               {notice && (
                 <motion.div
-                  className="notice"
-                  role="status"
+                  className={`notice${noticeIsError ? " notice-error" : ""}`}
+                  role={noticeIsError ? "alert" : "status"}
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                 >
-                  <CheckCircle2 size={14} color={t.accent} />
+                  {noticeIsError ? (
+                    <CircleAlert size={14} color={t.danger} />
+                  ) : (
+                    <CheckCircle2 size={14} color={t.accent} />
+                  )}
                   <span>{notice}</span>
                 </motion.div>
               )}

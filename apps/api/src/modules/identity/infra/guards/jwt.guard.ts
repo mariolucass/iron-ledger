@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 export type AuthenticatedRequest = Request & {
-  auth?: { userId: string; email: string; roles: string[] };
+  auth?: { userId: string; email: string; name: string; roles: string[] };
 };
 
 export function jwtGuard(secret: string) {
@@ -19,6 +19,7 @@ export function jwtGuard(secret: string) {
       request.auth = {
         userId: payload.sub,
         email: String(payload.email),
+        name: String(payload.name ?? ""),
         roles: Array.isArray(payload.roles) ? payload.roles.map(String) : [],
       };
       next();
