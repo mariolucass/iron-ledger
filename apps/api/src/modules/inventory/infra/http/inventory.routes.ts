@@ -8,6 +8,7 @@ export function createInventoryRouter(controller: InventoryController, jwtSecret
   router.get("/", controller.list);
   router.get("/warehouses", controller.warehouses);
   router.get("/:stockLevelId/movements", controller.movements);
+  router.get("/reservations/by-transaction/:transactionId", controller.reservationByTransaction);
   router.post("/movements", controller.createMovement);
   router.post("/reservations", controller.createReservation);
   router.post("/reservations/:id/release", controller.releaseReservation);

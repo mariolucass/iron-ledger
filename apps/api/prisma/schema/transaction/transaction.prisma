@@ -1,0 +1,92 @@
+// =============================================================================
+// transaction — agregado Transaction (transação de negócio orquestrada)
+// =============================================================================
+//
+// O Temporal é a fonte de verdade da execução; estas tabelas são o registro de
+// negócio da transação e permitem listagem, filtros e relatórios sem consultar
+// o histórico do Temporal. Produtos, armazéns e usuários são referenciados
+// apenas por ID para manter o contexto autônomo.
+
+model Transaction {
+  id             String            @id @default(uuid()) @db.Uuid
+  /// Código legível (ex.: `TXN-00483910`).
+  code           String            @unique
+  type           TransactionType
+  status         TransactionStatus @default(PENDING)
+  workflowId     String            @unique @map("workflow_id")
+  workflowRunId  String?           @map("workflow_run_id")
+  taskQueue      String?           @map("task_queue")
+  idempotencyKey String?           @unique @map("idempotency_key")
+  correlationId  String?           @map("correlation_id")
+  warehouseId    String?           @map("warehouse_id") @db.Uuid
+  /// Referência a sistema externo (pedido do ERP, marketplace, NF-e).
+  externalRef    String?           @map("external_ref")
+  currency       String            @default("BRL") @db.Char(3)
+  totalAmount    Decimal?          @map("total_amount") @db.Decimal(19, 4)
+  failureCode    String?           @map("failure_code")
+  failureReason  String?           @map("failure_reason")
+  metadata       Json?
+  initiatedBy    String            @map("initiated_by") @db.Uuid
+  startedAt      DateTime?         @map("started_at")
+  completedAt    DateTime?         @map("completed_at")
+  compensatedAt  DateTime?         @map("compensated_at")
+  version        Int               @default(0)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  items         TransactionItem[]
+  sagaSteps     SagaStep[]
+  statusHistory TransactionStatusHistory[]
+
+  @@index([status, createdAt])
+  @@index([type, status])
+  @@index([warehouseId, createdAt])
+  @@index([initiatedBy, createdAt])
+  @@index([correlationId])
+  @@index([externalRef])
+  @@map("transactions")
+  @@schema("transaction")
+}
+
+model TransactionItem {
+  id            String                @id @default(uuid()) @db.Uuid
+  transactionId String                @map("transaction_id") @db.Uuid
+  lineNumber    Int                   @map("line_number")
+  productId     String                @map("product_id") @db.Uuid
+  warehouseId   String                @map("warehouse_id") @db.Uuid
+  /// Snapshot do SKU no momento da transação.
+  sku           String
+  quantity      Decimal               @db.Decimal(18, 4)
+  unitPrice     Decimal?              @map("unit_price") @db.Decimal(19, 4)
+  status        TransactionItemStatus @default(PENDING)
+  /// Reserva criada no contexto `inventory` (referência por ID, sem FK).
+  reservationId String?               @map("reservation_id") @db.Uuid
+  movementId    String?               @map("movement_id") @db.Uuid
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, lineNumber])
+  @@index([productId, warehouseId])
+  @@index([reservationId])
+  @@map("transaction_items")
+  @@schema("transaction")
+}
+
+/// Histórico append-only das transições de estado da transação.
+model TransactionStatusHistory {
+  id            String             @id @default(uuid()) @db.Uuid
+  transactionId String             @map("transaction_id") @db.Uuid
+  fromStatus    TransactionStatus? @map("from_status")
+  toStatus      TransactionStatus  @map("to_status")
+  reason        String?
+  changedBy     String?            @map("changed_by") @db.Uuid
+  changedAt     DateTime           @default(now()) @map("changed_at")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId, changedAt])
+  @@map("transaction_status_history")
+  @@schema("transaction")
+}

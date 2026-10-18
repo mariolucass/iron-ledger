@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
@@ -13,8 +13,13 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/event-bus/package.json packages/event-bus/package.json
 COPY packages/logger/package.json packages/logger/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
+COPY packages/workflow-contracts packages/workflow-contracts
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --filter @iron-ledger/web... --frozen-lockfile
+# Pacotes compartilhados são consumidos a partir de dist/: compila as dependências do app.
+COPY tsconfig.base.json ./
+COPY packages packages
+RUN pnpm --filter "@iron-ledger/web^..." --if-present run build
 
 FROM dependencies AS development
 ENV NODE_ENV=development
@@ -29,7 +34,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY apps/web apps/web
 RUN pnpm --dir apps/web build
 
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     HOSTNAME=0.0.0.0 \

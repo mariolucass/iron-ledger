@@ -1,9 +1,9 @@
-import type { RabbitMqClient } from "../../../../infra/messaging/rabbitmq.client";
+import type { EventPublisher } from "../../../../infra/messaging/rabbitmq.client";
 import { stockUpdatedEvent } from "../../domain/events/stock-updated.event";
 import type { InventoryRepository } from "../../domain/repositories/inventory.repository";
 
 export class CommitReservationUseCase {
-  constructor(private readonly inventory: InventoryRepository, private readonly events: Pick<RabbitMqClient, "publish">) {}
+  constructor(private readonly inventory: InventoryRepository, private readonly events: EventPublisher) {}
 
   async execute(input: { reservationId: string; actorId: string; correlationId?: string }) {
     const result = await this.inventory.commitReservation(input);

@@ -1,0 +1,78 @@
+// =============================================================================
+// identity — enums
+// =============================================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+
+  @@schema("identity")
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  APPROVE
+  EXPORT
+  EXECUTE
+  MANAGE
+
+  @@schema("identity")
+}
+
+/// Nível de acesso de um usuário a um armazém específico (escopo do RBAC).
+enum WarehouseAccessLevel {
+  VIEWER
+  OPERATOR
+  SUPERVISOR
+  MANAGER
+
+  @@schema("identity")
+}
+
+enum SessionStatus {
+  ACTIVE
+  ROTATED
+  REVOKED
+  EXPIRED
+
+  @@schema("identity")
+}
+
+enum MfaMethod {
+  TOTP
+  WEBAUTHN
+  EMAIL_OTP
+  RECOVERY_CODE
+
+  @@schema("identity")
+}
+
+enum IdentityProvider {
+  OIDC
+  SAML
+  GOOGLE
+  MICROSOFT
+  GITHUB
+
+  @@schema("identity")
+}
+
+enum VerificationPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  INVITATION
+
+  @@schema("identity")
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+
+  @@schema("identity")
+}

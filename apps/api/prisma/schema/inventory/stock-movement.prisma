@@ -1,0 +1,57 @@
+// =============================================================================
+// inventory — livro-razão de movimentações (append-only)
+// =============================================================================
+
+/// Cada linha é imutável: correções são feitas com uma nova movimentação de
+/// ajuste, nunca com UPDATE/DELETE. Tabela candidata a particionamento
+/// mensal por `created_at`.
+model StockMovement {
+  id             String       @id @default(uuid()) @db.Uuid
+  productId      String       @map("product_id") @db.Uuid
+  warehouseId    String       @map("warehouse_id") @db.Uuid
+  locationId     String?      @map("location_id") @db.Uuid
+  lotId          String?      @map("lot_id") @db.Uuid
+  type           MovementType
+  quantity       Decimal      @db.Decimal(18, 4)
+  previousQty    Decimal      @map("previous_qty") @db.Decimal(18, 4)
+  resultingQty   Decimal      @map("resulting_qty") @db.Decimal(18, 4)
+  unitCost       Decimal?     @map("unit_cost") @db.Decimal(19, 4)
+  currency       String?      @db.Char(3)
+  reasonCode     String?      @map("reason_code")
+  /// Referência genérica à origem (ex.: `SAGA:<id>`, pedido, NF-e).
+  referenceId    String?      @map("reference_id")
+  referenceType  String?      @map("reference_type")
+  reservationId  String?      @map("reservation_id") @db.Uuid
+  transferId     String?      @map("transfer_id") @db.Uuid
+  stockCountId   String?      @map("stock_count_id") @db.Uuid
+  /// Transação do contexto `transaction` (referência por ID, sem FK).
+  transactionId  String?      @map("transaction_id") @db.Uuid
+  correlationId  String?      @map("correlation_id")
+  causationId    String?      @map("causation_id")
+  idempotencyKey String?      @unique @map("idempotency_key")
+  notes          String?
+  performedBy    String       @map("performed_by") @db.Uuid
+  occurredAt     DateTime     @default(now()) @map("occurred_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  product     Product            @relation(fields: [productId], references: [id])
+  warehouse   Warehouse          @relation(fields: [warehouseId], references: [id])
+  location    WarehouseLocation? @relation(fields: [locationId], references: [id])
+  lot         InventoryLot?      @relation(fields: [lotId], references: [id])
+  reservation StockReservation?  @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  transfer    StockTransfer?     @relation(fields: [transferId], references: [id], onDelete: SetNull)
+  stockCount  StockCount?        @relation(fields: [stockCountId], references: [id], onDelete: SetNull)
+  performer   User               @relation(fields: [performedBy], references: [id])
+
+  @@index([productId])
+  @@index([warehouseId])
+  @@index([productId, warehouseId, createdAt])
+  @@index([referenceId, referenceType])
+  @@index([reservationId])
+  @@index([transactionId])
+  @@index([correlationId])
+  @@index([type, createdAt])
+  @@index([createdAt])
+  @@map("stock_movements")
+  @@schema("inventory")
+}

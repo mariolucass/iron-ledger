@@ -60,6 +60,17 @@ if (selected.some((name) => !definitions[name])) {
   process.exit(1);
 }
 
+// Os pacotes compartilhados (logger, event-bus, shared-types) são consumidos a partir de dist/.
+const prebuild = spawnSync(
+  process.platform === "win32" ? `${pnpm} --filter "./packages/**" --if-present run build` : pnpm,
+  process.platform === "win32" ? [] : ["--filter", "./packages/**", "--if-present", "run", "build"],
+  { cwd: rootDir, stdio: "inherit", shell: process.platform === "win32" },
+);
+if (prebuild.status !== 0) {
+  console.error("Falha ao compilar os pacotes compartilhados.");
+  process.exit(prebuild.status ?? 1);
+}
+
 const children = selected.map((name) => {
   const definition = definitions[name];
   const childEnv = { ...process.env, ...definition.env() };

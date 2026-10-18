@@ -17,6 +17,8 @@ const schema = z.object({
   TEMPORAL_ADDRESS: z.string().default("localhost:7233"),
   TEMPORAL_NAMESPACE: z.string().default("default"),
   TEMPORAL_TASK_QUEUE: z.string().default("iron-ledger-tasks"),
+  OUTBOX_POLL_INTERVAL_MS: z.coerce.number().int().min(100).default(1_000),
+  OUTBOX_RELAY_ENABLED: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
 });
 
 export const env = schema.parse(process.env);

@@ -1,0 +1,46 @@
+// =============================================================================
+// catalog — taxonomia de categorias
+// =============================================================================
+
+/// Árvore de categorias. `path` materializado (ex.: `/vestuario/camisetas`)
+/// permite consultar subárvores com um único `LIKE 'prefixo%'`.
+model Category {
+  id          String    @id @default(uuid()) @db.Uuid
+  parentId    String?   @map("parent_id") @db.Uuid
+  code        String    @unique
+  name        String
+  slug        String
+  path        String    @unique
+  depth       Int       @default(0)
+  description String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  parent   Category?         @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[]        @relation("CategoryTree")
+  products ProductCategory[]
+
+  @@unique([parentId, slug])
+  @@index([parentId])
+  @@map("categories")
+  @@schema("catalog")
+}
+
+/// Pivô Product ↔ Category.
+model ProductCategory {
+  productId  String   @map("product_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+  @@map("product_categories")
+  @@schema("catalog")
+}

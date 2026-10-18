@@ -1,0 +1,52 @@
+// =============================================================================
+// analytics — previsão de demanda
+// =============================================================================
+
+/// Execução de um modelo de previsão (versão, parâmetros e métricas de erro).
+model ForecastRun {
+  id           String              @id @default(uuid()) @db.Uuid
+  modelName    String              @map("model_name")
+  modelVersion String              @map("model_version")
+  granularity  ForecastGranularity @default(WEEKLY)
+  horizon      Int
+  status       JobRunStatus        @default(QUEUED)
+  parameters   Json?
+  /// MAPE, RMSE, cobertura do intervalo etc.
+  metrics      Json?
+  error        String?
+  trainedFrom  DateTime?           @map("trained_from")
+  trainedTo    DateTime?           @map("trained_to")
+  startedAt    DateTime?           @map("started_at")
+  finishedAt   DateTime?           @map("finished_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  forecasts DemandForecast[]
+
+  @@index([status, createdAt])
+  @@index([modelName, modelVersion])
+  @@map("forecast_runs")
+  @@schema("analytics")
+}
+
+model DemandForecast {
+  id          String              @id @default(uuid()) @db.Uuid
+  runId       String              @map("run_id") @db.Uuid
+  productId   String              @map("product_id") @db.Uuid
+  warehouseId String?             @map("warehouse_id") @db.Uuid
+  granularity ForecastGranularity
+  periodStart DateTime            @map("period_start") @db.Date
+  predicted   Decimal             @db.Decimal(18, 4)
+  lowerBound  Decimal?            @map("lower_bound") @db.Decimal(18, 4)
+  upperBound  Decimal?            @map("upper_bound") @db.Decimal(18, 4)
+  /// Nível de confiança do intervalo (ex.: 0.95).
+  confidence  Decimal?            @db.Decimal(4, 3)
+  actual      Decimal?            @db.Decimal(18, 4)
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  run ForecastRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, productId, warehouseId, periodStart])
+  @@index([productId, warehouseId, periodStart])
+  @@map("demand_forecasts")
+  @@schema("analytics")
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@iron-ledger/workflow-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fronteira somente de tipos entre o temporal-worker e a API (entradas, resultados e progresso da Saga).",
+  "license": "MIT",
+  "sideEffects": false,
+  "types": "./index.d.ts",
+  "exports": {
+    ".": { "types": "./index.d.ts" }
+  },
+  "files": ["index.d.ts"]
+}

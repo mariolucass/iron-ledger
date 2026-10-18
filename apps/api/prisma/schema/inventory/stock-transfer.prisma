@@ -1,0 +1,59 @@
+// =============================================================================
+// inventory — transferências entre armazéns
+// =============================================================================
+
+model StockTransfer {
+  id                     String         @id @default(uuid()) @db.Uuid
+  code                   String         @unique
+  sourceWarehouseId      String         @map("source_warehouse_id") @db.Uuid
+  destinationWarehouseId String         @map("destination_warehouse_id") @db.Uuid
+  status                 TransferStatus @default(DRAFT)
+  /// Transação/Saga que orquestra a transferência (referência por ID, sem FK).
+  transactionId          String?        @unique @map("transaction_id") @db.Uuid
+  carrier                String?
+  trackingCode           String?        @map("tracking_code")
+  notes                  String?
+  requestedBy            String         @map("requested_by") @db.Uuid
+  approvedBy             String?        @map("approved_by") @db.Uuid
+  requestedAt            DateTime       @default(now()) @map("requested_at")
+  approvedAt             DateTime?      @map("approved_at")
+  shippedAt              DateTime?      @map("shipped_at")
+  expectedAt             DateTime?      @map("expected_at")
+  receivedAt             DateTime?      @map("received_at")
+  cancelledAt            DateTime?      @map("cancelled_at")
+  version                Int            @default(0)
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
+
+  sourceWarehouse      Warehouse           @relation("TransferSource", fields: [sourceWarehouseId], references: [id])
+  destinationWarehouse Warehouse           @relation("TransferDestination", fields: [destinationWarehouseId], references: [id])
+  items                StockTransferItem[]
+  movements            StockMovement[]
+
+  @@index([sourceWarehouseId, status])
+  @@index([destinationWarehouseId, status])
+  @@index([status, expectedAt])
+  @@map("stock_transfers")
+  @@schema("inventory")
+}
+
+model StockTransferItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  transferId        String   @map("transfer_id") @db.Uuid
+  productId         String   @map("product_id") @db.Uuid
+  lotId             String?  @map("lot_id") @db.Uuid
+  requestedQuantity Decimal  @map("requested_quantity") @db.Decimal(18, 4)
+  shippedQuantity   Decimal  @default(0) @map("shipped_quantity") @db.Decimal(18, 4)
+  receivedQuantity  Decimal  @default(0) @map("received_quantity") @db.Decimal(18, 4)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product  Product       @relation(fields: [productId], references: [id])
+  lot      InventoryLot? @relation(fields: [lotId], references: [id])
+
+  @@unique([transferId, productId, lotId])
+  @@index([productId])
+  @@map("stock_transfer_items")
+  @@schema("inventory")
+}

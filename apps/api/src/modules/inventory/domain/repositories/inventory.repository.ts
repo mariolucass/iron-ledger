@@ -1,3 +1,4 @@
+import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts";
 import type { ReleaseStockDto, ReserveStockDto } from "../../application/dtos/reserve-stock.dto";
 import type { UpdateStockDto } from "../../application/dtos/update-stock.dto";
 
@@ -63,6 +64,7 @@ export interface InventoryRepository {
     total: number;
   }>;
   listWarehouses(): Promise<WarehouseSummary[]>;
+  findReservationByTransaction(transactionId: string): Promise<ReservationSnapshot>;
   listMovements(stockLevelId: string, page: number, pageSize: number): Promise<{
     items: StockMovementRecord[];
     page: number;

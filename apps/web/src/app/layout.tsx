@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { fontFamilyClass } from "@/shared/config/font";
+import { fontVariables } from "@/shared/config/font";
+import { themeVariables } from "@/shared/config/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#080808",
+  themeColor: themeVariables["--background"],
 };
 
 export default function RootLayout({
@@ -18,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className={fontFamilyClass}>
+    <html lang="pt-BR" className={fontVariables} style={themeVariables}>
+      <body className="font-sans">
         {children}
       </body>
     </html>

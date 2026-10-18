@@ -1,10 +1,31 @@
 packages:
   - "apps/*"
   - "packages/*"
-allowBuilds:
-  '@prisma/client': false
-  '@prisma/engines': false
-  '@swc/core': false
-  esbuild: false
-  prisma: false
-  protobufjs: false
+
+# Versões únicas para dependências compartilhadas entre workspaces.
+# Nos package.json use `"<pacote>": "catalog:"`; atualize a versão somente aqui.
+catalog:
+  # Toolchain
+  "@types/node": ^24.10.0
+  typescript: ~5.9.3
+  tsx: ^4.20.6
+  # Validação (API e web)
+  zod: ^3.25.76
+  # Temporal: todos os pacotes do SDK devem estar na MESMA versão exata
+  "@temporalio/activity": 1.24.0
+  "@temporalio/client": 1.24.0
+  "@temporalio/testing": 1.24.0
+  "@temporalio/worker": 1.24.0
+  "@temporalio/workflow": 1.24.0
+
+# Scripts de instalação bloqueados de forma explícita (padrão do pnpm 10):
+# - Prisma: o client é gerado por `pnpm db:generate`, que também baixa os engines.
+# - esbuild/@swc/core: os binários vêm por optionalDependencies; o postinstall só valida.
+# - protobufjs: o postinstall apenas verifica a versão.
+ignoredBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "@swc/core"
+  - esbuild
+  - prisma
+  - protobufjs

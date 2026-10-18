@@ -1,0 +1,69 @@
+// =============================================================================
+// inventory — enums
+// =============================================================================
+
+enum MovementType {
+  INBOUND
+  OUTBOUND
+  TRANSFER
+  TRANSFER_OUT
+  TRANSFER_IN
+  ADJUSTMENT
+  CYCLE_COUNT
+  RESERVATION
+  RELEASE
+  RETURN
+  SCRAP
+
+  @@schema("inventory")
+}
+
+enum ReservationStatus {
+  ACTIVE
+  COMMITTED
+  RELEASED
+  EXPIRED
+
+  @@schema("inventory")
+}
+
+enum LotStatus {
+  AVAILABLE
+  QUARANTINE
+  BLOCKED
+  EXPIRED
+  CONSUMED
+
+  @@schema("inventory")
+}
+
+enum TransferStatus {
+  DRAFT
+  REQUESTED
+  APPROVED
+  IN_TRANSIT
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+
+  @@schema("inventory")
+}
+
+enum StockCountType {
+  FULL
+  CYCLE
+  SPOT
+
+  @@schema("inventory")
+}
+
+enum StockCountStatus {
+  PLANNED
+  IN_PROGRESS
+  PENDING_REVIEW
+  APPROVED
+  POSTED
+  CANCELLED
+
+  @@schema("inventory")
+}

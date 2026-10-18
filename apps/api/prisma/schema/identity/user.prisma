@@ -1,0 +1,43 @@
+// =============================================================================
+// identity — agregado User
+// =============================================================================
+
+model User {
+  id                  String     @id @default(uuid()) @db.Uuid
+  email               String     @unique
+  name                String
+  passwordHash        String     @map("password_hash")
+  status              UserStatus @default(ACTIVE)
+  /// Identificador no IdP corporativo quando provisionado via SCIM/SSO.
+  externalId          String?    @unique @map("external_id")
+  avatarUrl           String?    @map("avatar_url")
+  locale              String     @default("pt-BR")
+  timezone            String     @default("America/Sao_Paulo")
+  /// Preferências de interface (tema, densidade, filtros salvos).
+  preferences         Json?
+  emailVerifiedAt     DateTime?  @map("email_verified_at")
+  mfaEnabled          Boolean    @default(false) @map("mfa_enabled")
+  passwordChangedAt   DateTime?  @map("password_changed_at")
+  failedLoginAttempts Int        @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?  @map("locked_until")
+  lastLoginAt         DateTime?  @map("last_login_at")
+  version             Int        @default(0)
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+  deletedAt           DateTime?  @map("deleted_at")
+
+  userRoles           UserRole[]
+  grantedUserRoles    UserRole[]            @relation("UserRoleGrantedBy")
+  warehouseAccesses   UserWarehouseAccess[]
+  sessions            UserSession[]
+  mfaFactors          MfaFactor[]
+  federatedIdentities FederatedIdentity[]
+  verificationTokens  VerificationToken[]
+  apiKeys             ApiKey[]
+  stockMovements      StockMovement[]
+  auditLogs           AuditLog[]
+
+  @@index([status, deletedAt])
+  @@map("users")
+  @@schema("identity")
+}

@@ -1,0 +1,4 @@
+# Versões alinhadas a package.json (engines/packageManager) e às imagens Docker (node:24).
+[tools]
+node = "24"
+pnpm = "10.12.1"

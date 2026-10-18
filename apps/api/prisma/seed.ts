@@ -142,8 +142,8 @@ async function main(): Promise<void> {
   ];
 
   for (const movement of demoMovements) {
-    const product = productsBySku.get(demoProducts[movement.product].sku);
-    const warehouse = warehousesByCode.get(demoWarehouses[movement.warehouse].code);
+    const product = productsBySku.get(demoProducts[movement.product]?.sku ?? "");
+    const warehouse = warehousesByCode.get(demoWarehouses[movement.warehouse]?.code ?? "");
     if (!product || !warehouse) throw new Error("Falha ao resolver a massa de demonstração.");
     await prisma.stockMovement.upsert({
       where: { id: movement.id },

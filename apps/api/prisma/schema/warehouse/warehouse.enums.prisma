@@ -1,0 +1,27 @@
+// =============================================================================
+// warehouse — enums
+// =============================================================================
+
+enum WarehouseType {
+  DISTRIBUTION_CENTER
+  STORE
+  FULFILLMENT_CENTER
+  CROSS_DOCK
+  THIRD_PARTY
+  VIRTUAL
+
+  @@schema("warehouse")
+}
+
+enum LocationType {
+  ZONE
+  AISLE
+  RACK
+  SHELF
+  BIN
+  DOCK
+  STAGING
+  QUARANTINE
+
+  @@schema("warehouse")
+}

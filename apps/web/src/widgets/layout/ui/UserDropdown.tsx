@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import { LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef } from "react";
+import { useSignOut } from "@/features/sign-out";
 import { ease2 } from "@/shared/lib/animation";
 import { useOutsideClick } from "@/shared/lib/use-outside-click";
 import { UserAvatar } from "./UserAvatar";
@@ -16,20 +16,9 @@ const accountLinks = [
 
 export function UserDropdown({ onClose }: { onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { signOut: logout, isSigningOut: isLoggingOut } = useSignOut(onClose);
   useOutsideClick(ref, onClose);
 
-  const logout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      onClose();
-      router.replace("/login");
-      router.refresh();
-    }
-  };
 
   return (
     <motion.div

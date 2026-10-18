@@ -1,0 +1,32 @@
+// =============================================================================
+// transaction — passos da Saga (ações e compensações)
+// =============================================================================
+
+/// Espelho consultável de cada atividade executada pelo workflow Temporal.
+/// Uma compensação aponta para o passo que ela desfaz em `compensatesStepId`.
+model SagaStep {
+  id                String         @id @default(uuid()) @db.Uuid
+  transactionId     String         @map("transaction_id") @db.Uuid
+  sequence          Int
+  name              String
+  kind              SagaStepKind   @default(ACTION)
+  status            SagaStepStatus @default(SCHEDULED)
+  activityId        String?        @map("activity_id")
+  attempt           Int            @default(1)
+  compensatesStepId String?        @unique @map("compensates_step_id") @db.Uuid
+  input             Json?
+  output            Json?
+  error             Json?
+  scheduledAt       DateTime       @default(now()) @map("scheduled_at")
+  startedAt         DateTime?      @map("started_at")
+  finishedAt        DateTime?      @map("finished_at")
+
+  transaction  Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  compensates  SagaStep?   @relation("SagaCompensation", fields: [compensatesStepId], references: [id], onDelete: SetNull)
+  compensation SagaStep?   @relation("SagaCompensation")
+
+  @@unique([transactionId, sequence])
+  @@index([status, scheduledAt])
+  @@map("saga_steps")
+  @@schema("transaction")
+}
