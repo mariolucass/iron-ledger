@@ -1,0 +1,37 @@
+// =============================================================================
+// platform — enums
+// =============================================================================
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  DEAD_LETTER
+
+  @@schema("platform")
+}
+
+enum InboxStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+
+  @@schema("platform")
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+
+  @@schema("platform")
+}
+
+enum SettingScope {
+  SYSTEM
+  WAREHOUSE
+  USER
+
+  @@schema("platform")
+}

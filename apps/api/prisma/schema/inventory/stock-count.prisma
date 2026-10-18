@@ -1,0 +1,59 @@
+// =============================================================================
+// inventory — inventário físico e contagem cíclica
+// =============================================================================
+
+model StockCount {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique
+  warehouseId String           @map("warehouse_id") @db.Uuid
+  type        StockCountType   @default(CYCLE)
+  status      StockCountStatus @default(PLANNED)
+  /// Contagem cega: o operador não vê a quantidade esperada.
+  isBlind     Boolean          @default(true) @map("is_blind")
+  notes       String?
+  scheduledAt DateTime?        @map("scheduled_at")
+  startedAt   DateTime?        @map("started_at")
+  completedAt DateTime?        @map("completed_at")
+  postedAt    DateTime?        @map("posted_at")
+  createdBy   String           @map("created_by") @db.Uuid
+  approvedBy  String?          @map("approved_by") @db.Uuid
+  version     Int              @default(0)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  warehouse Warehouse        @relation(fields: [warehouseId], references: [id])
+  items     StockCountItem[]
+  movements StockMovement[]
+
+  @@index([warehouseId, status])
+  @@index([scheduledAt])
+  @@map("stock_counts")
+  @@schema("inventory")
+}
+
+model StockCountItem {
+  id               String    @id @default(uuid()) @db.Uuid
+  stockCountId     String    @map("stock_count_id") @db.Uuid
+  productId        String    @map("product_id") @db.Uuid
+  locationId       String?   @map("location_id") @db.Uuid
+  lotId            String?   @map("lot_id") @db.Uuid
+  expectedQuantity Decimal   @map("expected_quantity") @db.Decimal(18, 4)
+  countedQuantity  Decimal?  @map("counted_quantity") @db.Decimal(18, 4)
+  /// counted - expected, preenchido ao fechar a contagem.
+  variance         Decimal?  @db.Decimal(18, 4)
+  recountRequired  Boolean   @default(false) @map("recount_required")
+  countedBy        String?   @map("counted_by") @db.Uuid
+  countedAt        DateTime? @map("counted_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  stockCount StockCount         @relation(fields: [stockCountId], references: [id], onDelete: Cascade)
+  product    Product            @relation(fields: [productId], references: [id])
+  location   WarehouseLocation? @relation(fields: [locationId], references: [id])
+  lot        InventoryLot?      @relation(fields: [lotId], references: [id])
+
+  @@unique([stockCountId, productId, locationId, lotId])
+  @@index([productId])
+  @@map("stock_count_items")
+  @@schema("inventory")
+}

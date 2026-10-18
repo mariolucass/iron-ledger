@@ -1,0 +1,75 @@
+// =============================================================================
+// catalog — agregado Product
+// =============================================================================
+
+model Product {
+  id            String        @id @default(uuid()) @db.Uuid
+  sku           String        @unique
+  name          String
+  description   String?
+  /// Código da unidade base (ex.: `un`, `kg`). Mantido para leitura simples;
+  /// a referência normalizada fica em `baseUnitId`.
+  unit          String        @default("un")
+  baseUnitId    String?       @map("base_unit_id") @db.Uuid
+  status        ProductStatus @default(ACTIVE)
+  isActive      Boolean       @default(true) @map("is_active")
+  trackingMode  TrackingMode  @default(NONE) @map("tracking_mode")
+  /// Política de reposição — base para alertas e previsão de demanda.
+  minStock      Decimal       @default(0) @map("min_stock") @db.Decimal(18, 4)
+  maxStock      Decimal?      @map("max_stock") @db.Decimal(18, 4)
+  reorderPoint  Decimal?      @map("reorder_point") @db.Decimal(18, 4)
+  safetyStock   Decimal?      @map("safety_stock") @db.Decimal(18, 4)
+  leadTimeDays  Int?          @map("lead_time_days")
+  shelfLifeDays Int?          @map("shelf_life_days")
+  /// Dimensões logísticas.
+  weightKg      Decimal?      @map("weight_kg") @db.Decimal(12, 4)
+  lengthCm      Decimal?      @map("length_cm") @db.Decimal(12, 2)
+  widthCm       Decimal?      @map("width_cm") @db.Decimal(12, 2)
+  heightCm      Decimal?      @map("height_cm") @db.Decimal(12, 2)
+  /// Fiscal (Brasil).
+  ncm           String?
+  standardCost  Decimal?      @map("standard_cost") @db.Decimal(19, 4)
+  currency      String        @default("BRL") @db.Char(3)
+  metadata      Json?
+  version       Int           @default(0)
+  createdBy     String?       @map("created_by") @db.Uuid
+  updatedBy     String?       @map("updated_by") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+
+  baseUnit        UnitOfMeasure?          @relation(fields: [baseUnitId], references: [id], onDelete: SetNull)
+  categories      ProductCategory[]
+  barcodes        ProductBarcode[]
+  unitConversions ProductUnitConversion[]
+  stockLevels     StockLevel[]
+  stockMovements  StockMovement[]
+  reservations    StockReservation[]
+  lots            InventoryLot[]
+  locationStocks  LocationStock[]
+  transferItems   StockTransferItem[]
+  stockCountItems StockCountItem[]
+
+  @@index([status, isActive, deletedAt])
+  @@index([name])
+  @@index([baseUnitId])
+  @@map("products")
+  @@schema("catalog")
+}
+
+model ProductBarcode {
+  id        String      @id @default(uuid()) @db.Uuid
+  productId String      @map("product_id") @db.Uuid
+  code      String      @unique
+  type      BarcodeType @default(EAN_13)
+  /// Quantidade da unidade base representada pelo código (ex.: caixa com 12).
+  quantity  Decimal     @default(1) @db.Decimal(18, 4)
+  isPrimary Boolean     @default(false) @map("is_primary")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_barcodes")
+  @@schema("catalog")
+}

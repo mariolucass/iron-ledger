@@ -1,3 +1,5 @@
+export * from "./transaction";
+
 import type {
   AnalyticsEntityType,
   AnalyticsSource,

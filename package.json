@@ -1,47 +1,44 @@
 {
-
   "name": "iron-ledger",
   "version": "0.1.0",
-  "description": "Sistema distribuído de audit logging e inventário",
   "private": true,
-  "license": "UNLICENSED",
+  "description": "Sistema distribuído de auditoria, controle de estoque e orquestração de transações (DDD + eventos + Temporal).",
+  "license": "MIT",
   "packageManager": "pnpm@10.12.1",
-  "engines": { "node": ">=20.11", "pnpm": ">=10" },
+  "engines": {
+    "node": ">=24.11.0",
+    "pnpm": ">=10.12.1"
+  },
   "scripts": {
     "setup": "node scripts/bootstrap.mjs",
     "setup:all": "node scripts/bootstrap.mjs --all",
     "setup:node": "node scripts/bootstrap.mjs --node",
     "setup:python": "node scripts/bootstrap.mjs --python",
-
-
     "dev": "node scripts/run-app.mjs all dev",
     "dev:api": "node scripts/run-app.mjs api dev",
     "dev:web": "node scripts/run-app.mjs web dev",
     "dev:worker": "node scripts/run-app.mjs worker dev",
     "dev:analytics": "node scripts/run-analytics.mjs",
-
-    "build": "pnpm -r --if-present build",
-    "build:api": "pnpm --filter @iron-ledger/api build",
-    "build:web": "pnpm --filter @iron-ledger/web build",
-    "build:worker": "pnpm --filter @iron-ledger/temporal-worker build",
-
-
-    "lint": "pnpm -r --if-present lint",
-    "typecheck": "pnpm -r --if-present typecheck",
-    "test": "pnpm -r --if-present test",
-    "test:api": "pnpm --filter @iron-ledger/api test",
-    "test:watch": "pnpm --filter @iron-ledger/api test --watch",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-
-
-    "db:generate": "pnpm --filter @iron-ledger/api prisma:generate",
-    "db:migrate": "pnpm --filter @iron-ledger/api prisma:migrate",
-    "db:deploy": "pnpm --filter @iron-ledger/api prisma:deploy",
-    "db:seed": "pnpm --filter @iron-ledger/api prisma:seed",
+    "build": "pnpm -r --if-present run build",
+    "build:packages": "pnpm --filter \"./packages/**\" --if-present run build",
+    "build:api": "pnpm --filter \"@iron-ledger/api...\" --if-present run build",
+    "build:web": "pnpm --filter \"@iron-ledger/web...\" --if-present run build",
+    "build:worker": "pnpm --filter \"@iron-ledger/temporal-worker...\" --if-present run build",
+    "typecheck": "pnpm build:packages && pnpm -r --if-present run typecheck",
+    "test": "pnpm build:packages && pnpm -r --if-present run test",
+    "test:api": "pnpm --filter @iron-ledger/api run test",
+    "test:watch": "pnpm --filter @iron-ledger/api run test:watch",
+    "test:temporal": "pnpm --filter @iron-ledger/temporal-worker run test:temporal",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
+    "db:generate": "pnpm --filter @iron-ledger/api run prisma:generate",
+    "db:validate": "pnpm --filter @iron-ledger/api run prisma:validate",
+    "db:migrate": "pnpm --filter @iron-ledger/api run prisma:migrate",
+    "db:deploy": "pnpm --filter @iron-ledger/api run prisma:deploy",
+    "db:seed": "pnpm --filter @iron-ledger/api run prisma:seed",
     "db:studio": "pnpm --filter @iron-ledger/api exec prisma studio",
     "db:reset": "pnpm --filter @iron-ledger/api exec prisma migrate reset",
-
-
     "infra:core": "docker compose up -d postgres rabbitmq",
     "infra:platform": "docker compose --profile platform up -d kafka temporal temporal-ui",
     "infra:analytics": "docker compose --profile analytics up -d --build analytics",
@@ -53,14 +50,15 @@
     "infra:nuke": "docker compose down -v --remove-orphans",
     "infra:logs": "docker compose logs -f",
     "infra:status": "docker compose ps",
-
     "analytics:pipeline": "docker compose run --rm analytics python -m src.cli run",
     "analytics:up": "docker compose --profile analytics up -d --build",
     "analytics:logs": "docker compose logs -f analytics",
-
     "prod:up": "docker compose -f docker-compose.yml -f infra/compose/docker-compose.prod.yml up -d --build",
     "prod:down": "docker compose -f docker-compose.yml -f infra/compose/docker-compose.prod.yml down",
     "prod:logs": "docker compose -f docker-compose.yml -f infra/compose/docker-compose.prod.yml logs -f",
     "prod:status": "docker compose -f docker-compose.yml -f infra/compose/docker-compose.prod.yml ps"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
   }
 }

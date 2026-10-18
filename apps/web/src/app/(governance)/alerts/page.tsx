@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AlertsPage } from "@/features/(governance)/alerts";
+import { AlertsPage } from "@/views/alerts";
 
 export const metadata: Metadata = {
   title: "Alertas - Iron Ledger",

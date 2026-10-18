@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { UsersPage } from "@/features/(identity)/users";
+import { UsersPage } from "@/views/users";
 
 export const metadata: Metadata = {
   title: "Usuarios - Iron Ledger",

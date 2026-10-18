@@ -60,6 +60,13 @@ export class InventoryController {
     } catch (error) { next(error); }
   };
 
+  reservationByTransaction = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
+    try {
+      const { transactionId } = z.object({ transactionId: z.string().uuid() }).parse(request.params);
+      response.json(await this.inventory.findReservationByTransaction(transactionId));
+    } catch (error) { next(error); }
+  };
+
   createMovement = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
     try {
       const input = movementSchema.parse(request.body);

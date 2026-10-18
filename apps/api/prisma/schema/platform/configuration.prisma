@@ -1,0 +1,41 @@
+// =============================================================================
+// platform — configurações e feature flags
+// =============================================================================
+
+/// Configuração hierárquica: SYSTEM < WAREHOUSE < USER. `scopeId` é nulo no
+/// escopo SYSTEM (use `UNIQUE NULLS NOT DISTINCT` na migration).
+model Setting {
+  id          String       @id @default(uuid()) @db.Uuid
+  scope       SettingScope @default(SYSTEM)
+  scopeId     String?      @map("scope_id") @db.Uuid
+  key         String
+  value       Json
+  description String?
+  isSecret    Boolean      @default(false) @map("is_secret")
+  updatedBy   String?      @map("updated_by") @db.Uuid
+  version     Int          @default(0)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@unique([scope, scopeId, key])
+  @@index([key])
+  @@map("settings")
+  @@schema("platform")
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  description String?
+  isEnabled   Boolean  @default(false) @map("is_enabled")
+  /// Percentual de rollout gradual (0–100).
+  rollout     Int      @default(0)
+  /// Regras de segmentação (papéis, armazéns, usuários).
+  rules       Json?
+  updatedBy   String?  @map("updated_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+  @@schema("platform")
+}

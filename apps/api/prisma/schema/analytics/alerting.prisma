@@ -1,0 +1,88 @@
+// =============================================================================
+// analytics — regras de alerta, alertas e assinaturas
+// =============================================================================
+//
+// Contexto alimentado por eventos (ADR-004). Produtos, armazéns e usuários são
+// referenciados apenas por ID: o serviço Python pode operar com credenciais
+// restritas ao schema `analytics`.
+
+model AlertRule {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  type        AlertType
+  severity    AlertSeverity @default(WARNING)
+  /// Escopo opcional; nulo significa "todos".
+  productId   String?       @map("product_id") @db.Uuid
+  warehouseId String?       @map("warehouse_id") @db.Uuid
+  /// Parâmetros da regra (limiar, janela, sensibilidade do detector).
+  condition   Json
+  /// Intervalo mínimo entre alertas repetidos para o mesmo alvo.
+  cooldownMin Int           @default(60) @map("cooldown_min")
+  isEnabled   Boolean       @default(true) @map("is_enabled")
+  createdBy   String?       @map("created_by") @db.Uuid
+  version     Int           @default(0)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  alerts      Alert[]
+  subscribers AlertRuleSubscriber[]
+
+  @@index([type, isEnabled])
+  @@index([productId, warehouseId])
+  @@map("alert_rules")
+  @@schema("analytics")
+}
+
+/// Pivô AlertRule ↔ usuário (por ID) com canal de notificação.
+model AlertRuleSubscriber {
+  ruleId      String              @map("rule_id") @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  channel     NotificationChannel @default(IN_APP)
+  /// Destino específico do canal (e-mail, webhook URL, canal do Slack).
+  target      String?
+  minSeverity AlertSeverity       @default(WARNING) @map("min_severity")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  rule AlertRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@id([ruleId, userId, channel])
+  @@index([userId])
+  @@map("alert_rule_subscribers")
+  @@schema("analytics")
+}
+
+model Alert {
+  id             String        @id @default(uuid()) @db.Uuid
+  ruleId         String?       @map("rule_id") @db.Uuid
+  type           AlertType
+  severity       AlertSeverity
+  status         AlertStatus   @default(OPEN)
+  /// Chave de deduplicação: evita abrir o mesmo alerta enquanto houver um aberto.
+  dedupKey       String        @map("dedup_key")
+  title          String
+  message        String
+  productId      String?       @map("product_id") @db.Uuid
+  warehouseId    String?       @map("warehouse_id") @db.Uuid
+  entityType     String?       @map("entity_type")
+  entityId       String?       @map("entity_id")
+  payload        Json?
+  occurrences    Int           @default(1)
+  triggeredAt    DateTime      @default(now()) @map("triggered_at")
+  lastSeenAt     DateTime      @default(now()) @map("last_seen_at")
+  acknowledgedAt DateTime?     @map("acknowledged_at")
+  acknowledgedBy String?       @map("acknowledged_by") @db.Uuid
+  resolvedAt     DateTime?     @map("resolved_at")
+  resolvedBy     String?       @map("resolved_by") @db.Uuid
+  resolution     String?
+
+  rule AlertRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([status, severity, triggeredAt])
+  @@index([dedupKey, status])
+  @@index([productId, warehouseId])
+  @@index([ruleId])
+  @@map("alerts")
+  @@schema("analytics")
+}

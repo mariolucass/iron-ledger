@@ -1,0 +1,53 @@
+// =============================================================================
+// transaction — enums
+// =============================================================================
+
+enum TransactionType {
+  SALE
+  PURCHASE_RECEIPT
+  TRANSFER
+  RETURN
+  ADJUSTMENT
+
+  @@schema("transaction")
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  COMPENSATING
+  COMPENSATED
+  FAILED
+  CANCELLED
+
+  @@schema("transaction")
+}
+
+enum TransactionItemStatus {
+  PENDING
+  RESERVED
+  CONFIRMED
+  RELEASED
+  FAILED
+
+  @@schema("transaction")
+}
+
+enum SagaStepKind {
+  ACTION
+  COMPENSATION
+
+  @@schema("transaction")
+}
+
+enum SagaStepStatus {
+  SCHEDULED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  TIMED_OUT
+
+  @@schema("transaction")
+}

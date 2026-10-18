@@ -85,7 +85,7 @@ POST /transactions
 
 ## Pré-requisitos
 
-- Node.js >= 20
+- Node.js >= 24 (LTS; `mise install` usa a versão do `mise.toml`)
 - Python >= 3.11
 - Docker + Docker Compose
 - pnpm
@@ -116,7 +116,7 @@ npm run setup:node
 npm run setup:python
 ```
 
-O instalador exige Node.js 20+ e, quando o analytics for selecionado, Python
+O instalador exige Node.js 24+ e, quando o analytics for selecionado, Python
 3.11+.
 
 ```bash

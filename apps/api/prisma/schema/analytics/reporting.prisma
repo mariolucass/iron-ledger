@@ -1,0 +1,72 @@
+// =============================================================================
+// analytics — snapshots de estoque e relatórios
+// =============================================================================
+
+/// Fotografia diária do saldo (fechamento), base para dashboards, giro,
+/// cobertura e treino dos modelos de previsão.
+model InventorySnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  snapshotDate DateTime @map("snapshot_date") @db.Date
+  productId    String   @map("product_id") @db.Uuid
+  warehouseId  String   @map("warehouse_id") @db.Uuid
+  quantity     Decimal  @db.Decimal(18, 4)
+  reserved     Decimal  @db.Decimal(18, 4)
+  available    Decimal  @db.Decimal(18, 4)
+  inboundQty   Decimal  @default(0) @map("inbound_qty") @db.Decimal(18, 4)
+  outboundQty  Decimal  @default(0) @map("outbound_qty") @db.Decimal(18, 4)
+  unitCost     Decimal? @map("unit_cost") @db.Decimal(19, 4)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([snapshotDate, productId, warehouseId])
+  @@index([productId, warehouseId, snapshotDate])
+  @@index([warehouseId, snapshotDate])
+  @@map("inventory_snapshots")
+  @@schema("analytics")
+}
+
+model ReportDefinition {
+  id          String       @id @default(uuid()) @db.Uuid
+  key         String       @unique
+  name        String
+  description String?
+  /// Esquema dos parâmetros aceitos (JSON Schema).
+  parameters  Json?
+  /// Agendamento opcional em formato cron.
+  schedule    String?
+  format      ReportFormat @default(CSV)
+  isActive    Boolean      @default(true) @map("is_active")
+  createdBy   String?      @map("created_by") @db.Uuid
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  runs ReportRun[]
+
+  @@map("report_definitions")
+  @@schema("analytics")
+}
+
+model ReportRun {
+  id           String       @id @default(uuid()) @db.Uuid
+  definitionId String       @map("definition_id") @db.Uuid
+  status       JobRunStatus @default(QUEUED)
+  format       ReportFormat
+  parameters   Json?
+  /// Chave do arquivo no object storage.
+  storageKey   String?      @map("storage_key")
+  sizeBytes    BigInt?      @map("size_bytes")
+  rowCount     Int?         @map("row_count")
+  error        String?
+  requestedBy  String?      @map("requested_by") @db.Uuid
+  requestedAt  DateTime     @default(now()) @map("requested_at")
+  startedAt    DateTime?    @map("started_at")
+  finishedAt   DateTime?    @map("finished_at")
+  expiresAt    DateTime?    @map("expires_at")
+
+  definition ReportDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@index([definitionId, requestedAt])
+  @@index([requestedBy, requestedAt])
+  @@index([status])
+  @@map("report_runs")
+  @@schema("analytics")
+}

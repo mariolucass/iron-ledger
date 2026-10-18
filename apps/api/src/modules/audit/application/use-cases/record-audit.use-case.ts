@@ -1,4 +1,4 @@
-import type { DomainEvent } from "../../../../infra/messaging/rabbitmq.client";
+import type { DomainEvent } from "@iron-ledger/shared-types";
 import type { AuditAction, NewAuditLog } from "../../domain/entities/audit-log.entity";
 import type { AuditRepository } from "../../domain/repositories/audit.repository";
 
@@ -29,7 +29,7 @@ export class RecordAuditUseCase {
       entityType,
       entityId,
       action: actionFor(event),
-      correlationId: text(event.payload.correlationId) ?? null,
+      correlationId: text(event.correlationId) ?? text(event.payload.correlationId) ?? null,
       payload: event.payload,
     };
     return this.audit.createIfAbsent(entry);

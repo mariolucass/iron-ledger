@@ -1,2 +1,2 @@
-export type * from "./dtos";
-export type * from "./events";
+export * from "./dtos";
+export * from "./events";

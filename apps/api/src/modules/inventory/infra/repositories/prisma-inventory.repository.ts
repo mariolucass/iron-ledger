@@ -1,3 +1,4 @@
+import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../infra/database/prisma.client";
 import { AppError } from "../../../../shared/errors/domain.error";
@@ -68,6 +69,27 @@ export class PrismaInventoryRepository implements InventoryRepository {
       pageSize,
       total,
     };
+  }
+
+  async findReservationByTransaction(transactionId: string): Promise<ReservationSnapshot> {
+    return prisma.$transaction(async (transaction) => {
+      const reservation = await transaction.stockReservation.findUnique({ where: { transactionId } });
+      if (!reservation) return { status: "NOT_FOUND" };
+      if (reservation.status === "COMMITTED") {
+        const movement = await transaction.stockMovement.findFirst({
+          where: {
+            productId: reservation.productId,
+            warehouseId: reservation.warehouseId,
+            referenceId: `SAGA:${reservation.id}`,
+            referenceType: "TEMPORAL_SAGA",
+          },
+          select: { id: true },
+        });
+        if (!movement) throw new AppError("Movimento da reserva confirmada não encontrado.", 409, "RESERVATION_BALANCE_CONFLICT");
+        return { status: "COMMITTED", reservationId: reservation.id, movementId: movement.id };
+      }
+      return { status: reservation.status, reservationId: reservation.id };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   async listWarehouses() {

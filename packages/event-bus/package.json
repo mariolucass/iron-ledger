@@ -2,5 +2,28 @@
   "name": "@iron-ledger/event-bus",
   "version": "0.1.0",
   "private": true,
-  "main": "src/event-bus.interface.ts"
+  "description": "Barramento de eventos de domínio: RabbitMQ com publisher confirms e implementação em memória para testes.",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsx --test src/*.test.ts"
+  },
+  "dependencies": {
+    "@iron-ledger/shared-types": "workspace:*",
+    "amqplib": "^0.10.9"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.8",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
 }

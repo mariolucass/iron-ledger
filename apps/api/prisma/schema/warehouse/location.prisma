@@ -1,0 +1,38 @@
+// =============================================================================
+// warehouse — endereçamento físico (zona → corredor → estante → bin)
+// =============================================================================
+
+model WarehouseLocation {
+  id           String       @id @default(uuid()) @db.Uuid
+  warehouseId  String       @map("warehouse_id") @db.Uuid
+  parentId     String?      @map("parent_id") @db.Uuid
+  code         String
+  name         String?
+  type         LocationType
+  /// Caminho materializado (ex.: `A/01/03/B`) para consultas por subárvore.
+  path         String
+  isPickable   Boolean      @default(true) @map("is_pickable")
+  isReceivable Boolean      @default(true) @map("is_receivable")
+  isActive     Boolean      @default(true) @map("is_active")
+  maxWeightKg  Decimal?     @map("max_weight_kg") @db.Decimal(12, 4)
+  maxVolumeM3  Decimal?     @map("max_volume_m3") @db.Decimal(12, 4)
+  /// Ordem na rota de separação (picking path).
+  pickSequence Int?         @map("pick_sequence")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  deletedAt    DateTime?    @map("deleted_at")
+
+  warehouse       Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  parent          WarehouseLocation?  @relation("LocationTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children        WarehouseLocation[] @relation("LocationTree")
+  locationStocks  LocationStock[]
+  stockMovements  StockMovement[]
+  stockCountItems StockCountItem[]
+
+  @@unique([warehouseId, code])
+  @@unique([warehouseId, path])
+  @@index([parentId])
+  @@index([warehouseId, type, isActive])
+  @@map("warehouse_locations")
+  @@schema("warehouse")
+}

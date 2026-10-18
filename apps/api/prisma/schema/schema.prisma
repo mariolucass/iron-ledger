@@ -1,0 +1,42 @@
+// =============================================================================
+// iron-ledger — Prisma multi-file schema (raiz)
+// =============================================================================
+//
+// Cada bounded context do DDD vive em sua própria pasta e em seu próprio
+// schema PostgreSQL (multiSchema). A separação física permite conceder
+// permissões por contexto (ex.: o serviço Python de analytics só lê/escreve
+// em `analytics`) e deixa explícitas as fronteiras entre os domínios.
+//
+//   identity/     Autenticação, autorização e RBAC
+//   catalog/      Produtos, categorias, unidades de medida e códigos de barras
+//   warehouse/    Armazéns e endereçamento físico (zonas, corredores, bins)
+//   inventory/    Saldos, movimentações, reservas, lotes, transferências, contagens
+//   transaction/  Transações de negócio orquestradas por Sagas (Temporal)
+//   audit/        Registro imutável e append-only de todas as mutações (ADR-003)
+//   analytics/    Read models do serviço Python: alertas, previsões e relatórios (ADR-004)
+//   platform/     Infraestrutura transversal: outbox, inbox, idempotência e configurações
+//
+// Convenções:
+//   - Models em PascalCase, tabelas e colunas em snake_case via @@map/@map.
+//   - Chaves primárias UUID; quantidades em Decimal(18, 4); valores monetários
+//     em Decimal(19, 4) acompanhados de moeda ISO-4217; datas em UTC.
+//   - Agregados mutáveis possuem `version` para concorrência otimista.
+//   - Relações (FK) apenas dentro do contexto ou de um contexto upstream
+//     (catalog/warehouse → inventory). Contextos downstream e assíncronos
+//     (transaction, analytics, platform) referenciam outros agregados só por ID.
+//   - Colunas de ator (`*_by`) são UUIDs simples, sem FK, para que o histórico
+//     sobreviva à remoção de usuários.
+//   - Regras não expressáveis no Prisma (CHECK, índices parciais, partição de
+//     tabelas) devem ser adicionadas manualmente no SQL das migrations.
+// =============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder", "multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["identity", "catalog", "warehouse", "inventory", "transaction", "audit", "analytics", "platform"]
+}

@@ -1,4 +1,5 @@
-import type { DomainEvent } from "../../../../infra/messaging/rabbitmq.client";
+import type { StockReleased, StockReserved } from "@iron-ledger/shared-types";
+import { EVENT_PRODUCER } from "../../../../infra/messaging/rabbitmq.client";
 import type { StockReservationRecord } from "../repositories/inventory.repository";
 
 export function stockReservationEvent(
@@ -6,12 +7,16 @@ export function stockReservationEvent(
   reservation: StockReservationRecord,
   actorId: string,
   correlationId?: string,
-): DomainEvent {
+): StockReserved | StockReleased {
   return {
     eventId: `${eventName}:${reservation.id}`,
     eventName,
+    eventVersion: 1,
     occurredAt: new Date().toISOString(),
+    producer: EVENT_PRODUCER,
+    aggregateType: "StockLevel",
     aggregateId: reservation.stockLevelId,
+    correlationId,
     actorId,
     payload: {
       entityType: "Inventory",

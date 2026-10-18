@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TransactionDetailPage } from "@/features/(operations)/transactions";
+import { TransactionDetailPage } from "@/views/transaction-detail";
 
 export const metadata: Metadata = {
   title: "Detalhes da Transacao - Iron Ledger",

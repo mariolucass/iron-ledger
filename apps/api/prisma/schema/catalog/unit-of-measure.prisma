@@ -1,0 +1,38 @@
+// =============================================================================
+// catalog — unidades de medida e conversões
+// =============================================================================
+
+model UnitOfMeasure {
+  id        String            @id @default(uuid()) @db.Uuid
+  code      String            @unique
+  name      String
+  type      UnitOfMeasureType
+  /// Casas decimais aceitas nas quantidades desta unidade.
+  precision Int               @default(0)
+  isActive  Boolean           @default(true) @map("is_active")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  products    Product[]
+  conversions ProductUnitConversion[]
+
+  @@map("units_of_measure")
+  @@schema("catalog")
+}
+
+/// Pivô Product ↔ UnitOfMeasure com fator de conversão para a unidade base
+/// (ex.: 1 CX = 12 UN → factor 12).
+model ProductUnitConversion {
+  productId String   @map("product_id") @db.Uuid
+  unitId    String   @map("unit_id") @db.Uuid
+  factor    Decimal  @db.Decimal(18, 6)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unit    UnitOfMeasure @relation(fields: [unitId], references: [id], onDelete: Restrict)
+
+  @@id([productId, unitId])
+  @@index([unitId])
+  @@map("product_unit_conversions")
+  @@schema("catalog")
+}

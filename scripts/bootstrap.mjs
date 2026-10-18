@@ -123,8 +123,8 @@ function parseVersion(version) {
 
 function assertPrerequisites() {
   const { major } = parseVersion(process.version);
-  if (major < 20) {
-    throw new Error(`Node.js 20 ou superior é necessário (encontrado ${process.version}).`);
+  if (major < 24) {
+    throw new Error(`Node.js 24 ou superior é necessário (encontrado ${process.version}).`);
   }
   success(`Node.js ${process.version.replace(/^v/, "")} detectado.`);
 }

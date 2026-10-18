@@ -2,36 +2,58 @@ import "dotenv/config";
 import { env } from "./config/env";
 import { prisma } from "./infra/database/prisma.client";
 import { createServer } from "./infra/http/server";
-import { RabbitMqClient } from "./infra/messaging/rabbitmq.client";
+import { logger } from "./infra/logger";
+import { createRabbitMqEventBus } from "./infra/messaging/rabbitmq.client";
+import { OutboxRelay } from "./infra/outbox/outbox.relay";
 import { RecordAuditUseCase } from "./modules/audit/application/use-cases/record-audit.use-case";
 import { startDomainEventConsumer } from "./modules/audit/infra/consumers/domain-event.consumer";
 import { PrismaAuditRepository } from "./modules/audit/infra/repositories/prisma-audit.repository";
+import { TemporalWorkflowOrchestrator } from "./modules/transaction/infra/temporal/transaction-saga.starter";
 
 async function bootstrap(): Promise<void> {
-  const rabbitMq = new RabbitMqClient(env.RABBITMQ_URL);
+  const eventBus = createRabbitMqEventBus(env.RABBITMQ_URL);
+  const workflowOrchestrator = new TemporalWorkflowOrchestrator({
+    address: env.TEMPORAL_ADDRESS,
+    namespace: env.TEMPORAL_NAMESPACE,
+    taskQueue: env.TEMPORAL_TASK_QUEUE,
+  });
   await prisma.$connect();
-  await rabbitMq.connect();
-  await startDomainEventConsumer(rabbitMq, new RecordAuditUseCase(new PrismaAuditRepository()));
+  await eventBus.connect();
+  await startDomainEventConsumer(eventBus, new RecordAuditUseCase(new PrismaAuditRepository()));
 
-  const server = createServer(rabbitMq).listen(env.PORT, "0.0.0.0", () => {
-    console.log(`iron-ledger API disponível em http://localhost:${env.PORT}`);
+  const outboxRelay = new OutboxRelay(prisma, eventBus, logger.child({ component: "outbox-relay" }), {
+    pollIntervalMs: env.OUTBOX_POLL_INTERVAL_MS,
+  });
+  if (env.OUTBOX_RELAY_ENABLED) outboxRelay.start();
+
+  const server = createServer({
+    eventBus,
+    workflowOrchestrator,
+    onEventsCommitted: () => outboxRelay.wake(),
+  }).listen(env.PORT, "0.0.0.0", () => {
+    logger.info({ port: env.PORT, outboxRelay: env.OUTBOX_RELAY_ENABLED }, `iron-ledger API disponível em http://localhost:${env.PORT}`);
   });
 
-  const shutdown = async (signal: string) => {
-    console.log(`${signal} recebido; encerrando...`);
+  let shuttingDown = false;
+  const shutdown = (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ signal }, "Encerrando a API");
     server.close(async () => {
-      await rabbitMq.close();
+      await outboxRelay.stop();
+      await workflowOrchestrator.close();
+      await eventBus.close();
       await prisma.$disconnect();
       process.exit(0);
     });
   };
 
-  process.on("SIGINT", () => void shutdown("SIGINT"));
-  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 }
 
 bootstrap().catch(async (error) => {
-  console.error("Falha ao iniciar a API", error);
+  logger.fatal({ err: error }, "Falha ao iniciar a API");
   await prisma.$disconnect();
   process.exit(1);
 });

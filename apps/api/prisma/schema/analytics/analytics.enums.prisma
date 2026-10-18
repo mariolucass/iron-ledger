@@ -1,0 +1,69 @@
+// =============================================================================
+// analytics — enums
+// =============================================================================
+
+enum AlertType {
+  LOW_STOCK
+  STOCKOUT
+  OVERSTOCK
+  LOT_EXPIRING
+  STALE_RESERVATION
+  DEMAND_ANOMALY
+  SAGA_FAILURE
+  COUNT_VARIANCE
+
+  @@schema("analytics")
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+
+  @@schema("analytics")
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  SUPPRESSED
+
+  @@schema("analytics")
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SLACK
+  WEBHOOK
+
+  @@schema("analytics")
+}
+
+enum ForecastGranularity {
+  DAILY
+  WEEKLY
+  MONTHLY
+
+  @@schema("analytics")
+}
+
+enum JobRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+
+  @@schema("analytics")
+}
+
+enum ReportFormat {
+  CSV
+  XLSX
+  PDF
+  JSON
+
+  @@schema("analytics")
+}

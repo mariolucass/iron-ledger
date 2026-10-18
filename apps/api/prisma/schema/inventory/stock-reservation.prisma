@@ -1,0 +1,37 @@
+// =============================================================================
+// inventory — reservas de estoque (passo de reserva da Saga)
+// =============================================================================
+
+model StockReservation {
+  id            String            @id @default(uuid()) @db.Uuid
+  productId     String            @map("product_id") @db.Uuid
+  warehouseId   String            @map("warehouse_id") @db.Uuid
+  lotId         String?           @map("lot_id") @db.Uuid
+  /// Transação do contexto `transaction` (referência por ID, sem FK). Única
+  /// para tornar o passo de reserva da Saga idempotente.
+  transactionId String?           @unique @map("transaction_id") @db.Uuid
+  quantity      Decimal           @db.Decimal(18, 4)
+  status        ReservationStatus @default(ACTIVE)
+  referenceId   String?           @map("reference_id")
+  referenceType String?           @map("reference_type")
+  releaseReason String?           @map("release_reason")
+  expiresAt     DateTime?         @map("expires_at")
+  committedAt   DateTime?         @map("committed_at")
+  releasedAt    DateTime?         @map("released_at")
+  createdBy     String?           @map("created_by") @db.Uuid
+  version       Int               @default(0)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  product   Product         @relation(fields: [productId], references: [id])
+  warehouse Warehouse       @relation(fields: [warehouseId], references: [id])
+  lot       InventoryLot?   @relation(fields: [lotId], references: [id])
+  movements StockMovement[]
+
+  @@index([productId, warehouseId, status])
+  @@index([status, expiresAt])
+  @@index([expiresAt])
+  @@index([referenceId, referenceType])
+  @@map("stock_reservations")
+  @@schema("inventory")
+}

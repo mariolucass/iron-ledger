@@ -1,0 +1,95 @@
+// =============================================================================
+// identity — RBAC: papéis, permissões e escopos
+// =============================================================================
+
+model Role {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @unique
+  description  String?
+  isSystem     Boolean   @default(false) @map("is_system")
+  /// Hierarquia de papéis: o filho herda as permissões do pai.
+  parentRoleId String?   @map("parent_role_id") @db.Uuid
+  version      Int       @default(0)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  parentRole      Role?            @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
+  childRoles      Role[]           @relation("RoleHierarchy")
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@index([parentRoleId])
+  @@map("roles")
+  @@schema("identity")
+}
+
+/// Permissão atômica no formato `recurso:ação` (ex.: `inventory.movement:CREATE`).
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  resource    String
+  action      PermissionAction
+  description String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  rolePermissions   RolePermission[]
+  apiKeyPermissions ApiKeyPermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+  @@schema("identity")
+}
+
+/// Pivô User ↔ Role.
+model UserRole {
+  userId    String    @map("user_id") @db.Uuid
+  roleId    String    @map("role_id") @db.Uuid
+  grantedAt DateTime  @default(now()) @map("granted_at")
+  grantedBy String?   @map("granted_by") @db.Uuid
+  /// Concessões temporárias (acesso emergencial, break-glass).
+  expiresAt DateTime? @map("expires_at")
+
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  granter User? @relation("UserRoleGrantedBy", fields: [grantedBy], references: [id], onDelete: SetNull)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@index([expiresAt])
+  @@map("user_roles")
+  @@schema("identity")
+}
+
+/// Pivô Role ↔ Permission.
+model RolePermission {
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  grantedAt    DateTime @default(now()) @map("granted_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+  @@schema("identity")
+}
+
+/// Pivô User ↔ Warehouse: restringe a atuação do usuário a armazéns específicos.
+/// Sem registros, o usuário segue apenas as permissões globais dos seus papéis.
+model UserWarehouseAccess {
+  userId      String               @map("user_id") @db.Uuid
+  warehouseId String               @map("warehouse_id") @db.Uuid
+  accessLevel WarehouseAccessLevel @default(VIEWER) @map("access_level")
+  grantedAt   DateTime             @default(now()) @map("granted_at")
+  grantedBy   String?              @map("granted_by") @db.Uuid
+  expiresAt   DateTime?            @map("expires_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@id([userId, warehouseId])
+  @@index([warehouseId])
+  @@map("user_warehouse_accesses")
+  @@schema("identity")
+}

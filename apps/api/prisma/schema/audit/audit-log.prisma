@@ -1,0 +1,64 @@
+// =============================================================================
+// audit — registro imutável (ADR-003: append-only)
+// =============================================================================
+//
+// Nenhuma linha é alterada ou removida pela aplicação. Recomenda-se na migration:
+//   - REVOKE UPDATE, DELETE ON audit.* do papel da aplicação;
+//   - trigger que rejeite UPDATE/DELETE;
+//   - particionamento mensal por `occurred_at`.
+// `hash`/`previousHash` formam uma cadeia (tamper-evident) ordenada por `sequence`.
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  /// Ordem global de gravação, usada para encadear os hashes.
+  sequence      BigInt   @unique @default(autoincrement())
+  eventId       String   @unique @map("event_id")
+  eventName     String   @map("event_name")
+  eventVersion  Int      @default(1) @map("event_version")
+  occurredAt    DateTime @map("occurred_at")
+  actorId       String?  @map("actor_id") @db.Uuid
+  /// `USER`, `API_KEY`, `SYSTEM` ou `WORKFLOW`.
+  actorType     String   @default("USER") @map("actor_type")
+  entityType    String   @map("entity_type")
+  entityId      String   @map("entity_id")
+  action        String
+  /// Serviço que emitiu o evento (api, temporal-worker, analytics).
+  source        String?
+  correlationId String?  @map("correlation_id")
+  causationId   String?  @map("causation_id")
+  ipAddress     String?  @map("ip_address") @db.Inet
+  userAgent     String?  @map("user_agent")
+  payload       Json
+  hash          String?
+  previousHash  String?  @map("previous_hash")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  actor   User?            @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  changes AuditLogChange[]
+
+  @@index([eventName, occurredAt])
+  @@index([entityType, entityId])
+  @@index([actorId, occurredAt])
+  @@index([correlationId])
+  @@index([occurredAt])
+  @@map("audit_logs")
+  @@schema("audit")
+}
+
+/// Diferença campo a campo de uma mutação (antes/depois), para telas de
+/// auditoria e relatórios de conformidade sem precisar interpretar o payload.
+model AuditLogChange {
+  id         String  @id @default(uuid()) @db.Uuid
+  auditLogId String  @map("audit_log_id") @db.Uuid
+  field      String
+  oldValue   Json?   @map("old_value")
+  newValue   Json?   @map("new_value")
+  /// Valores sensíveis (PII) são mascarados antes da gravação.
+  isMasked   Boolean @default(false) @map("is_masked")
+
+  auditLog AuditLog @relation(fields: [auditLogId], references: [id], onDelete: Restrict)
+
+  @@unique([auditLogId, field])
+  @@map("audit_log_changes")
+  @@schema("audit")
+}

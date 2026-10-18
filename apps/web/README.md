@@ -8,10 +8,10 @@ available in [Figma](https://www.figma.com/design/c4KH5GHe1r50o0VC128rqQ/Iron-Le
 
 Requirements:
 
-- Node.js 20.9 or newer
-- pnpm 11
+- Node.js 24 LTS (see `engines` in the root `package.json`)
+- pnpm 10.12.1 (pinned by `packageManager`; pnpm and corepack switch to it automatically)
 
-Install dependencies with pnpm:
+Install dependencies from the monorepo root (the web app is a workspace, not a standalone project):
 
 ```bash
 pnpm install
@@ -34,35 +34,32 @@ Run the TypeScript checks:
 ```bash
 pnpm typecheck
 ```
-## Domain organization
+## Frontend architecture
 
-Both src/app and src/features use the same domain groups:
+`src/app` contains Next.js routes, metadata, the root layout and BFF handlers.
+Parenthesized route groups remain unchanged and do not appear in URLs.
 
-| Group | Features | Responsibility |
-| --- | --- | --- |
-| (operations) | inventory, warehouses, transactions | Stock, storage and inventory movements |
-| (intelligence) | dashboard, forecasting, reports | Indicators, predictions and reporting |
-| (governance) | alerts, audit-log | Monitoring and audit trails |
-| (identity) | auth, users | Authentication and access management |
-| (marketing) | landing | Public product presentation |
-| (platform) | settings, design-system | Workspace configuration and UI reference |
+- `src/views`: routed screens, page-specific queries, filters, drawers and demo state.
+- `src/widgets`: the application shell, header, sidebar and navigation.
+- `src/features`: `sign-in`, `sign-out` and `record-stock-movement`, with their action state and validation.
+- `src/entities`: public domain contracts, API clients and reusable presentation.
+- `src/shared`: transport, session helpers, theme and generic UI.
 
-In app, parentheses define Next.js route groups and do not appear in URLs.
-For example, src/app/(identity)/login/page.tsx still serves /login,
-src/app/(marketing)/page.tsx serves /, and
-src/app/(operations)/transactions/[id]/page.tsx serves /transactions/:id.
-The root layout and not-found handler remain in app because they apply to all groups.
+Dependencies flow downward in this order. Consumers import slices through their
+`index.ts`; slices do not import other slices on the same layer. Demo warehouse
+and transaction data shared by screens use explicit `entities/*/testing` entry
+points, separate from production entity exports.
 
-In features, parentheses are ordinary folder names and must appear in imports:
-@/features/(governance)/alerts/ui/AlertsPage. Each feature retains its ui
-and model segments. The auth feature backs the login route.
+The `views` name avoids a conflict with the Next.js Pages Router. Screen moves
+preserve the current URLs and BFF contracts. Alerts, reports and settings retain
+their existing demonstration behavior.
 
-This is domain-oriented grouping inspired by DDD and FSD, not a full DDD model
-or strict FSD implementation. Groups organize existing slices; they do not
-introduce shared domain logic or enforce dependency boundaries. Platform is
-a technical support group. Shared UI and layout remain in shared and widgets.
-The existing forecasting dependency on warehouse data is retained.
+See [the migration document](../../docs/architecture/frontend-fsd-proposal.md)
+for responsibilities and future actions.
 
-Place new features in the group responsible for their business behavior and
-place their routes in the matching app group. Avoid adding group-level model
-or ui folders: these segments belong to each feature.
+From the monorepo root, run the checks:
+
+```sh
+pnpm --filter @iron-ledger/web typecheck   # next typegen + tsc
+pnpm --filter @iron-ledger/web test        # entities API, FSD boundaries and schemas
+```

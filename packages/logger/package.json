@@ -2,5 +2,26 @@
   "name": "@iron-ledger/logger",
   "version": "0.1.0",
   "private": true,
-  "main": "src/logger.ts"
+  "description": "Logger JSON estruturado (pino) com contexto de correlação propagado por AsyncLocalStorage.",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsx --test src/*.test.ts"
+  },
+  "dependencies": {
+    "pino": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
 }

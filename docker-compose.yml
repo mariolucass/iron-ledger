@@ -191,6 +191,8 @@ services:
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
       TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE:-iron-ledger-tasks}
       API_URL: http://host.docker.internal:${API_PORT:-3000}
+      WORKER_SERVICE_EMAIL: ${WORKER_SERVICE_EMAIL:-${SEED_ADMIN_EMAIL:-admin@ironledger.local}}
+      WORKER_SERVICE_PASSWORD: ${WORKER_SERVICE_PASSWORD:-${SEED_ADMIN_PASSWORD:-ChangeMe123!}}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@ironledger.local}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe123!}
     extra_hosts:
