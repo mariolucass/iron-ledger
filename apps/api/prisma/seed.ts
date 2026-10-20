@@ -1,7 +1,8 @@
-import "dotenv/config";
+import { loadWorkspaceEnv } from "../../../scripts/app-env.cjs";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+Object.assign(process.env, loadWorkspaceEnv("api"));
 const prisma = new PrismaClient();
 
 const demoWarehouses = [

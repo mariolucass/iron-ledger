@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, Bell, BookOpen, LayoutDashboard, Package, ScrollText, Settings, TrendingUp, Users, Warehouse } from "lucide-react";
+import { ArrowLeftRight, BarChart3, Bell, LayoutDashboard, Package, ScrollText, Settings, TrendingUp, Users, Warehouse } from "lucide-react";
 import type { NavigationItem } from "./types";
 
 export const navigationItems: NavigationItem[] = [
@@ -10,9 +10,9 @@ export const navigationItems: NavigationItem[] = [
   { icon: TrendingUp, label: "Previsões", path: "/forecasting", section: "Análises", shortcut: "⌘6" },
   { icon: BarChart3, label: "Relatórios", path: "/reports", section: "Análises", shortcut: "⌘7" },
   { icon: Bell, label: "Alertas", path: "/alerts", section: "Análises", shortcut: "⌘8", badge: 3 },
+  { icon: BarChart3, label: "Analytics", path: "/analytics", section: "Análises" },
   { icon: Users, label: "Usuários", path: "/users", section: "Sistema", shortcut: "⌘9" },
   { icon: Settings, label: "Configurações", path: "/settings", section: "Sistema" },
-  { icon: BookOpen, label: "Design System", path: "/design-system", section: "Sistema" },
 ];
 
 export const navigationSections = Object.entries(
@@ -30,6 +30,8 @@ export const pathLabels: Record<string, string> = {
   "audit-log": "Log de Auditoria",
   forecasting: "Previsões",
   reports: "Relatórios",
+  analytics: "Analytics",
+  "inflection-points": "Pontos de inflexão",
   alerts: "Alertas",
   users: "Usuários",
   settings: "Configurações",

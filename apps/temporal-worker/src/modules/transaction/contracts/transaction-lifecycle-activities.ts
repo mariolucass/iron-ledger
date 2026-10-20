@@ -1,4 +1,7 @@
-import type { RecordSagaStepInput, ReportTransactionOutcomeInput } from "@iron-ledger/workflow-contracts";
+import type {
+  RecordSagaStepInput,
+  ReportTransactionOutcomeInput,
+} from "@iron-ledger/workflow-contracts";
 
 /**
  * Activities que espelham a Saga no contexto `transaction` da API. Ficam fora de

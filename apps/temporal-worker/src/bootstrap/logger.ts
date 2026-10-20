@@ -12,8 +12,11 @@ const LEVELS: Record<LogLevel, "trace" | "debug" | "info" | "warn" | "error"> = 
 };
 
 /** Encaminha os logs do SDK (worker, workflows e activities) para o logger JSON. */
-export function temporalLogger(target: AppLogger = logger.child({ component: "temporal-sdk" })): TemporalLogger {
-  const log = (level: LogLevel, message: string, meta?: LogMetadata) => target[LEVELS[level]]({ ...meta }, message);
+export function temporalLogger(
+  target: AppLogger = logger.child({ component: "temporal-sdk" }),
+): TemporalLogger {
+  const log = (level: LogLevel, message: string, meta?: LogMetadata) =>
+    target[LEVELS[level]]({ ...meta }, message);
   return {
     log,
     trace: (message, meta) => log("TRACE", message, meta),

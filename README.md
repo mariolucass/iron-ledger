@@ -120,6 +120,8 @@ O instalador exige Node.js 24+ e, quando o analytics for selecionado, Python
 3.11+.
 
 ```bash
+# Crie o arquivo apenas se ele ainda não existir e ajuste suas conexões.
+cp .env.example .env
 # PostgreSQL, RabbitMQ, Redis e API (migração e seed são automáticos)
 docker compose up -d --build
 ```
@@ -133,7 +135,9 @@ Para executar a API fora do Docker:
 
 ```bash
 pnpm install
-cp apps/api/.env.example apps/api/.env
+# Se ainda não existir, copie .env.example para .env na raiz e ajuste as URLs.
+# Suba PostgreSQL e RabbitMQ, ou use serviços locais já existentes.
+# Com os serviços deste projeto: pnpm infra:core
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
@@ -141,9 +145,46 @@ pnpm dev
 ```
 
 O comando `pnpm dev` inicia a API em `http://localhost:3000` e o web em
-`http://localhost:3001`. As portas e URLs vêm do `.env` da raiz; na ausência
-das variáveis, esses mesmos valores são usados como fallback. Para iniciar só
-um app, use `pnpm dev:api` ou `pnpm dev:web`.
+`http://localhost:3001`. Para iniciar só um app, use `pnpm dev:api` ou `pnpm dev:web`.
+
+### Configuração do ambiente
+
+O **`.env` da raiz é o arquivo principal**. Ele concentra conexões, portas,
+autenticação, conta inicial e configuração dos serviços opcionais. Os arquivos
+`.env.example` são modelos, não são carregados pela aplicação.
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `.env` | Base compartilhada dos comandos locais e variáveis do Docker Compose. |
+| `apps/api/.env` | Sobrescritas opcionais usadas apenas pela API, Prisma e seed. |
+| `apps/web/.env`, `apps/temporal-worker/.env`, `services/analytics/.env` | Sobrescritas opcionais do app correspondente nos comandos `pnpm dev:*`. |
+
+A prioridade é **terminal/hosting → `.env` do app → `.env` da raiz → padrão do código**.
+Normalmente, mantenha apenas o arquivo da raiz. O modelo `apps/api/.env.example`
+contém somente exemplos comentados; copiá-lo não troca suas credenciais.
+
+- **API e banco:** `pnpm db:*`, os scripts `prisma:*` em `apps/api`, o seed e a API
+  usam o mesmo carregador. Use `pnpm db:status` para verificar migrações sem alterar
+  o banco. Para argumentos extras: `pnpm --dir apps/api prisma:migrate --name exemplo`.
+  Invocar `prisma` diretamente ignora o carregador do projeto; prefira esses scripts.
+- **Portas:** defina `API_PORT` e `WEB_PORT` na raiz. `API_URL` e
+  `NEXT_PUBLIC_APP_URL` são opcionais: os comandos locais as derivam das portas
+  quando ausentes. `PORT` é uma sobrescrita do runtime/hosting; não a defina na raiz.
+- **Docker:** lê o `.env` da raiz para preencher as variáveis declaradas no Compose;
+  não lê os `.env` dos apps. `POSTGRES_*` e `RABBITMQ_*` provisionam os containers;
+  `DATABASE_URL` e `RABBITMQ_URL` conectam os processos do host. Ajuste os dois grupos
+  quando mudar credenciais. Os containers usam nomes internos de host. Credenciais
+  de volumes existentes não mudam só por editar o `.env`.
+- **Login:** `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` definem a conta do seed.
+  Editar o arquivo não muda a conta existente. `pnpm db:seed` atualiza a conta e
+  repõe a massa de demonstração; não é apenas uma redefinição de senha.
+  O worker usa essa mesma conta, salvo configuração de `WORKER_SERVICE_*`.
+- **Valores:** use valores literais, sem `${OUTRA_VARIAVEL}`; o carregador não faz
+  interpolação. Em URLs, aplique URL-encode aos caracteres especiais das credenciais.
+  Nunca coloque segredos em variáveis `NEXT_PUBLIC_*`.
+
+Depois de alterar o ambiente, reinicie os processos. As credenciais dos exemplos
+são locais; mantenha os valores reais apenas nos `.env` ignorados pelo Git.
 
 ### Autenticação e evento de teste
 

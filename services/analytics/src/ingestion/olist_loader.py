@@ -3,9 +3,9 @@ from __future__ import annotations
 import csv
 import hashlib
 import sqlite3
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,9 @@ class MissingDatasetError(FileNotFoundError):
 
 
 def validate_dataset(data_dir: Path) -> None:
-    missing = [spec.filename for spec in SPECS if not (data_dir / spec.filename).is_file()]
+    missing = [
+        spec.filename for spec in SPECS if not (data_dir / spec.filename).is_file()
+    ]
     if missing:
         joined = ", ".join(missing)
         raise MissingDatasetError(
@@ -83,7 +85,9 @@ def validate_dataset(data_dir: Path) -> None:
         )
 
     for spec in SPECS:
-        with (data_dir / spec.filename).open("r", encoding="utf-8-sig", newline="") as source:
+        with (data_dir / spec.filename).open(
+            "r", encoding="utf-8-sig", newline=""
+        ) as source:
             headers = set(next(csv.reader(source)))
         missing_columns = set(spec.columns) - headers
         if missing_columns:
@@ -124,7 +128,9 @@ def load_olist(connection: sqlite3.Connection, data_dir: Path) -> dict[str, int]
             path = data_dir / spec.filename
             placeholders = ", ".join("?" for _ in spec.columns)
             columns_sql = ", ".join(spec.columns)
-            insert_sql = f"INSERT INTO {spec.table} ({columns_sql}) VALUES ({placeholders})"
+            insert_sql = (
+                f"INSERT INTO {spec.table} ({columns_sql}) VALUES ({placeholders})"
+            )
             count = 0
 
             with path.open("r", encoding="utf-8-sig", newline="") as source:
@@ -214,7 +220,9 @@ def build_weekly_observations(connection: sqlite3.Connection) -> int:
     rows = connection.execute("SELECT * FROM weekly_build").fetchall()
     payload = []
     for row in rows:
-        natural_key = f"OLIST|{row['seller_id']}|{row['product_category']}|{row['period_start']}"
+        natural_key = (
+            f"OLIST|{row['seller_id']}|{row['product_category']}|{row['period_start']}"
+        )
         observation_id = hashlib.sha256(natural_key.encode("utf-8")).hexdigest()
         payload.append((observation_id, "OLIST", *tuple(row)))
 

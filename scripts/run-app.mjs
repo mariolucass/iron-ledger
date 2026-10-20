@@ -1,15 +1,9 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { loadAppEnv, loadWorkspaceEnv } from "./app-env.cjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const rootEnv = path.join(rootDir, ".env");
-
-if (existsSync(rootEnv)) {
-  loadEnvFile(rootEnv);
-}
 
 const app = process.argv[2];
 const script = process.argv[3] ?? "dev";
@@ -23,33 +17,12 @@ if (!/^[a-zA-Z0-9:_-]+$/.test(script)) {
 const definitions = {
   api: {
     filter: "@iron-ledger/api",
-    env: () => ({
-      PORT: process.env.API_PORT ?? process.env.PORT ?? "3000",
-    }),
   },
   web: {
     filter: "@iron-ledger/web",
-    env: () => {
-      const port = process.env.WEB_PORT ?? process.env.PORT ?? "3001";
-      const apiUrl = process.env.API_URL ?? "http://localhost:3000";
-
-      return {
-        PORT: port,
-        API_URL: apiUrl,
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? apiUrl,
-        NEXT_PUBLIC_APP_URL:
-          process.env.NEXT_PUBLIC_APP_URL ?? process.env.WEB_URL ?? `http://localhost:${port}`,
-      };
-    },
   },
   worker: {
     filter: "@iron-ledger/temporal-worker",
-    env: () => ({
-      API_URL: process.env.API_URL ?? "http://localhost:3000",
-      TEMPORAL_ADDRESS: process.env.TEMPORAL_ADDRESS ?? "localhost:7233",
-      TEMPORAL_NAMESPACE: process.env.TEMPORAL_NAMESPACE ?? "default",
-      TEMPORAL_TASK_QUEUE: process.env.TEMPORAL_TASK_QUEUE ?? "iron-ledger-tasks",
-    }),
   },
 };
 
@@ -71,16 +44,48 @@ if (prebuild.status !== 0) {
   process.exit(prebuild.status ?? 1);
 }
 
+const environments = Object.fromEntries(selected.map((name) => [name, loadWorkspaceEnv(name)]));
+
+if (script === "dev") {
+  const dockerEnv = loadAppEnv(path.join(rootDir, ".env"), null);
+  const dockerPort = (key, fallback) => dockerEnv[key] || fallback;
+  const color = process.stdout.isTTY && !process.env.NO_COLOR;
+  const cyan = (value) => (color ? `\u001b[36m${value}\u001b[0m` : value);
+  const bold = (value) => (color ? `\u001b[1m${value}\u001b[0m` : value);
+  const services = {
+    api: ["API · saúde", (env) => `http://localhost:${env.PORT}/health`],
+    web: ["Web", (env) => `http://localhost:${env.PORT}`],
+    worker: ["Worker Temporal", () => "sem interface web"],
+  };
+
+  console.log(`\n  ${bold("Iron Ledger · desenvolvimento")}\n`);
+  for (const name of selected) {
+    const [label, address] = services[name];
+    console.log(`  ${label.padEnd(17)} ${cyan(address(environments[name]))}`);
+  }
+  console.log(`\n  ${bold("Interfaces Docker (quando iniciadas)")}\n`);
+  const interfaces = [
+    ["RabbitMQ", `http://localhost:${dockerPort("RABBITMQ_MANAGEMENT_PORT", "15672")}`, "core"],
+    ["Temporal UI", `http://localhost:${dockerPort("TEMPORAL_UI_PORT", "8088")}`, "platform"],
+    ["Analytics", `http://localhost:${dockerPort("ANALYTICS_PORT", "8000")}/docs`, "analytics"],
+    ["Jaeger", `http://localhost:${dockerPort("JAEGER_UI_PORT", "16686")}`, "observability"],
+  ];
+  for (const [label, url, profile] of interfaces) {
+    console.log(`  ${label.padEnd(17)} ${cyan(url)}  (${profile})`);
+  }
+  console.log(`\n  ${bold("Serviços sem interface web")}\n`);
+  console.log(`  Redis             localhost:${dockerPort("REDIS_PORT", "6379")}`);
+  console.log(`  PostgreSQL        localhost:${dockerPort("POSTGRES_PORT", "5432")}`);
+  console.log(`  Kafka             localhost:${dockerPort("KAFKA_PORT", "9092")}  (platform)`);
+  console.log("\n  Pressione Ctrl+C para encerrar.\n");
+}
+
 const children = selected.map((name) => {
   const definition = definitions[name];
-  const childEnv = { ...process.env, ...definition.env() };
-  const portLabel = childEnv.PORT ? ` na porta ${childEnv.PORT}` : "";
-  console.log(`Iniciando ${name}${portLabel} com variaveis de ${rootEnv}`);
+  const childEnv = environments[name];
 
   const command =
-    process.platform === "win32"
-      ? `pnpm --filter ${definition.filter} run ${script}`
-      : pnpm;
+    process.platform === "win32" ? `pnpm --filter ${definition.filter} run ${script}` : pnpm;
   const args = process.platform === "win32" ? [] : ["--filter", definition.filter, "run", script];
 
   return spawn(command, args, {
@@ -88,27 +93,43 @@ const children = selected.map((name) => {
     env: childEnv,
     shell: process.platform === "win32",
     stdio: "inherit",
+    detached: process.platform !== "win32",
   });
 });
 
 let exitCode = 0;
 let shuttingDown = false;
 
-function stopChildren(signal) {
+function signalTree(child, signal) {
+  if (!child.pid) return;
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], { stdio: "ignore" });
+    return;
+  }
+  try {
+    // pnpm inicia outros processos; o grupo inclui Next, tsx e seus filhos.
+    process.kill(-child.pid, signal);
+  } catch (error) {
+    if (error.code !== "ESRCH") console.error(error);
+  }
+}
+
+function stopChildren() {
   if (shuttingDown) return;
   shuttingDown = true;
   for (const child of children) {
-    if (child.killed || child.exitCode !== null) continue;
-    if (process.platform === "win32" && child.pid) {
-      spawnSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], { stdio: "ignore" });
-    } else {
-      child.kill(signal);
-    }
+    signalTree(child, "SIGTERM");
+  }
+  // Um processo que ignora SIGTERM não deve manter a porta ocupada.
+  if (process.platform !== "win32") {
+    setTimeout(() => {
+      for (const child of children) signalTree(child, "SIGKILL");
+    }, 5000);
   }
 }
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
-  process.on(signal, () => stopChildren(signal));
+  process.on(signal, stopChildren);
 }
 
 await Promise.all(
@@ -118,12 +139,12 @@ await Promise.all(
         child.on("error", (error) => {
           console.error(error);
           exitCode = 1;
-          stopChildren("SIGTERM");
+          stopChildren();
           resolve();
         });
         child.on("exit", (code, signal) => {
           if (code && code !== 0) exitCode = code;
-          if (!shuttingDown && (code !== 0 || signal)) stopChildren("SIGTERM");
+          if (!shuttingDown) stopChildren();
           resolve();
         });
       }),

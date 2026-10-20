@@ -16,7 +16,11 @@ export async function runWorker() {
   const config = loadConfig();
   Runtime.install({ logger: temporalLogger() });
 
-  const tokens = new ServiceTokenProvider({ apiUrl: config.apiUrl, email: config.serviceEmail, password: config.servicePassword });
+  const tokens = new ServiceTokenProvider({
+    apiUrl: config.apiUrl,
+    email: config.serviceEmail,
+    password: config.servicePassword,
+  });
   const api = new ApiClient(config.apiUrl, tokens);
   const connection = await NativeConnection.connect({ address: config.temporalAddress });
   try {
@@ -38,7 +42,10 @@ export async function runWorker() {
       });
     }
 
-    logger.info({ taskQueue: config.taskQueue, namespace: config.namespace, apiUrl: config.apiUrl }, "Temporal worker pronto");
+    logger.info(
+      { taskQueue: config.taskQueue, namespace: config.namespace, apiUrl: config.apiUrl },
+      "Temporal worker pronto",
+    );
     await worker.run();
     logger.info({}, "Temporal worker encerrado");
   } finally {

@@ -3,8 +3,7 @@ import { ReportsPage } from "@/views/reports";
 
 export const metadata: Metadata = {
   title: "Relatorios - Iron Ledger",
-  description:
-    "Extracao e relatorios de atividades, auditoria e controle de estoques.",
+  description: "Extracao e relatorios de atividades, auditoria e controle de estoques.",
 };
 
 export default function Page() {

@@ -3,7 +3,7 @@ FROM node:24-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN apk add --no-cache openssl \
-    && corepack enable
+  && corepack enable
 WORKDIR /workspace
 
 FROM base AS dependencies
@@ -16,9 +16,10 @@ COPY packages/logger/package.json packages/logger/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
 COPY packages/workflow-contracts packages/workflow-contracts
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --filter @iron-ledger/api... --frozen-lockfile
+  pnpm install --filter @iron-ledger/api... --frozen-lockfile
 # Pacotes compartilhados são consumidos a partir de dist/: compila as dependências do app.
 COPY tsconfig.base.json ./
+COPY scripts/app-env.cjs scripts/app-env.d.cts scripts/run-prisma.mjs ./scripts/
 COPY packages packages
 RUN pnpm --filter "@iron-ledger/api^..." --if-present run build
 
@@ -39,6 +40,7 @@ WORKDIR /workspace
 RUN apk add --no-cache dumb-init openssl
 COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
 COPY --from=build --chown=node:node /workspace/packages ./packages
+COPY --from=build --chown=node:node /workspace/scripts ./scripts
 COPY --from=build --chown=node:node /workspace/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build --chown=node:node /workspace/apps/api/package.json ./apps/api/package.json
 COPY --from=build --chown=node:node /workspace/apps/api/prisma ./apps/api/prisma

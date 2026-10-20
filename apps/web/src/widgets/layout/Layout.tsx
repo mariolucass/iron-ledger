@@ -32,10 +32,10 @@ export function Layout({ children, title }: LayoutProps) {
         return;
       }
 
-      const index = Number.parseInt(event.key, 10) - 1;
-      if (navigationItems[index]) {
+      const target = navigationItems.find((item) => item.shortcut === `⌘${event.key}`);
+      if (target) {
         event.preventDefault();
-        router.push(navigationItems[index].path);
+        router.push(target.path);
       }
     };
 

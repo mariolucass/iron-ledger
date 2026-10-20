@@ -20,9 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={fontVariables} style={themeVariables}>
-      <body className="font-sans">
-        {children}
-      </body>
+      <body className="font-sans">{children}</body>
     </html>
   );
 }
