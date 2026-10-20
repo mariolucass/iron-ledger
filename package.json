@@ -51,6 +51,7 @@
     "infra:nuke": "docker compose down -v --remove-orphans",
     "infra:logs": "docker compose logs -f",
     "infra:status": "docker compose ps",
+    "analytics:download": "docker compose run --rm analytics python -m src.cli download",
     "analytics:pipeline": "docker compose run --rm analytics python -m src.cli run",
     "analytics:up": "docker compose --profile analytics up -d --build",
     "analytics:logs": "docker compose logs -f analytics",

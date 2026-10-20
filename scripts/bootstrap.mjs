@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -41,6 +41,9 @@ const colors = process.stdout.isTTY
       reset: "",
     };
 
+function warn(message) {
+  console.log(`${colors.yellow}!${colors.reset} ${message}`);
+}
 function info(message) {
   console.log(`${colors.cyan}➜${colors.reset} ${message}`);
 }
@@ -292,6 +295,14 @@ async function promptPlan() {
 
 // ---- install phases ----
 
+function ensureEnvFile() {
+  const envPath = path.join(rootDir, ".env");
+  const examplePath = path.join(rootDir, ".env.example");
+  if (existsSync(envPath) || !existsSync(examplePath)) return;
+  copyFileSync(examplePath, envPath);
+  success(".env criado a partir de .env.example.");
+}
+
 async function installNodeWorkspace(cache) {
   const start = performance.now();
   const modules = discoverNodeModules();
@@ -309,6 +320,7 @@ async function installNodeWorkspace(cache) {
 
   if (upToDate) {
     success("[node] Workspace já atualizado (lockfile sem mudanças); instalação pulada.");
+    await generatePrismaClient();
     return { skipped: true, durationMs: performance.now() - start };
   }
 
@@ -323,8 +335,51 @@ async function installNodeWorkspace(cache) {
 
   if (currentHash) cache.node = currentHash;
   success(`[node] ${modules.length} módulo(s) instalado(s).`);
+  await generatePrismaClient();
   return { skipped: false, durationMs: performance.now() - start };
 }
+
+async function generatePrismaClient() {
+  info("[node] Gerando o Prisma Client da API...");
+  await spawnAsync(
+    process.execPath,
+    [path.join(rootDir, "scripts", "run-prisma.mjs"), "generate"],
+    {
+      tag: "node",
+      color: colors.cyan,
+    },
+  );
+}
+
+/** Passos extras por serviço Python, executados depois das dependências. */
+const pythonServiceSetup = {
+  // Sem os CSVs da Olist e o banco derivado, a API do analytics sobe vazia.
+  async analytics(service, venvPython, tag, color) {
+    const database = path.join(service.directory, "data", "processed", "analytics.db");
+    if (existsSync(database) && !forceReinstall) {
+      success(`[${tag}] Base analítica já gerada; pipeline pulado.`);
+      return;
+    }
+    try {
+      info(`[${tag}] Baixando os CSVs da Olist...`);
+      await spawnAsync(venvPython, ["-m", "src.cli", "download"], {
+        cwd: service.directory,
+        tag,
+        color,
+      });
+      info(`[${tag}] Executando o pipeline analítico (pode levar alguns minutos)...`);
+      await spawnAsync(venvPython, ["-m", "src.cli", "run"], {
+        cwd: service.directory,
+        tag,
+        color,
+      });
+      success(`[${tag}] Base analítica gerada.`);
+    } catch (error) {
+      // Sem dados a API ainda sobe; não bloqueia o restante do setup.
+      warn(`[${tag}] Dados da Olist não preparados: ${error.message}`);
+    }
+  },
+};
 
 async function installOnePythonService(service, python, cache, color) {
   const tag = `python:${service.name}`;
@@ -336,6 +391,7 @@ async function installOnePythonService(service, python, cache, color) {
     !forceReinstall && existsSync(venvPython) && cache.python[service.name] === currentHash;
   if (upToDate) {
     success(`[${tag}] Já atualizado (requirements.txt sem mudanças); instalação pulada.`);
+    await pythonServiceSetup[service.name]?.(service, venvPython, tag, color);
     return;
   }
 
@@ -361,6 +417,7 @@ async function installOnePythonService(service, python, cache, color) {
 
   cache.python[service.name] = currentHash;
   success(`[${tag}] Módulo instalado.`);
+  await pythonServiceSetup[service.name]?.(service, venvPython, tag, color);
 }
 
 async function installPythonServices(cache) {
@@ -403,14 +460,10 @@ function printSummary(phases, totalMs) {
 
 function printNextSteps() {
   console.log(`\nPróximos passos:`);
-  console.log(`  • pnpm dev`);
-  for (const service of discoverPythonServices()) {
-    const activate =
-      process.platform === "win32"
-        ? `services\\${service.name}\\.venv\\Scripts\\activate`
-        : `source services/${service.name}/.venv/bin/activate`;
-    console.log(`  • ${activate}`);
-  }
+  console.log(`  • pnpm infra:core          PostgreSQL, RabbitMQ e Redis`);
+  console.log(`  • pnpm infra:platform      Temporal (necessário para o worker)`);
+  console.log(`  • pnpm db:deploy && pnpm db:seed`);
+  console.log(`  • pnpm dev                 API, Web, Worker e Analytics`);
 }
 
 async function main() {
@@ -433,6 +486,7 @@ async function main() {
   if (plan.python) tasks.push(["Serviços Python", installPythonServices]);
   if (tasks.length === 0) return info("Nada selecionado para instalar.");
 
+  ensureEnvFile();
   const cache = loadCache();
   const totalStart = performance.now();
   console.log(

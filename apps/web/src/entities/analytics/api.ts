@@ -1,14 +1,53 @@
 import "server-only";
 
+export type MetricUnit = "count" | "currency" | "ratio" | "hours" | "score";
+export type Impact = "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+
+export interface MetricInfo {
+  name: string;
+  label: string;
+  description: string;
+  unit: MetricUnit;
+  higher_is_better: boolean;
+  what_to_check: string;
+}
+
+export interface AnalyticsCatalog {
+  metrics: MetricInfo[];
+  severities: Record<string, string>;
+  classifications: Record<string, string>;
+}
+
+export interface MetricBreakdown {
+  metric: string;
+  label: string;
+  total: number;
+  positive: number;
+  negative: number;
+}
+
 export interface AnalyticsSummary {
   observations: number;
+  observedSellers: number;
+  observationPeriod: { start: string | null; end: string | null };
   inflectionPoints: number;
   sellers: number;
   categories: number;
   firstDetection: string | null;
   lastDetection: string | null;
   bySeverity: Record<string, number>;
+  byClassification: Record<string, number>;
+  byImpact: Record<Impact, number>;
+  byMetric: MetricBreakdown[];
   method: string;
+  source: string;
+}
+
+export interface SeriesPoint {
+  periodStart: string;
+  value: number | null;
+  orders: number;
+  window: "baseline" | "current" | "after";
 }
 
 export interface InflectionPoint {
@@ -38,11 +77,25 @@ export interface InflectionPoint {
     limitation?: string;
   };
   source: string;
+  metric_label: string;
+  metric_description: string | null;
+  unit: MetricUnit | null;
+  higher_is_better: boolean | null;
+  what_to_check: string | null;
+  direction: "UP" | "DOWN" | "FLAT";
+  impact: Impact;
+  severity_label: string;
+  classification_label: string | null;
+  /** Apenas no detalhe. */
+  seller_state?: string | null;
+  /** Apenas no detalhe: série semanal em torno do ponto. */
+  series?: SeriesPoint[];
 }
 
 export interface InflectionPointsResponse {
   items: InflectionPoint[];
   count: number;
+  total: number;
   limit: number;
   offset: number;
 }
@@ -75,11 +128,15 @@ async function analyticsGet<T>(path: string): Promise<T> {
 
 export const getAnalyticsSummary = () => analyticsGet<AnalyticsSummary>("/analytics/summary");
 
+export const getAnalyticsCatalog = () => analyticsGet<AnalyticsCatalog>("/analytics/metrics");
+
 export function getInflectionPoints(
   query: {
     seller_id?: string;
     metric?: string;
     severity?: string;
+    classification?: string;
+    impact?: string;
     offset?: number;
     limit?: number;
   } = {},

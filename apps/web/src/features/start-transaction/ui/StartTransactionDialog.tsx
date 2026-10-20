@@ -5,6 +5,7 @@ import type { TransactionDetail } from "@/entities/transaction";
 import { colors as theme } from "@/shared/config/tokens";
 import { useStartTransaction } from "../model/use-start-transaction";
 import type { TransactionStockOption } from "../model/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
 
 export function StartTransactionDialog({
   items,
@@ -43,13 +44,14 @@ export function StartTransactionDialog({
       </div>
 
       <div className="grid gap-4">
-        <label className="grid gap-1.5 text-xs text-muted-foreground">Produto e depósito
-          <select value={stockLevelId} onChange={(event) => setStockLevelId(event.target.value)} style={fieldStyle} required disabled={loading || sellable.length === 0}>
-            {loading && <option>Carregando saldos…</option>}
-            {!loading && sellable.length === 0 && <option value="">Nenhum saldo disponível</option>}
-            {sellable.map((item) => <option key={item.stockLevelId} value={item.stockLevelId}>{item.sku} · {item.product} · {item.warehouse} ({item.available} disp.)</option>)}
-          </select>
-        </label>
+        <div className="grid gap-1.5 text-xs text-muted-foreground"><span id="start-transaction-stock-label">Produto e depósito</span>
+          <Select value={stockLevelId} onValueChange={setStockLevelId} required disabled={loading || sellable.length === 0}>
+            <SelectTrigger aria-labelledby="start-transaction-stock-label" className="w-full data-[size=default]:h-10">
+              <SelectValue placeholder={loading ? "Carregando saldos…" : sellable.length === 0 ? "Nenhum saldo disponível" : "Selecione um saldo"} />
+            </SelectTrigger>
+            <SelectContent>{sellable.map((item) => <SelectItem key={item.stockLevelId} value={item.stockLevelId}>{item.sku} · {item.product} · {item.warehouse} ({item.available} disp.)</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <label className="grid gap-1.5 text-xs text-muted-foreground">Quantidade
             <input type="number" min="0" step="0.0001" max={selected?.available} value={quantity} onChange={(event) => setQuantity(event.target.value)} style={fieldStyle} required />

@@ -18,7 +18,9 @@ class PipelineResult:
     report_path: Path
 
 
-def run_pipeline(data_dir: Path, database_path: Path, report_path: Path) -> PipelineResult:
+def run_pipeline(
+    data_dir: Path, database_path: Path, report_path: Path
+) -> PipelineResult:
     connection = connect(database_path)
     try:
         source_rows = load_olist(connection, data_dir)

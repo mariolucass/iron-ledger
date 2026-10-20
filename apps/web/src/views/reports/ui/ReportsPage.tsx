@@ -3,7 +3,6 @@
 import { colors as theme } from "@/shared/config/tokens";
 import {
   BarChart2,
-  Calendar,
   Download,
   FileIcon,
   FileSpreadsheet,
@@ -24,6 +23,8 @@ import {
   YAxis,
 } from "recharts";
 import { Layout } from "@/widgets/layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
+import { DatePicker } from "@/shared/ui/kit/date-picker";
 
 // 1. Tema "Cryptix" Integrado
 
@@ -87,6 +88,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function ReportsPage() {
   const [reportType, setReportType] = useState(reportTypes[0]);
   const [format, setFormat] = useState(formats[0]);
+  const [periodFrom, setPeriodFrom] = useState("2026-06-01");
+  const [periodTo, setPeriodTo] = useState("2026-06-09");
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerate = () => {
@@ -94,16 +97,6 @@ export function ReportsPage() {
     setTimeout(() => setIsGenerating(false), 2000); // Simula o tempo de geração
   };
 
-  const inputStyle = {
-    background: theme.bg,
-    border: `1px solid ${theme.border}`,
-    borderRadius: 8,
-    padding: "10px 14px",
-    color: theme.textPrimary,
-    fontSize: 13,
-    outline: "none",
-    transition: "all 0.2s",
-  };
 
   const getFormatIcon = (fmt: string) => {
     if (fmt.includes("CSV")) return <FileText size={16} color={theme.info} />;
@@ -116,8 +109,6 @@ export function ReportsPage() {
     <Layout title="Relatórios e Extração de Dados">
       <style>{`
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.6; transition: 0.2s; }
-        ::-webkit-calendar-picker-indicator:hover { opacity: 1; }
       `}</style>
 
       {/* Control Panel (Gerador de Relatórios) */}
@@ -195,38 +186,19 @@ export function ReportsPage() {
             >
               Domínio
             </label>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                ...inputStyle,
-              }}
-              onFocus={(e) =>
-                (e.currentTarget.style.borderColor = theme.accent)
-              }
-              onBlur={(e) => (e.currentTarget.style.borderColor = theme.border)}
-            >
-              <Filter size={14} color={theme.textSecondary} />
-              <select
-                value={reportType}
-                onChange={(e) => setReportType(e.target.value)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: theme.textPrimary,
-                  width: "100%",
-                  outline: "none",
-                  cursor: "pointer",
-                }}
-              >
+            <Select value={reportType} onValueChange={setReportType}>
+              <SelectTrigger className="w-full data-[size=default]:h-10">
+                <Filter size={14} />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
                 {reportTypes.map((r) => (
-                  <option key={r} value={r} style={{ background: theme.bg }}>
+                  <SelectItem key={r} value={r}>
                     {r}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Período */}
@@ -244,43 +216,23 @@ export function ReportsPage() {
             >
               Período de Extração
             </label>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                ...inputStyle,
-              }}
-              onFocus={(e) =>
-                (e.currentTarget.style.borderColor = theme.accent)
-              }
-              onBlur={(e) => (e.currentTarget.style.borderColor = theme.border)}
-            >
-              <Calendar size={14} color={theme.textSecondary} />
-              <input
-                type="date"
-                defaultValue="2026-06-01"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: theme.textPrimary,
-                  width: "100%",
-                  outline: "none",
-                  cursor: "pointer",
-                }}
+            <div className="flex items-center gap-2">
+              <DatePicker
+                aria-label="Data inicial"
+                value={periodFrom}
+                max={periodTo || undefined}
+                onChange={setPeriodFrom}
+                clearable={false}
+                className="h-10 flex-1"
               />
-              <span style={{ color: theme.textSecondary }}>até</span>
-              <input
-                type="date"
-                defaultValue="2026-06-09"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: theme.textPrimary,
-                  width: "100%",
-                  outline: "none",
-                  cursor: "pointer",
-                }}
+              <span className="text-sm text-muted-foreground">até</span>
+              <DatePicker
+                aria-label="Data final"
+                value={periodTo}
+                min={periodFrom || undefined}
+                onChange={setPeriodTo}
+                clearable={false}
+                className="h-10 flex-1"
               />
             </div>
           </div>
@@ -300,38 +252,19 @@ export function ReportsPage() {
             >
               Formato
             </label>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                ...inputStyle,
-              }}
-              onFocus={(e) =>
-                (e.currentTarget.style.borderColor = theme.accent)
-              }
-              onBlur={(e) => (e.currentTarget.style.borderColor = theme.border)}
-            >
-              {getFormatIcon(format)}
-              <select
-                value={format}
-                onChange={(e) => setFormat(e.target.value)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: theme.textPrimary,
-                  width: "100%",
-                  outline: "none",
-                  cursor: "pointer",
-                }}
-              >
+            <Select value={format} onValueChange={setFormat}>
+              <SelectTrigger className="w-full data-[size=default]:h-10">
+                {getFormatIcon(format)}
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
                 {formats.map((f) => (
-                  <option key={f} value={f} style={{ background: theme.bg }}>
+                  <SelectItem key={f} value={f}>
                     {f}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

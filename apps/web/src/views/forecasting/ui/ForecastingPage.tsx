@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
 import { Layout } from "@/widgets/layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
 
 // 1. Tema "Cryptix" Integrado
 
@@ -94,16 +95,6 @@ export function ForecastingPage() {
     (d) => d.forecast !== null && d.forecast <= minStock,
   );
 
-  const inputStyle = {
-    background: theme.surface,
-    border: `1px solid ${theme.border}`,
-    borderRadius: 8,
-    padding: "8px 14px",
-    color: theme.textPrimary,
-    fontSize: 13,
-    outline: "none",
-    transition: "all 0.2s",
-  };
 
   return (
     <Layout title="Previsão de Demanda">
@@ -157,20 +148,19 @@ export function ForecastingPage() {
           />
         </div>
 
-        <select
-          style={{ ...inputStyle, cursor: "pointer", minWidth: 160 }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = theme.accent)}
-          onBlur={(e) => (e.currentTarget.style.borderColor = theme.border)}
-        >
-          <option style={{ background: theme.bg }} value="">
-            Todos os Armazéns
-          </option>
-          {mockWarehouses.map((wh) => (
-            <option key={wh.id} style={{ background: theme.bg }} value={wh.id}>
-              {wh.name}
-            </option>
-          ))}
-        </select>
+        <Select defaultValue="all">
+          <SelectTrigger className="min-w-[160px]" aria-label="Filtrar por armazém">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Armazéns</SelectItem>
+            {mockWarehouses.map((wh) => (
+              <SelectItem key={wh.id} value={wh.id}>
+                {wh.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <div
           style={{

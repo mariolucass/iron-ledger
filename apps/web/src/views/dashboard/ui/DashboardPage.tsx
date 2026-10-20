@@ -194,7 +194,9 @@ function KpiCard({ kpi, index }: { kpi: KPI; index: number }) {
       transition={spring4}
       style={{
         background: hovered ? theme.surfaceElevated : theme.surface,
-        borderColor: hovered ? theme.borderStrong : theme.border,
+        borderTopColor: hovered ? theme.borderStrong : theme.border,
+        borderRightColor: hovered ? theme.borderStrong : theme.border,
+        borderBottomColor: hovered ? theme.borderStrong : theme.border,
         borderStyle: "solid",
         borderWidth: 1,
         borderLeftColor: kpi.accentColor,
@@ -250,13 +252,14 @@ function KpiCard({ kpi, index }: { kpi: KPI; index: number }) {
         <motion.div
           animate={{
             background: hovered ? `${kpi.accentColor}1A` : theme.surfaceHover,
-            borderColor: hovered ? `${kpi.accentColor}40` : "transparent",
+            // "transparent" não é animável pelo motion — usa a mesma cor com alpha 0
+            borderColor: hovered ? `${kpi.accentColor}40` : `${kpi.accentColor}00`,
           }}
           transition={{ duration: 0.2 }}
           style={{
             padding: "7px",
             borderRadius: 10,
-            border: "1px solid transparent",
+            border: `1px solid ${kpi.accentColor}00`,
           }}
         >
           <Icon
@@ -624,7 +627,9 @@ function AlertCard({ alert }: { alert: StockAlert }) {
       transition={spring4}
       style={{
         background: hovered ? `${cfg.color}08` : "transparent",
-        borderColor: hovered ? `${cfg.color}30` : theme.border,
+        borderTopColor: hovered ? `${cfg.color}30` : theme.border,
+        borderRightColor: hovered ? `${cfg.color}30` : theme.border,
+        borderBottomColor: hovered ? `${cfg.color}30` : theme.border,
         borderStyle: "solid",
         borderWidth: 1,
         borderLeftColor: cfg.color,

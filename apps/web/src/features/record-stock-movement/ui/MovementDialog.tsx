@@ -4,6 +4,7 @@ import { colors as theme } from "@/shared/config/tokens";
 import { Loader2, X } from "lucide-react";
 import { useRecordStockMovement } from "../model/use-record-stock-movement";
 import type { MovementStockOption } from "../model/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
 
 export function MovementDialog({
   items,
@@ -35,17 +36,19 @@ export function MovementDialog({
         <button type="button" aria-label="Fechar formulário de movimento" onClick={onClose} className="grid size-9 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground"><X size={16} /></button>
       </div>
       <div className="grid gap-4">
-        <label className="grid gap-1.5 text-xs text-muted-foreground">Produto e depósito
-          <select value={stockLevelId} onChange={(event) => setStockLevelId(event.target.value)} style={fieldStyle} required>
-            {items.filter((item) => item.stockLevelId).map((item) => <option key={item.stockLevelId} value={item.stockLevelId}>{item.sku} · {item.product} · {item.warehouse}</option>)}
-          </select>
-        </label>
+        <div className="grid gap-1.5 text-xs text-muted-foreground"><span id="movement-stock-label">Produto e depósito</span>
+          <Select value={stockLevelId} onValueChange={setStockLevelId} required>
+            <SelectTrigger aria-labelledby="movement-stock-label" className="w-full data-[size=default]:h-10"><SelectValue placeholder="Selecione um saldo" /></SelectTrigger>
+            <SelectContent>{items.filter((item) => item.stockLevelId).map((item) => <SelectItem key={item.stockLevelId} value={item.stockLevelId}>{item.sku} · {item.product} · {item.warehouse}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
         <div className="grid grid-cols-2 gap-3">
-          <label className="grid gap-1.5 text-xs text-muted-foreground">Tipo
-            <select value={type} onChange={(event) => setType(event.target.value as typeof type)} style={fieldStyle}>
-              <option value="INBOUND">Entrada</option><option value="OUTBOUND">Saída</option><option value="ADJUSTMENT">Ajuste</option><option value="RETURN">Retorno</option>
-            </select>
-          </label>
+          <div className="grid gap-1.5 text-xs text-muted-foreground"><span id="movement-type-label">Tipo</span>
+            <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
+              <SelectTrigger aria-labelledby="movement-type-label" className="w-full data-[size=default]:h-10"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="INBOUND">Entrada</SelectItem><SelectItem value="OUTBOUND">Saída</SelectItem><SelectItem value="ADJUSTMENT">Ajuste</SelectItem><SelectItem value="RETURN">Retorno</SelectItem></SelectContent>
+            </Select>
+          </div>
           <label className="grid gap-1.5 text-xs text-muted-foreground">Quantidade
             <input type="number" step="0.0001" value={quantity} onChange={(event) => setQuantity(event.target.value)} style={fieldStyle} required />
           </label>

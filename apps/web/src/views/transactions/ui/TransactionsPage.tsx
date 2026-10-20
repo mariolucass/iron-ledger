@@ -2,7 +2,7 @@
 
 import { colors as theme } from "@/shared/config/tokens";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calendar, ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
@@ -16,6 +16,7 @@ import {
 } from "@/entities/transaction";
 import { StartTransactionDialog, type TransactionStockOption } from "@/features/start-transaction";
 import { Layout } from "@/widgets/layout";
+import { DatePicker } from "@/shared/ui/kit/date-picker";
 import { dayRange, fetchStockOptions, fetchTransactions, formatDateTime, PAGE_SIZE } from "../model/load-transactions";
 
 const statusTabs: Array<TransactionStatus | "ALL"> = ["ALL", "PROCESSING", "COMPLETED", "COMPENSATED", "FAILED"];
@@ -82,22 +83,9 @@ export function TransactionsPage() {
   };
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const inputStyle = {
-    background: "transparent",
-    border: "none",
-    padding: "6px 0",
-    color: theme.textPrimary,
-    fontSize: 13,
-    outline: "none",
-  };
 
   return (
     <Layout title="Transações">
-      <style>{`
-        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.6; transition: 0.2s; }
-        ::-webkit-calendar-picker-indicator:hover { opacity: 1; }
-      `}</style>
-
       {/* Abas + ações */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
         <div role="tablist" aria-label="Filtrar por status" style={{ display: "flex", gap: 4, background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 10, padding: 6, flexWrap: "wrap" }}>
@@ -128,11 +116,10 @@ export function TransactionsPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "2px 12px" }}>
-            <Calendar size={14} color={theme.textSecondary} />
-            <input type="date" aria-label="Data inicial" value={from} max={to || undefined} onChange={(event) => { setFrom(event.target.value); setPage(1); }} style={inputStyle} />
-            <span style={{ color: theme.textSecondary }}>-</span>
-            <input type="date" aria-label="Data final" value={to} min={from || undefined} onChange={(event) => { setTo(event.target.value); setPage(1); }} style={inputStyle} />
+          <div className="flex items-center gap-2">
+            <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={(value) => { setFrom(value); setPage(1); }} className="h-10" />
+            <span className="text-muted-foreground">-</span>
+            <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={(value) => { setTo(value); setPage(1); }} className="h-10" />
           </div>
 
           <button

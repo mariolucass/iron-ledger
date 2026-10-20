@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Layout } from "@/widgets/layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
 
 // 1. Tema "Cryptix" Integrado
 
@@ -581,16 +582,6 @@ export function UsersPage() {
     return matchesSearch && matchesRole;
   });
 
-  const inputStyle = {
-    background: theme.surface,
-    border: `1px solid ${theme.border}`,
-    borderRadius: 8,
-    padding: "8px 14px",
-    color: theme.textPrimary,
-    fontSize: 13,
-    outline: "none",
-    transition: "all 0.2s",
-  };
 
   return (
     <Layout title="Gestão de Utilizadores (IAM)">
@@ -794,34 +785,19 @@ export function UsersPage() {
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Filter size={14} color={theme.textSecondary} />
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as any)}
-              style={{ ...inputStyle, cursor: "pointer", width: 160 }}
-              onFocus={(e) =>
-                (e.currentTarget.style.borderColor = theme.accent)
-              }
-              onBlur={(e) => (e.currentTarget.style.borderColor = theme.border)}
-            >
-              <option value="ALL" style={{ background: theme.bg }}>
-                Todas as Funções
-              </option>
-              <option value="SUPERADMIN" style={{ background: theme.bg }}>
-                Super Admin
-              </option>
-              <option value="ADMIN" style={{ background: theme.bg }}>
-                Admin
-              </option>
-              <option value="OPERATOR" style={{ background: theme.bg }}>
-                Operador
-              </option>
-              <option value="AUDITOR" style={{ background: theme.bg }}>
-                Auditor
-              </option>
-            </select>
-          </div>
+          <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as typeof roleFilter)}>
+            <SelectTrigger className="w-[180px]" aria-label="Filtrar por função">
+              <Filter size={14} />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todas as Funções</SelectItem>
+              <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
+              <SelectItem value="ADMIN">Admin</SelectItem>
+              <SelectItem value="OPERATOR">Operador</SelectItem>
+              <SelectItem value="AUDITOR">Auditor</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <button
