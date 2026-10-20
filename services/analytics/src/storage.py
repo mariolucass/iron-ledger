@@ -120,5 +120,7 @@ def migrate(connection: sqlite3.Connection) -> None:
         for row in connection.execute("PRAGMA table_info(inflection_points)")
     }
     if "classification" not in columns:
-        connection.execute("ALTER TABLE inflection_points ADD COLUMN classification TEXT")
+        connection.execute(
+            "ALTER TABLE inflection_points ADD COLUMN classification TEXT"
+        )
     connection.commit()

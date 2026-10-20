@@ -1,11 +1,5 @@
-import { config } from "dotenv";
-import { resolve } from "node:path";
+import "./load-env";
 import { z } from "zod";
-
-// The API can run from apps/api, while the shared .env lives at the workspace root.
-// Keep existing process variables and an optional apps/api/.env ahead of root defaults.
-config({ path: resolve(__dirname, "../../.env") });
-config({ path: resolve(__dirname, "../../../../.env") });
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

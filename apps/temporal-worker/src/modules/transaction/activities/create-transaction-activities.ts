@@ -11,7 +11,9 @@ export function createTransactionActivities(
     reserveStock: (input) => execute(() => gateway.reserve(input, correlationId())),
     confirmTransaction: async (input) => {
       if (input.failConfirmation) {
-        throw ApplicationFailure.nonRetryable("Falha de confirmação solicitada para demonstrar compensação.");
+        throw ApplicationFailure.nonRetryable(
+          "Falha de confirmação solicitada para demonstrar compensação.",
+        );
       }
       return execute(() => gateway.commit(input.reservationId, correlationId()));
     },

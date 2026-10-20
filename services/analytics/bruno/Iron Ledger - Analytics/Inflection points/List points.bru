@@ -13,8 +13,10 @@ get {
 params:query {
   limit: 100
   offset: 0
+  ~impact: NEGATIVE
+  ~metric: orders
 }
 
 docs {
-  Lista pontos de inflexão. Filtros opcionais na query: seller_id, metric e severity (LOW, MEDIUM, HIGH ou CRITICAL). limit aceita de 1 a 500; offset deve ser não negativo. Copie o id de um item para pointId no ambiente.
+  Lista pontos de inflexão. Filtros opcionais na query: seller_id, metric (veja /analytics/metrics), severity (LOW, MEDIUM, HIGH ou CRITICAL), classification (GROWTH, DECLINE, POSSIBLE_INTERRUPTION ou ACTIVATION) e impact (POSITIVE ou NEGATIVE). A resposta inclui total para paginação. limit aceita de 1 a 500; offset deve ser não negativo. Copie o id de um item para pointId no ambiente.
 }

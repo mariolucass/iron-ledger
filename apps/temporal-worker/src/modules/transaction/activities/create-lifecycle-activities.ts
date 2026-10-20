@@ -8,6 +8,7 @@ export function createLifecycleActivities(
 ): TransactionLifecycleActivities {
   return {
     recordSagaStep: (input) => execute(() => gateway.recordStep(input, correlationId())),
-    reportTransactionOutcome: (input) => execute(() => gateway.reportOutcome(input, correlationId())),
+    reportTransactionOutcome: (input) =>
+      execute(() => gateway.reportOutcome(input, correlationId())),
   };
 }

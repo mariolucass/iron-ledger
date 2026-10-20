@@ -1,4 +1,10 @@
-import { ApplicationFailure, CancellationScope, isCancellation, patched, proxyActivities } from "@temporalio/workflow";
+import {
+  ApplicationFailure,
+  CancellationScope,
+  isCancellation,
+  patched,
+  proxyActivities,
+} from "@temporalio/workflow";
 import type { TransactionSagaInput, TransactionSagaResult } from "@iron-ledger/workflow-contracts";
 import type { TransactionActivities } from "../../src/modules/transaction/contracts/transaction-activities";
 import { runTransactionSaga } from "../../src/modules/transaction/workflows/run-transaction-saga";
@@ -17,17 +23,26 @@ const recovery = proxyActivities<TransactionActivities>({
 
 export async function transactionSaga(input: TransactionSagaInput): Promise<TransactionSagaResult> {
   if (!patched("transaction-saga-reconciliation-v1")) throw new Error("not used in this snapshot");
-  return runTransactionSaga(input, {
-    reserveStock: operations.reserveStock,
-    confirmTransaction: operations.confirmTransaction,
-    compensateStock: recovery.compensateStock,
-    reconcileReservation: recovery.reconcileReservation,
-  }, {
-    nonCancellable: (operation) => CancellationScope.nonCancellable(operation),
-    isCancellation,
-    unresolved: (message, transactionId, cause) => ApplicationFailure.create({
-      message, type: "RECONCILIATION_REQUIRED", nonRetryable: true,
-      details: [{ transactionId, reason: cause instanceof Error ? cause.message : String(cause) }],
-    }),
-  });
+  return runTransactionSaga(
+    input,
+    {
+      reserveStock: operations.reserveStock,
+      confirmTransaction: operations.confirmTransaction,
+      compensateStock: recovery.compensateStock,
+      reconcileReservation: recovery.reconcileReservation,
+    },
+    {
+      nonCancellable: (operation) => CancellationScope.nonCancellable(operation),
+      isCancellation,
+      unresolved: (message, transactionId, cause) =>
+        ApplicationFailure.create({
+          message,
+          type: "RECONCILIATION_REQUIRED",
+          nonRetryable: true,
+          details: [
+            { transactionId, reason: cause instanceof Error ? cause.message : String(cause) },
+          ],
+        }),
+    },
+  );
 }

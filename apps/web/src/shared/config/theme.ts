@@ -141,7 +141,7 @@ export default {
       boxShadow: {
         card: "var(--elevation-card)",
         elevated: "var(--elevation-elevated)",
-      }
+      },
     },
   },
 } satisfies Config;

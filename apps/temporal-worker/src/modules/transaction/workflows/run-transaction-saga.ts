@@ -16,7 +16,10 @@ export async function runTransactionSaga(
 ): Promise<TransactionSagaResult> {
   try {
     const reservation = await activities.reserveStock(input);
-    const movement = await activities.confirmTransaction({ reservationId: reservation.id, failConfirmation: input.failConfirmation });
+    const movement = await activities.confirmTransaction({
+      reservationId: reservation.id,
+      failConfirmation: input.failConfirmation,
+    });
     return { status: "COMPLETED", reservationId: reservation.id, movementId: movement.id };
   } catch (failure) {
     const result = await runtime.nonCancellable(async (): Promise<TransactionSagaResult> => {
@@ -24,12 +27,23 @@ export async function runTransactionSaga(
         const snapshot = await activities.reconcileReservation(input.transactionId);
         if (snapshot.status === "NOT_FOUND") {
           // A timed-out HTTP handler may still finish later. Do not claim rollback from absence alone.
-          throw runtime.unresolved("Não foi possível determinar o resultado da reserva.", input.transactionId, failure);
+          throw runtime.unresolved(
+            "Não foi possível determinar o resultado da reserva.",
+            input.transactionId,
+            failure,
+          );
         }
         if (snapshot.status === "COMMITTED") {
           // Idempotent commit also retries publication of its stable audit event after a lost response.
-          const movement = await activities.confirmTransaction({ reservationId: snapshot.reservationId, failConfirmation: false });
-          return { status: "COMPLETED", reservationId: snapshot.reservationId, movementId: movement.id };
+          const movement = await activities.confirmTransaction({
+            reservationId: snapshot.reservationId,
+            failConfirmation: false,
+          });
+          return {
+            status: "COMPLETED",
+            reservationId: snapshot.reservationId,
+            movementId: movement.id,
+          };
         }
         if (snapshot.status === "ACTIVE") await activities.compensateStock(snapshot.reservationId);
         return {
@@ -38,7 +52,11 @@ export async function runTransactionSaga(
           reason: describeFailure(failure).message,
         };
       } catch (recoveryFailure) {
-        throw runtime.unresolved("A reconciliação exige acompanhamento operacional.", input.transactionId, recoveryFailure);
+        throw runtime.unresolved(
+          "A reconciliação exige acompanhamento operacional.",
+          input.transactionId,
+          recoveryFailure,
+        );
       }
     });
     if (runtime.isCancellation(failure)) throw failure;

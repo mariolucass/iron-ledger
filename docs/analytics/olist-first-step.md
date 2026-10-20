@@ -15,7 +15,14 @@ O resultado representa associacao observacional. Ele nao comprova causalidade, p
 
 ## Preparacao dos dados
 
-Baixe o dataset [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) e extraia os CSVs em:
+O comando `download` da CLI baixa o dataset [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) do Kaggle e extrai apenas os CSVs necessarios:
+
+```bash
+cd services/analytics
+.venv/bin/python -m src.cli download          # --force para baixar novamente
+```
+
+Com Docker, use `npm run analytics:download` na raiz. O download funciona sem credenciais; se o Kaggle exigir autenticacao, defina `KAGGLE_USERNAME`/`KAGGLE_KEY` ou use `~/.kaggle/kaggle.json`. Tambem e possivel baixar manualmente e extrair os CSVs em:
 
 ```text
 services/analytics/data/raw/
@@ -67,10 +74,14 @@ docker compose up -d analytics
 ```http
 GET /health
 GET /analytics/summary
+GET /analytics/metrics
 GET /analytics/inflection-points
 GET /analytics/inflection-points?severity=HIGH&metric=cancellation_rate
+GET /analytics/inflection-points?impact=NEGATIVE&classification=DECLINE
 GET /analytics/inflection-points/{id}
 ```
+
+`/analytics/metrics` descreve cada metrica (unidade, se maior e melhor, o que verificar). A lista retorna `total` para paginacao. Cada ponto inclui `metric_label`, `unit`, `direction`, `impact` e `what_to_check`; o detalhe tambem traz `seller_state` e `series`, a serie semanal da metrica cobrindo referencia, janela avaliada e quatro semanas seguintes.
 
 A documentacao OpenAPI fica em `http://localhost:8000/docs`.
 

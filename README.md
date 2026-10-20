@@ -120,6 +120,8 @@ O instalador exige Node.js 24+ e, quando o analytics for selecionado, Python
 3.11+.
 
 ```bash
+# Crie o arquivo apenas se ele ainda não existir e ajuste suas conexões.
+cp .env.example .env
 # PostgreSQL, RabbitMQ, Redis e API (migração e seed são automáticos)
 docker compose up -d --build
 ```
@@ -133,17 +135,66 @@ Para executar a API fora do Docker:
 
 ```bash
 pnpm install
-cp apps/api/.env.example apps/api/.env
+# Se ainda não existir, copie .env.example para .env na raiz e ajuste as URLs.
+# Suba PostgreSQL e RabbitMQ, ou use serviços locais já existentes.
+# Com os serviços deste projeto: pnpm infra:core
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
 ```
 
-O comando `pnpm dev` inicia a API em `http://localhost:3000` e o web em
-`http://localhost:3001`. As portas e URLs vêm do `.env` da raiz; na ausência
-das variáveis, esses mesmos valores são usados como fallback. Para iniciar só
-um app, use `pnpm dev:api` ou `pnpm dev:web`.
+O comando `pnpm dev` inicia a API em `http://localhost:3000`, o web em
+`http://localhost:3001`, o worker Temporal e o analytics em `http://localhost:8000`.
+Antes de iniciar, ele verifica as dependências: o worker é pulado se o Temporal
+não responder (`pnpm infra:platform`) e o analytics se faltar o `.venv`
+(`pnpm setup:python`) ou se a porta estiver ocupada. A queda de um serviço não
+derruba os demais. Para iniciar só um app, use `pnpm dev:api`, `pnpm dev:web`,
+`pnpm dev:worker` ou `pnpm dev:analytics`.
+
+`pnpm setup:all` prepara tudo de uma vez: cria o `.env` a partir do
+`.env.example` se ele não existir, instala o workspace Node.js, gera o Prisma
+Client, cria o `.venv` dos serviços Python e baixa os dados da Olist e executa o
+pipeline do analytics.
+
+### Configuração do ambiente
+
+O **`.env` da raiz é o arquivo principal**. Ele concentra conexões, portas,
+autenticação, conta inicial e configuração dos serviços opcionais. Os arquivos
+`.env.example` são modelos, não são carregados pela aplicação.
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `.env` | Base compartilhada dos comandos locais e variáveis do Docker Compose. |
+| `apps/api/.env` | Sobrescritas opcionais usadas apenas pela API, Prisma e seed. |
+| `apps/web/.env`, `apps/temporal-worker/.env`, `services/analytics/.env` | Sobrescritas opcionais do app correspondente nos comandos `pnpm dev:*`. |
+
+A prioridade é **terminal/hosting → `.env` do app → `.env` da raiz → padrão do código**.
+Normalmente, mantenha apenas o arquivo da raiz. O modelo `apps/api/.env.example`
+contém somente exemplos comentados; copiá-lo não troca suas credenciais.
+
+- **API e banco:** `pnpm db:*`, os scripts `prisma:*` em `apps/api`, o seed e a API
+  usam o mesmo carregador. Use `pnpm db:status` para verificar migrações sem alterar
+  o banco. Para argumentos extras: `pnpm --dir apps/api prisma:migrate --name exemplo`.
+  Invocar `prisma` diretamente ignora o carregador do projeto; prefira esses scripts.
+- **Portas:** defina `API_PORT` e `WEB_PORT` na raiz. `API_URL` e
+  `NEXT_PUBLIC_APP_URL` são opcionais: os comandos locais as derivam das portas
+  quando ausentes. `PORT` é uma sobrescrita do runtime/hosting; não a defina na raiz.
+- **Docker:** lê o `.env` da raiz para preencher as variáveis declaradas no Compose;
+  não lê os `.env` dos apps. `POSTGRES_*` e `RABBITMQ_*` provisionam os containers;
+  `DATABASE_URL` e `RABBITMQ_URL` conectam os processos do host. Ajuste os dois grupos
+  quando mudar credenciais. Os containers usam nomes internos de host. Credenciais
+  de volumes existentes não mudam só por editar o `.env`.
+- **Login:** `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` definem a conta do seed.
+  Editar o arquivo não muda a conta existente. `pnpm db:seed` atualiza a conta e
+  repõe a massa de demonstração; não é apenas uma redefinição de senha.
+  O worker usa essa mesma conta, salvo configuração de `WORKER_SERVICE_*`.
+- **Valores:** use valores literais, sem `${OUTRA_VARIAVEL}`; o carregador não faz
+  interpolação. Em URLs, aplique URL-encode aos caracteres especiais das credenciais.
+  Nunca coloque segredos em variáveis `NEXT_PUBLIC_*`.
+
+Depois de alterar o ambiente, reinicie os processos. As credenciais dos exemplos
+são locais; mantenha os valores reais apenas nos `.env` ignorados pelo Git.
 
 ### Autenticação e evento de teste
 
@@ -196,15 +247,55 @@ commit, a API publica um evento no RabbitMQ; o consumidor de auditoria persiste
 o evento de forma idempotente e append-only. O frontend acessa essas rotas pelo
 BFF do Next.js e mantém os dados mockados somente como fallback de leitura.
 
-### Laboratorio de analytics com a Olist
+### Analytics: o que mudou de patamar
 
-O primeiro incremento experimental do contexto `analytics` usa dados historicos
-da Olist para criar observacoes semanais, detectar mudancas persistentes e expor
-os resultados por API. O laboratorio e separado do fluxo transacional e nao
-trata sinais indiretos como ruptura de estoque confirmada.
+**Para que serve.** Inventário e auditoria registram *o que aconteceu* (cada
+movimento, cada reserva). O analytics responde *o que mudou*: quais vendedores e
+categorias saíram do comportamento habitual e não voltaram. É a camada que
+transforma o histórico em alertas acionáveis:
 
-Consulte [`docs/analytics/olist-first-step.md`](./docs/analytics/olist-first-step.md)
-para baixar os dados, executar o pipeline e consultar os endpoints.
+| Sinal detectado | Por que importa para o estoque |
+| --- | --- |
+| Pedidos ou unidades caem e ficam baixos | Possível ruptura, anúncio pausado ou preço fora do mercado |
+| Pedidos sobem e se mantêm | O ponto de reposição e o estoque de segurança ficaram pequenos |
+| Taxa de indisponibilidade ou cancelamento sobe | Venda sem saldo real; inventário físico diverge do sistema |
+| Atraso e prazo de entrega sobem | Gargalo de expedição; costuma anteceder queda na avaliação |
+| Avaliação média cai | Efeito no cliente; cruze com atraso e cancelamento do período |
+
+**Como funciona.** O pipeline agrupa os pedidos em observações
+`vendedor + categoria + semana`. Para cada métrica, compara a mediana das 8
+semanas anteriores com a das 3 seguintes e só gera um *ponto de inflexão* quando
+a mudança é grande, foge da oscilação normal daquele vendedor (mediana e MAD) e
+persiste. Picos isolados não viram alerta.
+
+**Por que a Olist.** O Iron Ledger ainda não tem histórico operacional
+suficiente. O dataset público da Olist (~100 mil pedidos reais, 2016–2018) serve
+de laboratório para validar o método com dados reais. O modelo de observação é
+independente da fonte: o próximo passo é alimentá-lo com os movimentos de
+`inventory` e as transações das Sagas, e publicar
+`Analytics.InflectionPointDetected` para virar alerta no painel.
+
+**Limites.** Os sinais mostram *quando* algo mudou, não *por quê*. A Olist não
+tem saldo de estoque, então nenhuma ruptura é confirmada aqui. `confidence` é um
+índice para ordenar sinais, não uma probabilidade.
+
+**Onde ver.** No web, `/analytics` mostra o resumo, os sinais por métrica
+(melhorou × piorou) e a lista filtrável; `/analytics/inflection-points/:id`
+mostra a série semanal, os valores usados no cálculo e o que verificar.
+
+| Endpoint (`http://localhost:8000`) | Retorna |
+| --- | --- |
+| `GET /analytics/summary` | Totais, período observado, contagem por severidade, tipo, impacto e métrica |
+| `GET /analytics/metrics` | Catálogo das métricas: descrição, unidade, se maior é melhor, o que verificar |
+| `GET /analytics/inflection-points` | Lista paginada com `total`; filtros `seller_id`, `metric`, `severity`, `classification`, `impact` |
+| `GET /analytics/inflection-points/:id` | Ponto com rótulos legíveis, UF do vendedor e `series` semana a semana |
+
+Cada ponto traz, além dos valores brutos, `metric_label`, `unit`,
+`direction` (`UP`/`DOWN`), `impact` (`POSITIVE`/`NEGATIVE`, já considerando se
+subir é bom ou ruim para aquela métrica) e `what_to_check`.
+
+Para baixar os dados, executar o pipeline e detalhes do método, consulte
+[`docs/analytics/olist-first-step.md`](./docs/analytics/olist-first-step.md).
 
 ### Perfis opcionais de infraestrutura
 

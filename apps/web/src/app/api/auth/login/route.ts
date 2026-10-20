@@ -20,7 +20,8 @@ const responseSchema = z.object({
   }),
 });
 
-const apiUrl = () => process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+const apiUrl = () =>
+  process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
 export async function POST(request: Request) {
   const input = requestSchema.safeParse(await request.json().catch(() => null));
@@ -71,7 +72,10 @@ export async function POST(request: Request) {
     return response;
   } catch {
     return NextResponse.json(
-      { error: "API_UNAVAILABLE", message: "A API de autenticação está indisponível. Tente novamente." },
+      {
+        error: "API_UNAVAILABLE",
+        message: "A API de autenticação está indisponível. Tente novamente.",
+      },
       { status: 503 },
     );
   }

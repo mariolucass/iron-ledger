@@ -15,7 +15,7 @@ COPY packages/logger/package.json packages/logger/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
 COPY packages/workflow-contracts packages/workflow-contracts
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --filter @iron-ledger/web... --frozen-lockfile
+  pnpm install --filter @iron-ledger/web... --frozen-lockfile
 # Pacotes compartilhados são consumidos a partir de dist/: compila as dependências do app.
 COPY tsconfig.base.json ./
 COPY packages packages
@@ -36,9 +36,9 @@ RUN pnpm --dir apps/web build
 
 FROM node:24-alpine AS production
 ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1 \
-    HOSTNAME=0.0.0.0 \
-    PORT=3001
+  NEXT_TELEMETRY_DISABLED=1 \
+  HOSTNAME=0.0.0.0 \
+  PORT=3001
 WORKDIR /workspace
 RUN apk add --no-cache dumb-init
 COPY --from=build --chown=node:node /workspace/node_modules ./node_modules

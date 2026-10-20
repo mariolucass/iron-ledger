@@ -30,16 +30,11 @@ pnpm db:seed
 ```
 
 ```powershell
-# Terminal 2: API e frontend
+# Terminal 2: API, frontend, worker Temporal e analytics
 pnpm dev
 ```
 
-```powershell
-# Terminal 3: worker Temporal local
-pnpm dev:worker
-```
-
-O `pnpm dev` lê o `.env` da raiz e inicia API e web. O worker usa `TEMPORAL_ADDRESS`, `TEMPORAL_TASK_QUEUE`, `API_URL`, `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` do mesmo arquivo. Na configuração local verificada, API e web usam `3002` e `3001`, respectivamente. Temporal UI usa `http://localhost:8088`.
+O `pnpm dev` lê o `.env` da raiz e inicia API, web, worker e analytics. Se o Temporal não responder, o worker é pulado com um aviso; nesse caso, suba o Temporal e reinicie, ou rode só o worker com `pnpm dev:worker`. O worker usa `TEMPORAL_ADDRESS`, `TEMPORAL_TASK_QUEUE`, `API_URL`, `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` do mesmo arquivo. Na configuração local verificada, API e web usam `3002` e `3001`, respectivamente. Temporal UI usa `http://localhost:8088`.
 
 Também é possível executar o worker em contêiner, com a API local rodando no host:
 

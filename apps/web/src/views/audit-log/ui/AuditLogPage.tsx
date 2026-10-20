@@ -1,12 +1,14 @@
 "use client";
 
 import { colors as theme } from "@/shared/config/tokens";
-import { Calendar, Filter, Lock, Search, X } from "lucide-react";
+import { Filter, Lock, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerContainer, staggerItem, spring1 } from "@/shared/lib/animation";
 import { AuditActionBadge as ActionBadge, auditActionLabels as actionLabels } from "@/entities/audit-log";
 import { Layout } from "@/widgets/layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
+import { DatePicker } from "@/shared/ui/kit/date-picker";
 
 const resourceLabels: Record<string, string> = {
   Inventory: "Inventário",
@@ -403,32 +405,12 @@ export function AuditLogPage() {
     );
   });
 
-  const inputStyle = {
-    background: theme.surface,
-    border: `1px solid ${theme.border}`,
-    borderRadius: 8,
-    padding: "8px 14px",
-    color: theme.textPrimary,
-    fontSize: 13,
-    outline: "none",
-    transition: "all 0.2s",
-  };
-  const inputFocus = (e: any) => {
-    e.currentTarget.style.borderColor = theme.accent;
-    e.currentTarget.style.boxShadow = `0 0 0 1px ${theme.accent}`;
-  };
-  const inputBlur = (e: any) => {
-    e.currentTarget.style.borderColor = theme.border;
-    e.currentTarget.style.boxShadow = "none";
-  };
 
   return (
     <Layout title="Log de Auditoria">
       <style>{`
         @keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.6; transition: 0.2s; }
-        ::-webkit-calendar-picker-indicator:hover { opacity: 1; }
       `}</style>
 
       {dataSource !== "live" && (
@@ -451,36 +433,32 @@ export function AuditLogPage() {
           alignItems: "center",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Filter size={16} color={theme.textSecondary} />
-          <select
-            value={resourceType}
-            onChange={(e) => setResourceType(e.target.value)}
-            style={{ ...inputStyle, cursor: "pointer", width: 140 }}
-            onFocus={inputFocus}
-            onBlur={inputBlur}
-          >
+        <Select value={resourceType} onValueChange={setResourceType}>
+          <SelectTrigger className="w-[160px]" aria-label="Filtrar por recurso">
+            <Filter size={14} />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
             {resourceTypes.map((r) => (
-              <option key={r} value={r} style={{ background: theme.bg }}>
+              <SelectItem key={r} value={r}>
                 {r}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </div>
+          </SelectContent>
+        </Select>
 
-        <select
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-          style={{ ...inputStyle, cursor: "pointer", width: 180 }}
-          onFocus={inputFocus}
-          onBlur={inputBlur}
-        >
-          {actions.map((a) => (
-            <option key={a} value={a} style={{ background: theme.bg }}>
-              {a}
-            </option>
-          ))}
-        </select>
+        <Select value={action} onValueChange={setAction}>
+          <SelectTrigger className="w-[180px]" aria-label="Filtrar por ação">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {actions.map((a) => (
+              <SelectItem key={a} value={a}>
+                {a}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <div
           style={{
@@ -528,23 +506,20 @@ export function AuditLogPage() {
             marginLeft: "auto",
           }}
         >
-          <Calendar size={14} color={theme.textSecondary} />
-          <input
-            type="date"
+          <DatePicker
+            aria-label="Data inicial"
+            placeholder="Data inicial"
             value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-            style={{ ...inputStyle, cursor: "pointer" }}
-            onFocus={inputFocus}
-            onBlur={inputBlur}
+            max={dateTo || undefined}
+            onChange={setDateFrom}
           />
           <span style={{ color: theme.textSecondary }}>-</span>
-          <input
-            type="date"
+          <DatePicker
+            aria-label="Data final"
+            placeholder="Data final"
             value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
-            style={{ ...inputStyle, cursor: "pointer" }}
-            onFocus={inputFocus}
-            onBlur={inputBlur}
+            min={dateFrom || undefined}
+            onChange={setDateTo}
           />
         </div>
       </div>

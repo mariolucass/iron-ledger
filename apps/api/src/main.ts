@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { env } from "./config/env";
 import { prisma } from "./infra/database/prisma.client";
 import { createServer } from "./infra/http/server";

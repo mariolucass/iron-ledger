@@ -15,7 +15,7 @@ COPY packages/logger/package.json packages/logger/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
 COPY packages/workflow-contracts packages/workflow-contracts
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --filter @iron-ledger/temporal-worker... --frozen-lockfile
+  pnpm install --filter @iron-ledger/temporal-worker... --frozen-lockfile
 # Pacotes compartilhados são consumidos a partir de dist/: compila as dependências do app.
 COPY tsconfig.base.json ./
 COPY packages packages
@@ -34,7 +34,7 @@ FROM node:24-bookworm-slim AS production
 ENV NODE_ENV=production
 WORKDIR /workspace
 RUN apt-get update && apt-get install -y --no-install-recommends dumb-init \
-    && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
 COPY --from=build --chown=node:node /workspace/packages ./packages
 COPY --from=build --chown=node:node /workspace/apps/temporal-worker/node_modules ./apps/temporal-worker/node_modules

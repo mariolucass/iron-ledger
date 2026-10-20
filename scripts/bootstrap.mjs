@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -30,10 +30,20 @@ const colors = process.stdout.isTTY
       reset: "\u001b[0m",
     }
   : {
-      cyan: "", green: "", red: "", yellow: "", magenta: "",
-      blue: "", gray: "", bold: "", reset: "",
+      cyan: "",
+      green: "",
+      red: "",
+      yellow: "",
+      magenta: "",
+      blue: "",
+      gray: "",
+      bold: "",
+      reset: "",
     };
 
+function warn(message) {
+  console.log(`${colors.yellow}!${colors.reset} ${message}`);
+}
 function info(message) {
   console.log(`${colors.cyan}➜${colors.reset} ${message}`);
 }
@@ -147,16 +157,21 @@ function discoverNodeModules() {
       const manifestPath = path.join(groupDir, entry.name, "package.json");
       if (!entry.isDirectory() || !existsSync(manifestPath)) continue;
       const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-      modules.push({ name: manifest.name || `${group}/${entry.name}`, label: (manifest.name || entry.name).replace(/^@iron-ledger\//, "") });
+      modules.push({
+        name: manifest.name || `${group}/${entry.name}`,
+        label: (manifest.name || entry.name).replace(/^@iron-ledger\//, ""),
+      });
     }
   }
 
   return modules.sort((left, right) => {
     const leftPriority = priority.indexOf(left.name);
     const rightPriority = priority.indexOf(right.name);
-    return (leftPriority < 0 ? Number.MAX_SAFE_INTEGER : leftPriority)
-      - (rightPriority < 0 ? Number.MAX_SAFE_INTEGER : rightPriority)
-      || left.name.localeCompare(right.name);
+    return (
+      (leftPriority < 0 ? Number.MAX_SAFE_INTEGER : leftPriority) -
+        (rightPriority < 0 ? Number.MAX_SAFE_INTEGER : rightPriority) ||
+      left.name.localeCompare(right.name)
+    );
   });
 }
 
@@ -184,10 +199,12 @@ function needsNodeModulesRebuild() {
 
 function resolvePnpm() {
   const pnpm = systemCommand("pnpm");
-  if (commandWorks(pnpm.command, [...pnpm.prefix, "--version"])) return { ...pnpm, label: "pnpm instalado" };
+  if (commandWorks(pnpm.command, [...pnpm.prefix, "--version"]))
+    return { ...pnpm, label: "pnpm instalado" };
 
   const corepack = systemCommand("corepack", ["pnpm"]);
-  if (commandWorks(corepack.command, [...corepack.prefix, "--version"])) return { ...corepack, label: "pnpm via Corepack" };
+  if (commandWorks(corepack.command, [...corepack.prefix, "--version"]))
+    return { ...corepack, label: "pnpm via Corepack" };
 
   const npm = systemCommand("npm");
   if (!commandWorks(npm.command, [...npm.prefix, "--version"])) {
@@ -197,9 +214,16 @@ function resolvePnpm() {
 }
 
 function resolvePython() {
-  const candidates = process.platform === "win32"
-    ? [{ command: "python", prefix: [] }, { command: "py", prefix: ["-3"] }]
-    : [{ command: "python3", prefix: [] }, { command: "python", prefix: [] }];
+  const candidates =
+    process.platform === "win32"
+      ? [
+          { command: "python", prefix: [] },
+          { command: "py", prefix: ["-3"] },
+        ]
+      : [
+          { command: "python3", prefix: [] },
+          { command: "python", prefix: [] },
+        ];
 
   for (const candidate of candidates) {
     const result = run(candidate.command, [...candidate.prefix, "--version"], { capture: true });
@@ -238,11 +262,14 @@ function saveCache(cache) {
   }
 }
 function hashFile(filePath) {
-  return existsSync(filePath) ? createHash("sha256").update(readFileSync(filePath)).digest("hex") : null;
+  return existsSync(filePath)
+    ? createHash("sha256").update(readFileSync(filePath)).digest("hex")
+    : null;
 }
 
 async function confirm(question, defaultValue = true) {
-  if (!process.stdin.isTTY) throw new Error("Execução não interativa: use --all, --node, --python ou --yes.");
+  if (!process.stdin.isTTY)
+    throw new Error("Execução não interativa: use --all, --node, --python ou --yes.");
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const hint = defaultValue ? "S/n" : "s/N";
   const answer = (await rl.question(`${question} [${hint}] `)).trim().toLowerCase();
@@ -256,7 +283,8 @@ async function promptPlan() {
   console.log(`  ${colors.bold}1${colors.reset}) Tudo (Node.js + Python) — roda em paralelo`);
   console.log(`  ${colors.bold}2${colors.reset}) Apenas o workspace Node.js`);
   console.log(`  ${colors.bold}3${colors.reset}) Apenas os serviços Python`);
-  if (!process.stdin.isTTY) throw new Error("Execução não interativa: use --all, --node, --python ou --yes.");
+  if (!process.stdin.isTTY)
+    throw new Error("Execução não interativa: use --all, --node, --python ou --yes.");
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const answer = (await rl.question("Escolha [1]: ")).trim();
   rl.close();
@@ -267,6 +295,14 @@ async function promptPlan() {
 
 // ---- install phases ----
 
+function ensureEnvFile() {
+  const envPath = path.join(rootDir, ".env");
+  const examplePath = path.join(rootDir, ".env.example");
+  if (existsSync(envPath) || !existsSync(examplePath)) return;
+  copyFileSync(examplePath, envPath);
+  success(".env criado a partir de .env.example.");
+}
+
 async function installNodeWorkspace(cache) {
   const start = performance.now();
   const modules = discoverNodeModules();
@@ -275,11 +311,16 @@ async function installNodeWorkspace(cache) {
   const lockPath = path.join(rootDir, "pnpm-lock.yaml");
   const currentHash = hashFile(lockPath);
   const rebuildNeeded = needsNodeModulesRebuild();
-  const upToDate = !forceReinstall && !rebuildNeeded && currentHash
-    && cache.node === currentHash && existsSync(path.join(rootDir, "node_modules"));
+  const upToDate =
+    !forceReinstall &&
+    !rebuildNeeded &&
+    currentHash &&
+    cache.node === currentHash &&
+    existsSync(path.join(rootDir, "node_modules"));
 
   if (upToDate) {
     success("[node] Workspace já atualizado (lockfile sem mudanças); instalação pulada.");
+    await generatePrismaClient();
     return { skipped: true, durationMs: performance.now() - start };
   }
 
@@ -294,8 +335,51 @@ async function installNodeWorkspace(cache) {
 
   if (currentHash) cache.node = currentHash;
   success(`[node] ${modules.length} módulo(s) instalado(s).`);
+  await generatePrismaClient();
   return { skipped: false, durationMs: performance.now() - start };
 }
+
+async function generatePrismaClient() {
+  info("[node] Gerando o Prisma Client da API...");
+  await spawnAsync(
+    process.execPath,
+    [path.join(rootDir, "scripts", "run-prisma.mjs"), "generate"],
+    {
+      tag: "node",
+      color: colors.cyan,
+    },
+  );
+}
+
+/** Passos extras por serviço Python, executados depois das dependências. */
+const pythonServiceSetup = {
+  // Sem os CSVs da Olist e o banco derivado, a API do analytics sobe vazia.
+  async analytics(service, venvPython, tag, color) {
+    const database = path.join(service.directory, "data", "processed", "analytics.db");
+    if (existsSync(database) && !forceReinstall) {
+      success(`[${tag}] Base analítica já gerada; pipeline pulado.`);
+      return;
+    }
+    try {
+      info(`[${tag}] Baixando os CSVs da Olist...`);
+      await spawnAsync(venvPython, ["-m", "src.cli", "download"], {
+        cwd: service.directory,
+        tag,
+        color,
+      });
+      info(`[${tag}] Executando o pipeline analítico (pode levar alguns minutos)...`);
+      await spawnAsync(venvPython, ["-m", "src.cli", "run"], {
+        cwd: service.directory,
+        tag,
+        color,
+      });
+      success(`[${tag}] Base analítica gerada.`);
+    } catch (error) {
+      // Sem dados a API ainda sobe; não bloqueia o restante do setup.
+      warn(`[${tag}] Dados da Olist não preparados: ${error.message}`);
+    }
+  },
+};
 
 async function installOnePythonService(service, python, cache, color) {
   const tag = `python:${service.name}`;
@@ -303,26 +387,37 @@ async function installOnePythonService(service, python, cache, color) {
   const reqPath = path.join(service.directory, "requirements.txt");
   const currentHash = hashFile(reqPath);
 
-  const upToDate = !forceReinstall && existsSync(venvPython) && cache.python[service.name] === currentHash;
+  const upToDate =
+    !forceReinstall && existsSync(venvPython) && cache.python[service.name] === currentHash;
   if (upToDate) {
     success(`[${tag}] Já atualizado (requirements.txt sem mudanças); instalação pulada.`);
+    await pythonServiceSetup[service.name]?.(service, venvPython, tag, color);
     return;
   }
 
   if (!existsSync(venvPython)) {
     info(`[${tag}] Criando ambiente virtual...`);
     await spawnAsync(python.command, [...python.prefix, "-m", "venv", ".venv"], {
-      cwd: service.directory, tag, color,
+      cwd: service.directory,
+      tag,
+      color,
     });
   }
 
   info(`[${tag}] Instalando dependências...`);
-  await spawnAsync(venvPython, ["-m", "pip", "install", "-r", "requirements.txt", "--disable-pip-version-check"], {
-    cwd: service.directory, tag, color,
-  });
+  await spawnAsync(
+    venvPython,
+    ["-m", "pip", "install", "-r", "requirements.txt", "--disable-pip-version-check"],
+    {
+      cwd: service.directory,
+      tag,
+      color,
+    },
+  );
 
   cache.python[service.name] = currentHash;
   success(`[${tag}] Módulo instalado.`);
+  await pythonServiceSetup[service.name]?.(service, venvPython, tag, color);
 }
 
 async function installPythonServices(cache) {
@@ -339,7 +434,9 @@ async function installPythonServices(cache) {
 
   const palette = [colors.magenta, colors.yellow, colors.blue];
   const results = await Promise.allSettled(
-    services.map((service, index) => installOnePythonService(service, python, cache, palette[index % palette.length]))
+    services.map((service, index) =>
+      installOnePythonService(service, python, cache, palette[index % palette.length]),
+    ),
   );
 
   const failures = results.filter((r) => r.status === "rejected");
@@ -354,7 +451,8 @@ function printSummary(phases, totalMs) {
   console.log(`\n${colors.bold}Resumo${colors.reset}`);
   for (const phase of phases) {
     const time = phase.durationMs != null ? `${(phase.durationMs / 1000).toFixed(1)}s` : "—";
-    if (phase.ok) success(`${phase.label} — ${phase.skipped ? "sem mudanças" : "concluído"} (${time})`);
+    if (phase.ok)
+      success(`${phase.label} — ${phase.skipped ? "sem mudanças" : "concluído"} (${time})`);
     else fail(`${phase.label} — falhou: ${phase.error.message}`);
   }
   console.log(`${colors.gray}Tempo total: ${(totalMs / 1000).toFixed(1)}s${colors.reset}`);
@@ -362,13 +460,10 @@ function printSummary(phases, totalMs) {
 
 function printNextSteps() {
   console.log(`\nPróximos passos:`);
-  console.log(`  • pnpm dev`);
-  for (const service of discoverPythonServices()) {
-    const activate = process.platform === "win32"
-      ? `services\\${service.name}\\.venv\\Scripts\\activate`
-      : `source services/${service.name}/.venv/bin/activate`;
-    console.log(`  • ${activate}`);
-  }
+  console.log(`  • pnpm infra:core          PostgreSQL, RabbitMQ e Redis`);
+  console.log(`  • pnpm infra:platform      Temporal (necessário para o worker)`);
+  console.log(`  • pnpm db:deploy && pnpm db:seed`);
+  console.log(`  • pnpm dev                 API, Web, Worker e Analytics`);
 }
 
 async function main() {
@@ -378,19 +473,25 @@ async function main() {
   banner("Iron Ledger · Preparação modular do ambiente");
   assertPrerequisites();
 
-  const plan = onlyNode ? { node: true, python: false }
-    : onlyPython ? { node: false, python: true }
-    : assumeYes ? { node: true, python: true }
-    : await promptPlan();
+  const plan = onlyNode
+    ? { node: true, python: false }
+    : onlyPython
+      ? { node: false, python: true }
+      : assumeYes
+        ? { node: true, python: true }
+        : await promptPlan();
 
   const tasks = [];
   if (plan.node) tasks.push(["Workspace Node.js", installNodeWorkspace]);
   if (plan.python) tasks.push(["Serviços Python", installPythonServices]);
   if (tasks.length === 0) return info("Nada selecionado para instalar.");
 
+  ensureEnvFile();
   const cache = loadCache();
   const totalStart = performance.now();
-  console.log(`\n${colors.bold}Executando${tasks.length === 2 ? " em paralelo" : ""}...${colors.reset}`);
+  console.log(
+    `\n${colors.bold}Executando${tasks.length === 2 ? " em paralelo" : ""}...${colors.reset}`,
+  );
 
   const settled = await Promise.allSettled(tasks.map(([, fn]) => fn(cache)));
   const phases = settled.map((result, index) => {

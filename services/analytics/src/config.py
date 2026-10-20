@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_DIR = SERVICE_ROOT / "data" / "raw"
 DEFAULT_DATABASE_PATH = SERVICE_ROOT / "data" / "processed" / "analytics.db"

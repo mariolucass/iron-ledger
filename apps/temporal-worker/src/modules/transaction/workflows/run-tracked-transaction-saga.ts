@@ -38,7 +38,9 @@ export async function runTrackedTransactionSaga(
   const { transactionId } = input;
 
   const record = (step: Omit<RecordSagaStepInput, "transactionId">) =>
-    runtime.nonCancellable(() => lifecycle.recordSagaStep({ transactionId, ...step })).catch(() => undefined);
+    runtime
+      .nonCancellable(() => lifecycle.recordSagaStep({ transactionId, ...step }))
+      .catch(() => undefined);
 
   function track<A extends unknown[], R>(
     name: SagaStepName,
@@ -51,22 +53,44 @@ export async function runTrackedTransactionSaga(
       await record({ ...step, status: "RUNNING" });
       try {
         const result = await run(...args);
-        await record({ ...step, status: "SUCCEEDED", finishedAt: runtime.now(), output: output?.(result) });
+        await record({
+          ...step,
+          status: "SUCCEEDED",
+          finishedAt: runtime.now(),
+          output: output?.(result),
+        });
         return result;
       } catch (error) {
-        await record({ ...step, status: "FAILED", finishedAt: runtime.now(), error: describeFailure(error).message });
+        await record({
+          ...step,
+          status: "FAILED",
+          finishedAt: runtime.now(),
+          error: describeFailure(error).message,
+        });
         throw error;
       }
     };
   }
 
   const tracked: TransactionActivities = {
-    reserveStock: track("reserveStock", "ACTION", activities.reserveStock, (reservation) => ({ reservationId: reservation.id })),
-    confirmTransaction: track("confirmTransaction", "ACTION", activities.confirmTransaction, (movement) => ({ movementId: movement.id })),
-    reconcileReservation: track("reconcileReservation", "ACTION", activities.reconcileReservation, (snapshot) => ({
-      reservationStatus: snapshot.status,
-      reservationId: "reservationId" in snapshot ? snapshot.reservationId : null,
+    reserveStock: track("reserveStock", "ACTION", activities.reserveStock, (reservation) => ({
+      reservationId: reservation.id,
     })),
+    confirmTransaction: track(
+      "confirmTransaction",
+      "ACTION",
+      activities.confirmTransaction,
+      (movement) => ({ movementId: movement.id }),
+    ),
+    reconcileReservation: track(
+      "reconcileReservation",
+      "ACTION",
+      activities.reconcileReservation,
+      (snapshot) => ({
+        reservationStatus: snapshot.status,
+        reservationId: "reservationId" in snapshot ? snapshot.reservationId : null,
+      }),
+    ),
     compensateStock: track("compensateStock", "COMPENSATION", activities.compensateStock),
   };
 

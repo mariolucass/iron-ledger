@@ -19,6 +19,7 @@ import {
   type Movement,
 } from "../model/inventoryData";
 import { Layout } from "@/widgets/layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
 import { fetchInventory, fetchMovements, fetchWarehouses } from "../model/load-inventory";
 import { InventoryStatusBadge } from "@/entities/inventory";
 import { MovementDialog } from "@/features/record-stock-movement";
@@ -401,16 +402,6 @@ export function InventoryPage() {
         r.product.toLowerCase().includes(search.toLowerCase())),
   );
 
-  const inputStyle = {
-    background: theme.surface,
-    border: `1px solid ${theme.border}`,
-    borderRadius: 8,
-    padding: "8px 14px",
-    color: theme.textPrimary,
-    fontSize: 13,
-    outline: "none",
-    transition: "all 0.2s",
-  };
   const inputFocus = (e: any) => {
     e.currentTarget.style.borderColor = theme.accent;
     e.currentTarget.style.boxShadow = `0 0 0 1px ${theme.accent}`;
@@ -476,22 +467,19 @@ export function InventoryPage() {
         </div>
 
         {/* Filter */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Filter size={14} color={theme.textSecondary} />
-          <select
-            value={warehouse}
-            onChange={(e) => setWarehouse(e.target.value)}
-            style={{ ...inputStyle, cursor: "pointer", width: 180 }}
-            onFocus={inputFocus}
-            onBlur={inputBlur}
-          >
+        <Select value={warehouse} onValueChange={setWarehouse}>
+          <SelectTrigger className="w-[200px]" aria-label="Filtrar por estoque">
+            <Filter size={14} />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
             {warehouseOptions.map((w) => (
-              <option key={w.id} value={w.id} style={{ background: theme.bg }}>
+              <SelectItem key={w.id} value={w.id}>
                 {w.name}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </div>
+          </SelectContent>
+        </Select>
 
         {/* CTA Neon */}
         <button

@@ -9,7 +9,12 @@ SERVICE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_ROOT))
 
 from src.pipeline import run_pipeline
-from src.repository import list_inflection_points, summary
+from src.repository import (
+    count_inflection_points,
+    get_inflection_point,
+    list_inflection_points,
+    summary,
+)
 from src.storage import connect
 
 
@@ -134,5 +139,37 @@ def test_pipeline_detects_persistent_change_and_writes_report(tmp_path: Path) ->
         assert "orders" in metrics
         assert "average_review_score" in metrics
         assert summary(connection)["observations"] == 14
+    finally:
+        connection.close()
+
+
+def test_points_expose_interpretation_fields_and_series(tmp_path: Path) -> None:
+    raw = tmp_path / "raw"
+    database = tmp_path / "analytics.db"
+    _fixture(raw)
+    run_pipeline(raw, database, tmp_path / "quality.md")
+
+    connection = connect(database)
+    try:
+        review = list_inflection_points(connection, metric="average_review_score")[0]
+        assert review["metric_label"] == "Avaliacao media"
+        assert review["direction"] == "DOWN"
+        assert review["impact"] == "NEGATIVE"
+        assert review["what_to_check"]
+
+        negatives = list_inflection_points(connection, impact_filter="NEGATIVE")
+        assert negatives
+        assert all(point["impact"] == "NEGATIVE" for point in negatives)
+        assert count_inflection_points(connection, impact_filter="NEGATIVE") == len(negatives)
+
+        detail = get_inflection_point(connection, str(review["id"]))
+        assert detail is not None
+        assert detail["seller_state"] == "SP"
+        windows = {item["window"] for item in detail["series"]}
+        assert {"baseline", "current"} <= windows
+
+        overview = summary(connection)
+        assert overview["byImpact"]["NEGATIVE"] >= 1
+        assert any(item["metric"] == "orders" for item in overview["byMetric"])
     finally:
         connection.close()
