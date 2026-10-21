@@ -26,6 +26,7 @@ model InventoryLot {
   transferItems   StockTransferItem[]
   stockCountItems StockCountItem[]
 
+  @@unique([id, productId])
   @@unique([productId, lotNumber])
   @@unique([productId, serialNumber])
   @@index([status, expiresAt])

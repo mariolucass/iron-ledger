@@ -21,6 +21,7 @@ export const config = {
     "/design-system/:path*",
     "/forecasting/:path*",
     "/inventory/:path*",
+    "/products/:path*",
     "/reports/:path*",
     "/settings/:path*",
     "/transactions/:path*",

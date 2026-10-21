@@ -9,6 +9,49 @@ import { LoginUseCase } from "../../modules/identity/application/use-cases/login
 import { jwtGuard, type AuthenticatedRequest } from "../../modules/identity/infra/guards/jwt.guard";
 import { AuthController } from "../../modules/identity/infra/http/auth.controller";
 import { createAuthRouter } from "../../modules/identity/infra/http/auth.routes";
+import { RegisterUserUseCase } from "../../modules/identity/application/use-cases/register-user.use-case";
+import { PrismaRegisterUserRepository } from "../../modules/identity/infra/repositories/prisma-register-user.repository";
+import {
+  ArchiveProductUseCase,
+  CreateProductUseCase,
+  GetProductLookupsUseCase,
+  GetProductUseCase,
+  ListProductsUseCase,
+  UpdateProductUseCase,
+} from "../../modules/catalog/application/product.use-cases";
+import { ProductController } from "../../modules/catalog/infra/http/product.controller";
+import { createProductRouter } from "../../modules/catalog/infra/http/product.routes";
+import { PrismaProductRepository } from "../../modules/catalog/infra/repositories/prisma-product.repository";
+import {
+  CreateLocationUseCase,
+  CreateWarehouseUseCase,
+  DeactivateWarehouseUseCase,
+  GetWarehouseUseCase,
+  ListWarehousesUseCase,
+  UpdateLocationUseCase,
+  UpdateWarehouseUseCase,
+} from "../../modules/warehouse/application/warehouse.use-cases";
+import { WarehouseController } from "../../modules/warehouse/infra/http/warehouse.controller";
+import { createWarehouseRouter } from "../../modules/warehouse/infra/http/warehouse.routes";
+import { PrismaWarehouseRepository } from "../../modules/warehouse/infra/repositories/prisma-warehouse.repository";
+import {
+  CreateUserUseCase,
+  GetUserUseCase,
+  ListRolesUseCase,
+  ListUsersUseCase,
+  SetUserRolesUseCase,
+  UpdateUserUseCase,
+} from "../../modules/identity/application/use-cases/user-admin.use-cases";
+import { UserAdminController } from "../../modules/identity/infra/http/user-admin.controller";
+import { createRolesRouter, createUserAdminRouter } from "../../modules/identity/infra/http/user-admin.routes";
+import { PrismaUserAdminRepository } from "../../modules/identity/infra/repositories/prisma-user-admin.repository";
+import { ChangePasswordUseCase } from "../../modules/identity/application/use-cases/change-password.use-case";
+import { GetProfileUseCase } from "../../modules/identity/application/use-cases/get-profile.use-case";
+import { UpdatePreferencesUseCase } from "../../modules/identity/application/use-cases/update-preferences.use-case";
+import { UpdateProfileUseCase } from "../../modules/identity/application/use-cases/update-profile.use-case";
+import { ProfileController } from "../../modules/identity/infra/http/profile.controller";
+import { createProfileRouter } from "../../modules/identity/infra/http/profile.routes";
+import { PrismaProfileRepository } from "../../modules/identity/infra/repositories/prisma-profile.repository";
 import { PrismaLoginUserRepository } from "../../modules/identity/infra/repositories/prisma-login-user.repository";
 import { UpdateStockUseCase } from "../../modules/inventory/application/use-cases/update-stock.use-case";
 import { ReserveStockUseCase } from "../../modules/inventory/application/use-cases/reserve-stock.use-case";
@@ -51,6 +94,47 @@ export function createRouter({ eventBus, workflowOrchestrator, onEventsCommitted
     env.JWT_SECRET,
     env.JWT_EXPIRES_IN as never,
   );
+  const registerUser = new RegisterUserUseCase(
+    new PrismaRegisterUserRepository(),
+    env.JWT_SECRET,
+    env.JWT_EXPIRES_IN as never,
+  );
+  const profileRepository = new PrismaProfileRepository();
+  const profileController = new ProfileController(
+    new GetProfileUseCase(profileRepository),
+    new UpdateProfileUseCase(profileRepository),
+    new UpdatePreferencesUseCase(profileRepository),
+    new ChangePasswordUseCase(profileRepository),
+  );
+  const userAdminRepository = new PrismaUserAdminRepository();
+  const userAdminController = new UserAdminController(
+    new ListUsersUseCase(userAdminRepository),
+    new GetUserUseCase(userAdminRepository),
+    new ListRolesUseCase(userAdminRepository),
+    new CreateUserUseCase(userAdminRepository),
+    new UpdateUserUseCase(userAdminRepository),
+    new SetUserRolesUseCase(userAdminRepository),
+  );
+  const productRepository = new PrismaProductRepository();
+  const productController = new ProductController(
+    new ListProductsUseCase(productRepository),
+    new GetProductUseCase(productRepository),
+    new GetProductLookupsUseCase(productRepository),
+    new CreateProductUseCase(productRepository),
+    new UpdateProductUseCase(productRepository),
+    new ArchiveProductUseCase(productRepository),
+  );
+  const warehouseRepository = new PrismaWarehouseRepository();
+  const updateWarehouse = new UpdateWarehouseUseCase(warehouseRepository);
+  const warehouseController = new WarehouseController(
+    new ListWarehousesUseCase(warehouseRepository),
+    new GetWarehouseUseCase(warehouseRepository),
+    new CreateWarehouseUseCase(warehouseRepository),
+    updateWarehouse,
+    new DeactivateWarehouseUseCase(updateWarehouse),
+    new CreateLocationUseCase(warehouseRepository),
+    new UpdateLocationUseCase(warehouseRepository),
+  );
   const inventoryRepository = new PrismaInventoryRepository();
   const inventoryController = new InventoryController(
     inventoryRepository,
@@ -77,9 +161,13 @@ export function createRouter({ eventBus, workflowOrchestrator, onEventsCommitted
   router.get("/health", (_request, response) => {
     response.json({ status: "ok", service: "iron-ledger-api", timestamp: new Date().toISOString() });
   });
-  router.use("/auth", createAuthRouter(new AuthController(login)));
+  router.use("/auth", createAuthRouter(new AuthController(login, registerUser)));
+  router.use("/me", createProfileRouter(profileController, env.JWT_SECRET));
+  router.use("/users", createUserAdminRouter(userAdminController, env.JWT_SECRET));
+  router.use("/roles", createRolesRouter(userAdminController, env.JWT_SECRET));
+  router.use("/products", createProductRouter(productController, env.JWT_SECRET));
   router.use("/inventory", createInventoryRouter(inventoryController, env.JWT_SECRET));
-  router.get("/warehouses", jwtGuard(env.JWT_SECRET), inventoryController.warehouses);
+  router.use("/warehouses", createWarehouseRouter(warehouseController, env.JWT_SECRET));
   router.use("/audit", createAuditRouter(auditController, env.JWT_SECRET));
   router.use("/transactions", createTransactionRouter(transactionController, env.JWT_SECRET));
 

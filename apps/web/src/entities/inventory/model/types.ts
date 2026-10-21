@@ -32,6 +32,8 @@ export interface InventoryItem {
 
 export interface InventoryQuery extends PaginationQuery {
   sku?: string;
+  /** Busca no SKU ou no nome do produto. */
+  q?: string;
   warehouseId?: string;
 }
 

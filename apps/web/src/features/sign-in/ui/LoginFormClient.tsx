@@ -1,51 +1,25 @@
 "use client";
 
-import { spring4 } from "@/shared/lib/animation";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/shared/ui/kit/form";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  AlertTriangle,
-  ArrowRight,
-  Check,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Fingerprint,
-  KeyRound,
-  Loader2,
-  LockKeyhole,
-  Mail,
-  ShieldCheck,
-} from "lucide-react";
-import { useState } from "react";
+  authErrorTextClass,
+  authIconClass,
+  authInputClass,
+  authInputErrorClass,
+  authLabelClass,
+  authGlassButtonClass,
+  authSubmitClass,
+} from "@/shared/ui/auth-form-styles";
 import { loginSchema } from "../model/login-schema";
 import { useLoginForm } from "../model/use-login-form";
-
-const enterpriseButtonClass =
-  "flex min-h-11 cursor-pointer items-center justify-center gap-[9px] rounded-[11px] border border-border bg-card text-xs font-semibold text-[#d9d9dc] transition-[border-color,background-color,transform] duration-160 hover:-translate-y-px hover:border-border-strong hover:bg-card-elevated";
-
-const inputClass =
-  "h-12 w-full rounded-xl border border-border bg-white/[0.035] pr-11 pl-[42px] text-[13px] tracking-[-0.01em] text-foreground caret-primary outline-none transition-[border-color,box-shadow,background-color] duration-160 placeholder:text-[#505055] hover:border-white/14 focus:border-primary/70 focus:bg-primary/[0.035] focus:shadow-[0_0_0_4px_rgba(0,229,160,0.09)] disabled:cursor-wait disabled:opacity-70";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/shared/ui/kit/form";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertTriangle, ArrowRight, Check, CheckCircle2, Eye, EyeOff, Fingerprint, KeyRound, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
 export default function LoginFormClient() {
   const [showPassword, setShowPassword] = useState(false);
-  const {
-    form,
-    emailRef,
-    onSubmit,
-    isSubmitting,
-    notice,
-    error,
-    handleForgotPassword,
-    handleEnterpriseAccess,
-  } = useLoginForm();
+  const { form, emailRef, onSubmit, isSubmitting, notice, error, handleForgotPassword } = useLoginForm();
 
   const forgotPassword = () => {
     const email = form.getValues("email").trim();
@@ -56,64 +30,38 @@ export default function LoginFormClient() {
 
   return (
     <>
-      <header className="mb-[30px] max-[520px]:mb-[25px] [@media(max-height:760px)_and_(min-width:981px)]:mb-[22px]">
-        <p className="mt-0 mb-2.5 text-[10px] font-bold tracking-[0.11em] text-primary uppercase">
-          Acesso seguro
-        </p>
-        <h1
-          className="mt-0 mb-2.5 text-[clamp(30px,3vw,38px)] leading-[1.08] font-bold tracking-[-0.05em]"
-          id="login-title"
-        >
-          Bem-vindo de volta.
+      <header className="mb-8">
+        <h1 id="login-title" className="m-0 mb-2 text-[clamp(1.875rem,4vw,2.25rem)] leading-[1.08] font-semibold tracking-[-0.045em] text-white">
+          Entrar
         </h1>
-        <p className="m-0 text-[13.5px] leading-[1.6] text-muted-foreground">
-          Entre no seu workspace para continuar sua operação.
-        </p>
+        <p className="m-0 text-[15.5px] leading-relaxed tracking-[-0.01em] text-white/65">Acesse o seu workspace do Iron Ledger.</p>
       </header>
 
-      <div className="grid grid-cols-2 gap-2.5 max-[520px]:grid-cols-1">
-        <motion.button
-          type="button"
-          className={enterpriseButtonClass}
-          whileTap={{ scale: 0.98 }}
-          transition={spring4}
-          onClick={() => handleEnterpriseAccess("SSO")}
-        >
-          <ShieldCheck size={16} /> Continuar com SSO
-        </motion.button>
-        <motion.button
-          type="button"
-          className={enterpriseButtonClass}
-          whileTap={{ scale: 0.98 }}
-          transition={spring4}
-          onClick={() => handleEnterpriseAccess("passkey")}
-        >
-          <Fingerprint size={16} /> Usar passkey
-        </motion.button>
+      <div className="grid grid-cols-2 gap-2.5 max-[420px]:grid-cols-1">
+        <button type="button" disabled className={authGlassButtonClass} title="Disponível em breve">
+          <ShieldCheck size={16} aria-hidden /> SSO
+          <span className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-px text-[11px] text-white/50">Em breve</span>
+        </button>
+        <button type="button" disabled className={authGlassButtonClass} title="Disponível em breve">
+          <Fingerprint size={16} aria-hidden /> Passkey
+          <span className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-px text-[11px] text-white/50">Em breve</span>
+        </button>
       </div>
 
-      <div className="my-[22px] flex items-center gap-[13px] text-[9px] font-bold tracking-[0.1em] text-subtle-foreground uppercase before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border [@media(max-height:760px)_and_(min-width:981px)]:my-[17px]">
-        ou entre com email
+      <div className="my-6 flex items-center gap-4 text-[13px] text-white/45 before:h-px before:flex-1 before:bg-white/10 after:h-px after:flex-1 after:bg-white/10">
+        ou com e-mail
       </div>
 
       <Form {...form}>
-        <form className="grid gap-[17px]" onSubmit={onSubmit} noValidate>
+        <form className="grid gap-5" onSubmit={onSubmit} noValidate>
           <FormField
             control={form.control}
             name="email"
             render={({ field, fieldState }) => (
-              <FormItem className="grid gap-[7px]">
-                <div className="flex items-center justify-between gap-3">
-                  <FormLabel className="text-[11px] font-[650] tracking-[0.01em] text-[#c7c7cb]">
-                    Email corporativo
-                  </FormLabel>
-                </div>
+              <FormItem className="grid gap-2">
+                <FormLabel className={authLabelClass}>E-mail corporativo</FormLabel>
                 <div className="group relative">
-                  <Mail
-                    className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-subtle-foreground transition-colors duration-160 group-focus-within:text-primary"
-                    size={16}
-                    aria-hidden="true"
-                  />
+                  <Mail className={authIconClass} size={17} aria-hidden="true" />
                   <FormControl>
                     <input
                       {...field}
@@ -121,7 +69,7 @@ export default function LoginFormClient() {
                         field.ref(element);
                         emailRef.current = element;
                       }}
-                      className={`${inputClass} ${fieldState.error ? "border-[#ff6961]/65 shadow-[0_0_0_4px_rgba(255,105,97,0.07)]" : ""}`}
+                      className={`${authInputClass} ${fieldState.error ? authInputErrorClass : ""}`}
                       type="email"
                       inputMode="email"
                       autoComplete="username"
@@ -131,7 +79,7 @@ export default function LoginFormClient() {
                     />
                   </FormControl>
                 </div>
-                <FormMessage className="m-0 text-[10.5px] leading-[1.4] text-destructive" />
+                <FormMessage className={authErrorTextClass} />
               </FormItem>
             )}
           />
@@ -140,29 +88,23 @@ export default function LoginFormClient() {
             control={form.control}
             name="password"
             render={({ field, fieldState }) => (
-              <FormItem className="grid gap-[7px]">
+              <FormItem className="grid gap-2">
                 <div className="flex items-center justify-between gap-3">
-                  <FormLabel className="text-[11px] font-[650] tracking-[0.01em] text-[#c7c7cb]">
-                    Senha
-                  </FormLabel>
+                  <FormLabel className={authLabelClass}>Senha</FormLabel>
                   <button
-                    className="cursor-pointer border-0 bg-transparent p-0.5 text-[10.5px] font-semibold text-primary"
                     type="button"
                     onClick={forgotPassword}
+                    className="cursor-pointer rounded-md border-0 bg-transparent px-1 py-0.5 text-[13px] font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-primary/60"
                   >
                     Esqueceu a senha?
                   </button>
                 </div>
                 <div className="group relative">
-                  <KeyRound
-                    className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-subtle-foreground transition-colors duration-160 group-focus-within:text-primary"
-                    size={16}
-                    aria-hidden="true"
-                  />
+                  <KeyRound className={authIconClass} size={17} aria-hidden="true" />
                   <FormControl>
                     <input
                       {...field}
-                      className={`${inputClass} ${fieldState.error ? "border-[#ff6961]/65 shadow-[0_0_0_4px_rgba(255,105,97,0.07)]" : ""}`}
+                      className={`${authInputClass} ${fieldState.error ? authInputErrorClass : ""}`}
                       type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       placeholder="Digite sua senha"
@@ -170,16 +112,16 @@ export default function LoginFormClient() {
                     />
                   </FormControl>
                   <button
-                    className="absolute top-1/2 right-[9px] grid size-[34px] -translate-y-1/2 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-subtle-foreground hover:bg-white/[0.045] hover:text-muted-foreground"
                     type="button"
                     onClick={() => setShowPassword((visible) => !visible)}
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                     aria-pressed={showPassword}
+                    className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-white/50 outline-none transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
-                <FormMessage className="m-0 text-[10.5px] leading-[1.4] text-destructive" />
+                <FormMessage className={authErrorTextClass} />
               </FormItem>
             )}
           />
@@ -188,10 +130,10 @@ export default function LoginFormClient() {
             control={form.control}
             name="remember"
             render={({ field }) => (
-              <FormItem className="flex items-center justify-between gap-4 max-[520px]:items-start">
-                <label className="inline-flex cursor-pointer items-center gap-[9px] text-[11px] text-muted-foreground select-none">
+              <FormItem>
+                <label className="inline-flex cursor-pointer items-center gap-2.5 text-[14px] text-white/70 select-none">
                   <input
-                    className="peer absolute opacity-0 pointer-events-none"
+                    className="peer sr-only"
                     ref={field.ref}
                     name={field.name}
                     type="checkbox"
@@ -200,8 +142,8 @@ export default function LoginFormClient() {
                     onBlur={field.onBlur}
                     onChange={field.onChange}
                   />
-                  <span className="grid size-[17px] place-items-center rounded-[5px] border border-border-strong bg-card text-primary transition-all duration-160 peer-checked:border-primary/65 peer-checked:bg-primary-soft">
-                    {field.value && <Check size={11} strokeWidth={3} />}
+                  <span className="grid size-5 place-items-center rounded-md border border-white/25 bg-white/[0.04] text-[#04140e] transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#0e1012] motion-reduce:transition-none">
+                    {field.value && <Check size={13} strokeWidth={3} aria-hidden />}
                   </span>
                   Manter conectado neste dispositivo
                 </label>
@@ -212,45 +154,43 @@ export default function LoginFormClient() {
           <AnimatePresence initial={false}>
             {(notice || error) && (
               <motion.div
-                className={`flex items-start gap-[9px] rounded-[10px] border px-3 py-[11px] text-[10.5px] leading-[1.5] ${error ? "border-destructive/35 bg-destructive-soft text-destructive" : "border-border bg-card text-muted-foreground"}`}
                 role={error ? "alert" : "status"}
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
+                className={`flex items-start gap-2.5 overflow-hidden rounded-2xl border px-4 py-3 text-[13.5px] leading-normal ${error ? "border-destructive/35 bg-destructive-soft text-destructive" : "border-white/10 bg-white/[0.05] text-white/75"}`}
               >
-                {error ? <AlertTriangle className="shrink-0" size={14} /> : <CheckCircle2 className="shrink-0 text-primary" size={14} />}
+                {error ? <AlertTriangle className="mt-0.5 shrink-0" size={15} aria-hidden /> : <CheckCircle2 className="mt-0.5 shrink-0 text-primary" size={15} aria-hidden />}
                 <span>{error || notice}</span>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <motion.button
-            className="relative mt-px flex min-h-12 w-full cursor-pointer items-center justify-center gap-[9px] overflow-hidden rounded-xl border-0 bg-[linear-gradient(135deg,#21efad,var(--primary))] text-[12.5px] font-[750] tracking-[-0.01em] text-[#042018] shadow-[0_10px_28px_rgba(0,229,160,0.16),inset_0_1px_0_rgba(255,255,255,0.45)] transition-[filter,box-shadow] duration-160 before:absolute before:inset-0 before:-translate-x-[110%] before:bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.3)_50%,transparent_65%)] before:transition-transform before:duration-600 before:ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-[0_14px_38px_rgba(0,229,160,0.23)] hover:brightness-[1.04] hover:before:translate-x-[110%] disabled:cursor-wait disabled:saturate-75 [&>*]:relative [&>*]:z-1"
-            type="submit"
-            disabled={isSubmitting}
-            whileTap={isSubmitting ? undefined : { scale: 0.985 }}
-            transition={spring4}
-          >
+          <button type="submit" disabled={isSubmitting} className={authSubmitClass}>
             {isSubmitting ? (
               <>
-                <Loader2 size={16} className="animate-spin" /> Verificando acesso...
+                <Loader2 size={17} className="animate-spin motion-reduce:animate-none" aria-hidden /> Verificando acesso...
               </>
             ) : (
               <>
-                Entrar no Iron Ledger <ArrowRight size={16} />
+                Entrar <ArrowRight size={17} aria-hidden />
               </>
             )}
-          </motion.button>
+          </button>
         </form>
       </Form>
 
-      <div className="mt-6 flex items-start gap-2.5 border-t border-border pt-5 text-[10px] leading-[1.55] text-subtle-foreground [@media(max-height:760px)_and_(min-width:981px)]:mt-[18px] [@media(max-height:760px)_and_(min-width:981px)]:pt-4">
-        <LockKeyhole className="mt-px shrink-0 text-muted-foreground" size={15} />
-        <span>
-          <strong className="font-semibold text-muted-foreground">Sessão protegida.</strong>{" "}
-          Este acesso pode ser registrado no módulo de auditoria para segurança e conformidade da sua organização.
-        </span>
-      </div>
+      <p className="m-0 mt-7 text-center text-[14.5px] text-white/65">
+        Ainda não tem conta?{" "}
+        <Link href="/register" className="rounded-md font-semibold text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-primary/60">
+          Criar conta
+        </Link>
+      </p>
+
+      <p className="m-0 mt-6 flex items-start gap-2 border-t border-white/[0.08] pt-5 text-[12.5px] leading-relaxed text-white/50">
+        <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
+        Seus acessos podem ser registrados no histórico de auditoria da sua organização.
+      </p>
     </>
   );
 }

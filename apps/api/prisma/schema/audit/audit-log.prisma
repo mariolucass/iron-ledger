@@ -2,10 +2,9 @@
 // audit — registro imutável (ADR-003: append-only)
 // =============================================================================
 //
-// Nenhuma linha é alterada ou removida pela aplicação. Recomenda-se na migration:
-//   - REVOKE UPDATE, DELETE ON audit.* do papel da aplicação;
-//   - trigger que rejeite UPDATE/DELETE;
-//   - particionamento mensal por `occurred_at`.
+// UPDATE, DELETE e TRUNCATE são rejeitados por triggers na migration.
+// O ator é uma referência por ID, sem FK, preservada após exclusão do usuário.
+// Papéis de runtime devem receber apenas SELECT/INSERT neste schema.
 // `hash`/`previousHash` formam uma cadeia (tamper-evident) ordenada por `sequence`.
 
 model AuditLog {
@@ -17,6 +16,8 @@ model AuditLog {
   eventVersion  Int      @default(1) @map("event_version")
   occurredAt    DateTime @map("occurred_at")
   actorId       String?  @map("actor_id") @db.Uuid
+  /// Snapshot do e-mail na gravação; não muda junto com o cadastro do usuário.
+  actorEmail    String?  @map("actor_email")
   /// `USER`, `API_KEY`, `SYSTEM` ou `WORKFLOW`.
   actorType     String   @default("USER") @map("actor_type")
   entityType    String   @map("entity_type")
@@ -33,7 +34,6 @@ model AuditLog {
   previousHash  String?  @map("previous_hash")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  actor   User?            @relation(fields: [actorId], references: [id], onDelete: SetNull)
   changes AuditLogChange[]
 
   @@index([eventName, occurredAt])

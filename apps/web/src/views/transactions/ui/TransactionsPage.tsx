@@ -1,12 +1,9 @@
 "use client";
 
-import { colors as theme } from "@/shared/config/tokens";
-import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { ArrowLeftRight, Plus, RefreshCw } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { staggerContainer, staggerItem } from "@/shared/lib/animation";
-import { usePolling } from "@/shared/lib/use-polling";
+import { useState } from "react";
 import {
   isTerminalStatus,
   TransactionStatusBadge,
@@ -15,60 +12,79 @@ import {
   type TransactionSummary,
 } from "@/entities/transaction";
 import { StartTransactionDialog, type TransactionStockOption } from "@/features/start-transaction";
-import { Layout } from "@/widgets/layout";
+import { usePolling } from "@/shared/lib/use-polling";
+import { useRemoteList } from "@/shared/lib/use-remote-list";
+import {
+  DataTable,
+  EmptyState,
+  ListError,
+  PageHeader,
+  Pagination,
+  SegmentedTabs,
+  primaryActionClass,
+  secondaryActionClass,
+  type Column,
+} from "@/shared/ui/data-list";
 import { DatePicker } from "@/shared/ui/kit/date-picker";
+import { Layout } from "@/widgets/layout";
 import { dayRange, fetchStockOptions, fetchTransactions, formatDateTime, PAGE_SIZE } from "../model/load-transactions";
 
-const statusTabs: Array<TransactionStatus | "ALL"> = ["ALL", "PROCESSING", "COMPLETED", "COMPENSATED", "FAILED"];
+type StatusTab = TransactionStatus | "ALL";
+
+const statusTabs: StatusTab[] = ["ALL", "PROCESSING", "COMPLETED", "COMPENSATED", "FAILED"];
+const tabOptions = statusTabs.map((value) => ({ value, label: value === "ALL" ? "Todas" : transactionStatusLabel(value) }));
+
 const typeLabel: Record<TransactionSummary["type"], string> = {
-  SALE: "SAÍDA",
-  PURCHASE_RECEIPT: "ENTRADA",
-  TRANSFER: "TRANSFERÊNCIA",
-  RETURN: "DEVOLUÇÃO",
-  ADJUSTMENT: "AJUSTE",
+  SALE: "Saída",
+  PURCHASE_RECEIPT: "Entrada",
+  TRANSFER: "Transferência",
+  RETURN: "Devolução",
+  ADJUSTMENT: "Ajuste",
 };
 
-// ============================================================================
-// PAGE: Lista de Transações (Sagas orquestradas pelo Temporal)
-// ============================================================================
+const columns: Column<TransactionSummary>[] = [
+  {
+    id: "code",
+    header: "Transação",
+    cell: (tx) => (
+      <span className="grid">
+        <span className="font-mono text-[13px] font-medium">{tx.code}</span>
+        {tx.externalRef && <span className="text-[12.5px] font-normal text-white/55">{tx.externalRef}</span>}
+      </span>
+    ),
+  },
+  { id: "type", header: "Tipo", className: "text-white/70", cell: (tx) => typeLabel[tx.type] },
+  { id: "status", header: "Status", cell: (tx) => <TransactionStatusBadge status={tx.status} /> },
+  { id: "items", header: "Itens", className: "whitespace-nowrap text-white/70", cell: (tx) => `${tx.itemCount} · ${tx.totalQuantity} un` },
+  { id: "by", header: "Iniciado por", hideBelow: "lg", className: "font-mono text-[12.5px] text-white/60", cell: (tx) => tx.initiatedBy.slice(0, 8) },
+  { id: "created", header: "Criado em", className: "whitespace-nowrap text-white/60", cell: (tx) => formatDateTime(tx.createdAt) },
+  {
+    id: "reason",
+    header: "Motivo",
+    hideBelow: "xl",
+    className: "max-w-[260px] text-white/60",
+    cell: (tx) => <span className="block truncate" title={tx.failureReason ?? undefined}>{tx.failureReason ?? "—"}</span>,
+  },
+];
+
+// Lista de transações (sagas orquestradas pelo Temporal).
 export function TransactionsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TransactionStatus | "ALL">("ALL");
+  const [activeTab, setActiveTab] = useState<StatusTab>("ALL");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
-  const [items, setItems] = useState<TransactionSummary[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [stockOptions, setStockOptions] = useState<TransactionStockOption[]>([]);
   const [stockLoading, setStockLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const body = await fetchTransactions({
-        status: activeTab === "ALL" ? undefined : activeTab,
-        page,
-        ...dayRange(from, to),
-      });
-      setItems(body.items);
-      setTotal(body.total);
-      setError("");
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Não foi possível consultar as transações.");
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, from, to, page]);
-
-  useEffect(() => {
-    setLoading(true);
-    void load();
-  }, [load]);
+  const { items, total, loading, error, reload, refresh } = useRemoteList(
+    () => fetchTransactions({ status: activeTab === "ALL" ? undefined : activeTab, page, ...dayRange(from, to) }),
+    [activeTab, from, to, page],
+  );
 
   // Sagas em andamento mudam de estado sozinhas: atualiza até todas terminarem.
-  usePolling(load, 3_000, items.some((item) => !isTerminalStatus(item.status)));
+  usePolling(reload, 3_000, items.some((item) => !isTerminalStatus(item.status)));
 
   const openDialog = async () => {
     setDialogOpen(true);
@@ -82,122 +98,53 @@ export function TransactionsPage() {
     }
   };
 
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const reset = <T,>(set: (value: T) => void) => (value: T) => { set(value); setPage(1); };
 
   return (
     <Layout title="Transações">
-      {/* Abas + ações */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
-        <div role="tablist" aria-label="Filtrar por status" style={{ display: "flex", gap: 4, background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 10, padding: 6, flexWrap: "wrap" }}>
-          {statusTabs.map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => { setActiveTab(tab); setPage(1); }}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: 6,
-                  background: isActive ? theme.surfaceHover : "transparent",
-                  border: "none",
-                  color: isActive ? theme.textPrimary : theme.textSecondary,
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontWeight: isActive ? 600 : 500,
-                  boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
-                }}
-              >
-                {tab === "ALL" ? "Todas" : transactionStatusLabel(tab)}
-              </button>
-            );
-          })}
-        </div>
+      <PageHeader
+        title="Transações"
+        description="Operações coordenadas em etapas, com compensação automática em caso de falha."
+        actions={
+          <>
+            <button type="button" onClick={() => void refresh()} aria-label="Atualizar lista" className={`${secondaryActionClass} !px-0 w-11`}>
+              <RefreshCw size={16} aria-hidden className={loading ? "animate-spin motion-reduce:animate-none" : undefined} />
+            </button>
+            <button type="button" onClick={() => void openDialog()} className={primaryActionClass}><Plus size={17} aria-hidden /> Nova transação</button>
+          </>
+        }
+      />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <div className="flex items-center gap-2">
-            <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={(value) => { setFrom(value); setPage(1); }} className="h-10" />
-            <span className="text-muted-foreground">-</span>
-            <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={(value) => { setTo(value); setPage(1); }} className="h-10" />
-          </div>
-
-          <button
-            onClick={() => { setLoading(true); void load(); }}
-            aria-label="Atualizar lista"
-            className="grid size-10 place-items-center rounded-lg border border-border text-muted-foreground hover:text-foreground"
-          >
-            <RefreshCw size={15} className={loading ? "animate-spin" : undefined} />
-          </button>
-
-          <button
-            onClick={() => void openDialog()}
-            style={{
-              display: "flex", alignItems: "center", gap: 6, background: theme.accent, color: "#000", border: "none",
-              borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 0 16px ${theme.accentGlow}`,
-            }}
-          >
-            <Plus size={16} /> Nova transação
-          </button>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <SegmentedTabs label="Filtrar por status" value={activeTab} onChange={reset(setActiveTab)} options={tabOptions} />
+        <div className="flex items-center gap-2">
+          <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={reset(setFrom)} className="h-11" />
+          <span aria-hidden className="text-white/45">–</span>
+          <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={reset(setTo)} className="h-11" />
         </div>
       </div>
 
-      {error && <div role="alert" className="mb-4 rounded-lg border border-destructive/40 bg-destructive-soft px-4 py-3 text-sm text-destructive">{error}</div>}
+      {error && <ListError message={error} onRetry={() => void refresh()} />}
 
-      {/* Tabela Principal */}
-      <div style={{ background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 12, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: "900px" }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${theme.border}`, background: "rgba(0,0,0,0.2)" }}>
-                {["Transação", "Tipo", "Status", "Itens", "Iniciado por", "Criado em", "Motivo"].map((h) => (
-                  <th key={h} style={{ padding: "16px 24px", textAlign: "left", fontSize: 11, fontWeight: 600, color: theme.textSecondary, letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <motion.tbody variants={staggerContainer} initial="hidden" animate="show">
-              <AnimatePresence>
-                {items.map((tx) => (
-                  <motion.tr
-                    variants={staggerItem}
-                    whileHover={{ backgroundColor: theme.surfaceHover }}
-                    key={tx.id}
-                    onClick={() => router.push(`/transactions/${tx.id}`)}
-                    style={{ borderBottom: `1px solid ${theme.border}`, cursor: "pointer" }}
-                  >
-                    <td style={{ padding: "16px 24px", fontFamily: "var(--font-jetbrains-mono)", fontSize: 12, color: theme.textPrimary, fontWeight: 500 }}>
-                      {tx.code}
-                      {tx.externalRef && <div style={{ color: theme.textSecondary, fontSize: 11 }}>{tx.externalRef}</div>}
-                    </td>
-                    <td style={{ padding: "16px 24px", color: theme.textSecondary, fontWeight: 500 }}>{typeLabel[tx.type]}</td>
-                    <td style={{ padding: "16px 24px" }}><TransactionStatusBadge status={tx.status} /></td>
-                    <td style={{ padding: "16px 24px", color: theme.textSecondary, fontFamily: "var(--font-jetbrains-mono)" }}>{tx.itemCount} · {tx.totalQuantity} un</td>
-                    <td style={{ padding: "16px 24px", color: theme.textSecondary, fontFamily: "var(--font-jetbrains-mono)", fontSize: 11 }}>{tx.initiatedBy.slice(0, 8)}</td>
-                    <td style={{ padding: "16px 24px", color: theme.textSecondary, fontSize: 12, fontFamily: "var(--font-jetbrains-mono)" }}>{formatDateTime(tx.createdAt)}</td>
-                    <td style={{ padding: "16px 24px", color: theme.textSecondary, fontSize: 12, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={tx.failureReason ?? undefined}>{tx.failureReason ?? "—"}</td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </motion.tbody>
-          </table>
-        </div>
-        {!loading && items.length === 0 && !error && (
-          <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-            Nenhuma transação encontrada. Use <strong className="text-foreground">Nova transação</strong> para iniciar uma Saga.
-          </div>
-        )}
-        {loading && items.length === 0 && (
-          <div className="flex items-center justify-center gap-2 px-6 py-12 text-sm text-muted-foreground"><Loader2 size={14} className="animate-spin" />Carregando transações…</div>
-        )}
-      </div>
+      <DataTable
+        caption="Lista de transações"
+        columns={columns}
+        rows={items}
+        getRowKey={(tx) => tx.id}
+        rowHref={(tx) => `/transactions/${tx.id}` as Route}
+        loading={loading}
+        minWidth={900}
+        empty={
+          !error && (
+            <EmptyState
+              icon={ArrowLeftRight}
+              message={<>Nenhuma transação encontrada. Use <strong className="font-semibold text-foreground">Nova transação</strong> para iniciar uma saga.</>}
+            />
+          )
+        }
+      />
 
-      {total > PAGE_SIZE && (
-        <div className="mt-4 flex items-center justify-end gap-3 text-sm text-muted-foreground">
-          <span>Página {page} de {pages} · {total} transações</span>
-          <button aria-label="Página anterior" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="grid size-8 place-items-center rounded-md border border-border disabled:opacity-40"><ChevronLeft size={14} /></button>
-          <button aria-label="Próxima página" disabled={page >= pages} onClick={() => setPage((current) => current + 1)} className="grid size-8 place-items-center rounded-md border border-border disabled:opacity-40"><ChevronRight size={14} /></button>
-        </div>
-      )}
+      <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} noun={["transação", "transações"]} />
 
       {dialogOpen && (
         <StartTransactionDialog
@@ -206,7 +153,7 @@ export function TransactionsPage() {
           onClose={() => setDialogOpen(false)}
           onStarted={(transaction) => {
             setDialogOpen(false);
-            router.push(`/transactions/${transaction.id}`);
+            router.push(`/transactions/${transaction.id}` as Route);
           }}
         />
       )}

@@ -1,108 +1,120 @@
 import type {
   LandingFeature,
+  LandingFlowNode,
   LandingLinkGroup,
   LandingNavLink,
-  LandingStat,
-  LandingTechnology,
-  LandingTestimonial,
+  LandingStep,
 } from "./types";
 
 export const landingNavLinks: LandingNavLink[] = [
   { label: "Recursos", href: "#features" },
-  { label: "Integrações", href: "#tech" },
-  { label: "Depoimentos", href: "#testimonials" },
-];
-
-export const landingStats: LandingStat[] = [
-  { value: 4_800_000, suffix: "+", label: "Transações processadas", duration: 2_000 },
-  { value: 99, suffix: ",9%", label: "Disponibilidade do sistema", duration: 1_600 },
-  { value: 200, prefix: "+", label: "Equipes usuárias", duration: 1_400 },
-  { value: 50, suffix: "ms", label: "Latência média", duration: 1_200 },
+  { label: "Arquitetura", href: "#tech" },
+  { label: "Como funciona", href: "#how" },
 ];
 
 export const landingFeatures: LandingFeature[] = [
   {
     icon: "shield",
-    title: "Histórico de auditoria",
-    description: "Cada alteração fica registrada com data, origem e responsável para facilitar conferências e investigações.",
+    title: "Histórico de cada alteração",
+    description:
+      "Quem mudou, o que mudou e quando. Movimentações e transações deixam um registro consultável, com o valor antes e depois.",
+    sample: "quantidade  120 → 96",
+    span: 4,
     tone: "primary",
-    size: "large",
-  },
-  {
-    icon: "zap",
-    title: "Atualizações em tempo real",
-    description: "Entradas, saídas e transferências aparecem no sistema assim que são processadas.",
-    tone: "blue",
-    size: "small",
-  },
-  {
-    icon: "git-branch",
-    title: "Operações coordenadas",
-    description: "Fluxos com várias etapas são acompanhados do início ao fim, inclusive quando alguma etapa precisa ser refeita.",
-    tone: "purple",
-    size: "small",
-  },
-  {
-    icon: "trending-up",
-    title: "Planejamento de estoque",
-    description: "O histórico de vendas e a movimentação dos produtos ajudam a identificar reposições com antecedência.",
-    tone: "emerald",
-    size: "small",
   },
   {
     icon: "package",
-    title: "Múltiplos estoques",
-    description: "Acompanhe centros de distribuição, lojas e transferências entre unidades em uma única visão.",
-    tone: "red",
-    size: "small",
-  },
-  {
-    icon: "check",
-    title: "Conferência financeira",
-    description: "Registros em partidas dobradas e relatórios organizados para apoiar o fechamento e a prestação de contas.",
-    tone: "yellow",
-    size: "large",
-  },
-];
-
-export const landingTechnologies: LandingTechnology[] = [
-  { name: "Kafka", icon: "database", tone: "orange" },
-  { name: "RabbitMQ", icon: "git-branch", tone: "orange" },
-  { name: "Temporal.io", icon: "globe", tone: "blue" },
-  { name: "PostgreSQL", icon: "database", tone: "blue" },
-  { name: "Redis", icon: "zap", tone: "red" },
-  { name: "gRPC", icon: "globe", tone: "emerald" },
-];
-
-export const landingTestimonials: LandingTestimonial[] = [
-  {
-    quote: "Antes, conferir uma divergência levava boa parte da manhã. Agora conseguimos seguir o histórico da movimentação e encontrar a origem sem depender de várias planilhas.",
-    author: "Luiz Felipe",
-    role: "Coordenador Financeiro",
-    initials: "LF",
-    tone: "primary",
-    stars: 5,
-  },
-  {
-    quote: "A implantação foi tranquila e conseguimos manter os processos que a equipe já conhecia. O ganho maior foi ter estoque e financeiro olhando para os mesmos números.",
-    author: "Pedro Ygor",
-    role: "Gerente de Operações",
-    initials: "PY",
+    title: "Reservas de estoque",
+    description: "Reserve unidades para uma operação, confirme a baixa ou libere. O disponível já desconta o reservado.",
+    span: 2,
     tone: "blue",
-    stars: 5,
   },
   {
-    quote: "Os alertas de reposição ajudaram a organizar melhor as compras. Hoje a equipe consegue perceber uma possível falta antes que ela vire um problema na loja.",
-    author: "Mário Lucas",
-    role: "Responsável por Suprimentos",
-    initials: "ML",
+    icon: "git-branch",
+    title: "Transações que se desfazem",
+    description: "Se uma etapa falha, a saga desfaz o que já foi feito. Nenhuma reserva fica presa no saldo.",
+    span: 2,
     tone: "purple",
-    stars: 5,
+  },
+  {
+    icon: "boxes",
+    title: "Catálogo completo",
+    description: "SKU, categorias, unidades, códigos de barras, mínimo, máximo e NCM em um só cadastro.",
+    span: 2,
+    tone: "emerald",
+  },
+  {
+    icon: "warehouse",
+    title: "Armazéns e localizações",
+    description: "Do centro de distribuição ao compartimento, com saldo e regras de separação por local.",
+    sample: "CD-SP › A › 01 › R1",
+    span: 2,
+    tone: "orange",
+  },
+  {
+    icon: "users",
+    title: "Acesso por papéis",
+    description: "Administradores, gestores de catálogo e de armazéns. Cada pessoa vê e altera só o que lhe cabe.",
+    span: 3,
+    tone: "yellow",
+  },
+  {
+    icon: "trending-up",
+    title: "Análise de mudanças",
+    description:
+      "Detecta alterações persistentes em vendas, cancelamentos e atrasos, por vendedor e por categoria, e explica cada uma.",
+    span: 3,
+    tone: "red",
+  },
+];
+
+/** Caminho de um evento, da API até quem o consome. */
+export const landingFlow: LandingFlowNode[] = [
+  { icon: "globe", title: "API", detail: "Node.js, módulos por domínio", tone: "primary" },
+  { icon: "database", title: "Outbox", detail: "PostgreSQL, na mesma transação do dado", tone: "blue" },
+  { icon: "zap", title: "Mensageria", detail: "Kafka e RabbitMQ", tone: "orange" },
+  { icon: "git-branch", title: "Orquestração", detail: "Temporal: saga e compensação", tone: "purple" },
+  { icon: "activity", title: "Consumidores", detail: "Auditoria e analytics", tone: "emerald" },
+];
+
+export const landingStack = [
+  "Next.js",
+  "Node.js",
+  "PostgreSQL",
+  "Redis",
+  "Kafka",
+  "RabbitMQ",
+  "Temporal",
+  "OpenTelemetry",
+] as const;
+
+export const landingSteps: LandingStep[] = [
+  {
+    title: "Cadastre a base",
+    description: "Produtos com SKU e política de reposição, e armazéns com as suas localizações.",
+  },
+  {
+    title: "Registre a operação",
+    description:
+      "Entradas, saídas e ajustes, ou uma transação completa que reserva, confirma e concilia o saldo.",
+  },
+  {
+    title: "Acompanhe e confira",
+    description: "Saldos por armazém, o histórico de cada alteração e a análise do que mudou.",
   },
 ];
 
 export const landingFooterGroups: LandingLinkGroup[] = [
-  { title: "Produto", links: ["Dashboard", "Estoque", "Transações", "Auditoria", "Previsões"] },
-  { title: "Empresa", links: ["Sobre", "Blog", "Carreiras", "Contato", "Parceiros"] },
-  { title: "Legal", links: ["Privacidade", "Termos", "Cookies", "Segurança", "Compliance"] },
+  {
+    title: "Produto",
+    links: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Estoque", href: "/inventory" },
+      { label: "Transações", href: "/transactions" },
+      { label: "Auditoria", href: "/audit-log" },
+      { label: "Previsões", href: "/forecasting" },
+    ],
+  },
+  { title: "Empresa", links: [{ label: "Sobre" }, { label: "Blog" }, { label: "Carreiras" }, { label: "Contato" }, { label: "Parceiros" }] },
+  { title: "Legal", links: [{ label: "Privacidade" }, { label: "Termos" }, { label: "Cookies" }, { label: "Segurança" }, { label: "Compliance" }] },
 ];

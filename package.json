@@ -34,6 +34,7 @@
     "format:check": "prettier --check .",
     "check": "pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @iron-ledger/api run prisma:generate",
+    "db:test:integrity": "node scripts/test-schema-integrity.mjs",
     "db:validate": "pnpm --filter @iron-ledger/api run prisma:validate",
     "db:migrate": "pnpm --filter @iron-ledger/api run prisma:migrate",
     "db:deploy": "pnpm --filter @iron-ledger/api run prisma:deploy",

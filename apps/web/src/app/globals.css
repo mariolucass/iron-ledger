@@ -51,3 +51,54 @@
     @apply text-base leading-normal font-normal;
   }
 }
+
+/* Âncoras da landing: rolagem suave e margem para não ficar sob o header flutuante. */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+section[id] {
+  scroll-margin-top: 6rem;
+}
+
+/* Orbes do CTA final da landing (FinalCta): deriva lenta, flutuação e órbita. */
+@keyframes orb-drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(48px, 36px, 0) scale(1.14); }
+}
+
+@keyframes orb-drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-44px, 28px, 0) scale(0.92); }
+}
+
+@keyframes orb-drift-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-30px, -42px, 0) scale(1.1); }
+}
+
+@keyframes orb-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+@keyframes orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Conectores animados do diagrama de arquitetura (TechSection). */
+@keyframes flow-x {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes flow-y {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(100%); }
+}

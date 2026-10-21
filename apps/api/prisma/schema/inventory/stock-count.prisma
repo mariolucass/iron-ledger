@@ -25,6 +25,7 @@ model StockCount {
   items     StockCountItem[]
   movements StockMovement[]
 
+  @@unique([id, warehouseId])
   @@index([warehouseId, status])
   @@index([scheduledAt])
   @@map("stock_counts")
@@ -34,6 +35,8 @@ model StockCount {
 model StockCountItem {
   id               String    @id @default(uuid()) @db.Uuid
   stockCountId     String    @map("stock_count_id") @db.Uuid
+  /// Mesmo armazém da contagem e do endereço, garantido por FKs compostas.
+  warehouseId      String    @map("warehouse_id") @db.Uuid
   productId        String    @map("product_id") @db.Uuid
   locationId       String?   @map("location_id") @db.Uuid
   lotId            String?   @map("lot_id") @db.Uuid
@@ -47,10 +50,10 @@ model StockCountItem {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  stockCount StockCount         @relation(fields: [stockCountId], references: [id], onDelete: Cascade)
+  stockCount StockCount         @relation(fields: [stockCountId, warehouseId], references: [id, warehouseId], onDelete: Cascade, onUpdate: Restrict)
   product    Product            @relation(fields: [productId], references: [id])
-  location   WarehouseLocation? @relation(fields: [locationId], references: [id])
-  lot        InventoryLot?      @relation(fields: [lotId], references: [id])
+  location   WarehouseLocation? @relation(fields: [locationId, warehouseId], references: [id, warehouseId], onDelete: Restrict, onUpdate: Restrict)
+  lot        InventoryLot?      @relation(fields: [lotId, productId], references: [id, productId], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([stockCountId, productId, locationId, lotId])
   @@index([productId])

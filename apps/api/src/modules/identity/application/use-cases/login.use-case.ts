@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
-import jwt, { type SignOptions } from "jsonwebtoken";
+import type { SignOptions } from "jsonwebtoken";
 import { AppError } from "../../../../shared/errors/domain.error";
+import { issueAccessToken } from "../issue-access-token";
 
 export type LoginUser = {
   id: string;
@@ -14,6 +15,8 @@ export type LoginUser = {
 
 export interface LoginUserRepository {
   findByEmail(email: string): Promise<LoginUser | null>;
+  /** Registra o horário do último acesso bem-sucedido. */
+  recordLogin?(userId: string): Promise<void>;
 }
 
 export type LoginInput = { email: string; password: string };
@@ -35,17 +38,9 @@ export class LoginUseCase {
       throw new AppError("Usuário não está ativo", 403, "USER_INACTIVE");
     }
 
-    const accessToken = jwt.sign(
-      { email: user.email, name: user.name, roles: user.roles },
-      this.jwtSecret,
-      { subject: user.id, expiresIn: this.jwtExpiresIn, issuer: "iron-ledger-api" },
-    );
+    // O horário do último acesso é informativo: uma falha aqui não pode barrar o login.
+    await this.users.recordLogin?.(user.id).catch(() => undefined);
 
-    return {
-      accessToken,
-      tokenType: "Bearer" as const,
-      expiresIn: this.jwtExpiresIn,
-      user: { id: user.id, email: user.email, name: user.name, roles: user.roles },
-    };
+    return issueAccessToken(user, this.jwtSecret, this.jwtExpiresIn);
   }
 }

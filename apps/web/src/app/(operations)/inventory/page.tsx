@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import { createMetadata } from "@/shared/config/metadata";
 import { InventoryPage } from "@/views/inventory";
 
-export const metadata: Metadata = {
-  title: "Estoque - Iron Ledger",
-  description: "Controle de inventario multi-warehouse em tempo real com orquestracao automatica.",
-};
+export const metadata = createMetadata({
+  title: "Estoque",
+  description: "Controle de inventário multi-armazém em tempo real com orquestração automática.",
+  path: "/inventory",
+});
 
 export default function Page() {
   return <InventoryPage />;

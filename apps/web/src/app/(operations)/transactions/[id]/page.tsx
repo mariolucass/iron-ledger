@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+import { createMetadata } from "@/shared/config/metadata";
 import { TransactionDetailPage } from "@/views/transaction-detail";
 
-export const metadata: Metadata = {
-  title: "Detalhes da Transacao - Iron Ledger",
-  description: "Detalhamento de transacao distribuida, fluxo de eventos e compensacoes.",
-};
+export const metadata = createMetadata({
+  title: "Detalhes da transação",
+  description: "Detalhamento de transação distribuída, fluxo de eventos e compensações.",
+});
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

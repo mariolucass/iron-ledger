@@ -26,6 +26,8 @@ export interface AuditQuery extends PaginationQuery {
   entityType?: string;
   entityId?: string;
   actor?: string;
+  action?: AuditAction;
+  correlationId?: string;
   from?: string;
   to?: string;
 }

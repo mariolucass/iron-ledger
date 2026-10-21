@@ -1,35 +1,79 @@
 "use client";
 
-import { ArrowRight, BarChart3, ChevronRight, Sparkles, Star } from "lucide-react";
+import { motion, useReducedMotion, useTransform } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
-import { ghostButtonClass, primaryButtonClass } from "./LandingPrimitives";
-
-const avatars = [
-  ["LF", "bg-primary-soft text-primary"], ["PY", "bg-info-soft text-info"], ["ML", "bg-purple-soft text-purple"],
-  ["AO", "bg-red-400/10 text-red-400"], ["TP", "bg-yellow-400/10 text-yellow-400"],
-];
+import { GlassPill, gradientText, glassButtonClass, whiteButtonClass } from "./LandingPrimitives";
+import { ParallaxOrb, usePointerParallax } from "@/shared/ui/orbs";
+import { OverviewPanel } from "./ShowcasePanels";
+import { WindowFrame } from "./WindowFrame";
 
 export function HeroSection() {
-  return <section id="top" className="relative z-10 flex min-h-screen items-center justify-center px-5 pt-28 pb-16 text-center md:px-10 md:pt-36 md:pb-20">
-    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="w-full max-w-[900px]">
-      <motion.div variants={staggerItem} className="mb-7 flex justify-center">
-        <a href="#features" className="inline-flex items-center gap-2 rounded-full border border-primary-border bg-primary-soft px-4 py-2 text-[12.5px] font-semibold text-primary"><Sparkles size={13} />Novo — planejamento de estoque disponível<ChevronRight size={12} className="opacity-70" /></a>
+  const reducedMotion = useReducedMotion();
+  const { x, y, onPointerMove, onPointerLeave } = usePointerParallax();
+  // A janela inclina alguns graus na direção do cursor.
+  const rotateY = useTransform(x, (value) => (reducedMotion ? 0 : value * 7));
+  const rotateX = useTransform(y, (value) => (reducedMotion ? 0 : value * -5));
+
+  return (
+    <section
+      id="top"
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+      className="relative isolate z-10 overflow-hidden px-5 pt-32 pb-16 md:px-10 md:pt-44 md:pb-24"
+    >
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <ParallaxOrb x={x} y={y} depth={-50} color="green" position="-top-40 left-[4%] size-[520px]" opacity={0.42} motion={0} blur={90} />
+        <ParallaxOrb x={x} y={y} depth={44} color="blue" position="-top-24 right-[2%] size-[480px]" opacity={0.4} motion={1} blur={90} />
+        <ParallaxOrb x={x} y={y} depth={-36} color="violet" position="top-[42%] left-[30%] size-[560px]" opacity={0.36} motion={2} blur={100} />
+        <ParallaxOrb x={x} y={y} depth={60} color="pink" position="top-[55%] -right-16 size-[360px]" opacity={0.28} motion={3} blur={90} />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.14)_1px,transparent_1px)] bg-[size:28px_28px] opacity-25 [mask-image:radial-gradient(ellipse_at_50%_30%,black_10%,transparent_65%)]" />
+      </div>
+
+      <motion.div variants={staggerContainer} initial="hidden" animate="show" className="mx-auto w-full max-w-[980px] text-center">
+        <motion.div variants={staggerItem} className="mb-8 flex justify-center">
+          <GlassPill>Estoque, transações e auditoria</GlassPill>
+        </motion.div>
+
+        <motion.h1
+          variants={staggerItem}
+          className="m-0 mb-7 text-[clamp(2.75rem,7.4vw,5.75rem)] leading-[1.02] font-semibold tracking-[-0.055em] text-balance text-white"
+        >
+          O estoque que você
+          <br />
+          consegue <span className={`${gradientText} pb-[0.08em]`}>explicar.</span>
+        </motion.h1>
+
+        <motion.p
+          variants={staggerItem}
+          className="mx-auto mb-10 max-w-[640px] text-[clamp(1.0625rem,2vw,1.3125rem)] leading-relaxed tracking-[-0.012em] text-white/70"
+        >
+          Movimentações, reservas e transações coordenadas, com o histórico de quem fez o quê e quando. Do cadastro do produto à conferência do saldo.
+        </motion.p>
+
+        <motion.div variants={staggerItem} className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-3.5">
+          <Link href="/register" className={`${whiteButtonClass} group w-full sm:w-auto`}>
+            Criar conta
+            <ArrowRight size={18} aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+          </Link>
+          <a href="#platform" className={`${glassButtonClass} w-full sm:w-auto`}>Ver a plataforma</a>
+        </motion.div>
       </motion.div>
-      <motion.h1 variants={staggerItem} className="mb-7 text-[clamp(2.75rem,6.5vw,5rem)] leading-[1.03] font-black tracking-[-0.05em] text-foreground">Controle operacional <span className="inline-block bg-gradient-to-br from-primary via-purple to-info bg-clip-text pb-[0.1em] text-transparent">sem ponto cego.</span></motion.h1>
-      <motion.p variants={staggerItem} className="mx-auto mb-11 max-w-2xl text-[clamp(1rem,2vw,1.25rem)] leading-relaxed tracking-[-0.01em] text-muted-foreground">Acompanhe movimentações, confira saldos e consulte o histórico de cada operação sem reunir informações de vários sistemas.</motion.p>
-      <motion.div variants={staggerItem} className="flex flex-wrap justify-center gap-3.5">
-        <Link href="/login" className={`${primaryButtonClass} max-sm:w-full`}>Começar agora <ArrowRight size={16} /></Link>
-        <Link href="/dashboard" className={`${ghostButtonClass} max-sm:w-full`}><BarChart3 size={16} />Ver demonstração</Link>
+
+      <motion.div
+        initial={reducedMotion ? false : { opacity: 0, y: 48 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        style={{ rotateX, rotateY, transformPerspective: 1400 }}
+        className="relative mx-auto mt-16 max-w-[1060px] md:mt-24"
+      >
+        <div aria-hidden className="absolute -inset-x-6 -inset-y-8 -z-10 rounded-[40px] bg-[conic-gradient(from_200deg,rgba(0,229,160,0.28),rgba(96,165,250,0.28),rgba(167,139,250,0.3),rgba(244,114,182,0.22),rgba(0,229,160,0.28))] opacity-60 blur-3xl" />
+        <WindowFrame url="app.ironledger.com/dashboard">
+          <OverviewPanel />
+        </WindowFrame>
+        <p className="m-0 mt-5 text-center text-[12.5px] text-white/45">Prévia ilustrativa, com dados de exemplo.</p>
       </motion.div>
-      <motion.div variants={staggerItem} className="mt-12 flex flex-col items-center gap-2.5">
-        <div className="flex gap-0.5">{Array.from({ length: 5 }).map((_, index) => <Star key={index} size={15} className="fill-primary text-primary" />)}</div>
-        <div className="flex items-center gap-2">
-          <div className="flex">{avatars.map(([initials, classes], index) => <span key={initials} className={`flex size-7 items-center justify-center rounded-full border-2 border-background text-[8.5px] font-bold ${classes} ${index ? "-ml-2" : ""}`}>{initials}</span>)}</div>
-          <p className="text-[13px] tracking-[-0.01em] text-muted-foreground">Usado por <strong className="text-foreground">+200 equipes</strong> no dia a dia</p>
-        </div>
-      </motion.div>
-    </motion.div>
-  </section>;
+    </section>
+  );
 }

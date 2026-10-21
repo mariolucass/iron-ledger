@@ -10,6 +10,7 @@ import type { InventoryRepository } from "../../domain/repositories/inventory.re
 
 const listSchema = z.object({
   sku: z.string().trim().min(1).optional(),
+  q: z.string().trim().min(1).max(100).optional(),
   warehouseId: z.string().uuid().optional(),
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20),

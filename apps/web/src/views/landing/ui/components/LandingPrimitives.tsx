@@ -1,24 +1,63 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 import { useRef } from "react";
 import { ease2 } from "@/shared/lib/animation";
 
-export const primaryButtonClass = "relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary-hover px-7 py-3.5 text-[15px] font-bold tracking-[-0.02em] text-primary-foreground transition hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(0,229,160,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:translate-y-0";
-export const ghostButtonClass = "inline-flex items-center justify-center gap-2 rounded-full border border-border-strong bg-transparent px-7 py-3.5 text-[15px] font-semibold tracking-[-0.02em] text-foreground transition hover:border-primary hover:bg-primary-glow hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+const buttonBase =
+  "inline-flex h-14 items-center justify-center gap-2 rounded-full px-8 text-[16px] tracking-[-0.015em] outline-none transition-[transform,box-shadow,background-color,border-color] duration-200 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100";
 
-export function Reveal({ children, className = "", delay = 0, y = 40 }: { children: ReactNode; className?: string; delay?: number; y?: number }) {
+/** Botão principal: pílula branca, no estilo Apple. */
+export const whiteButtonClass = `${buttonBase} bg-white font-semibold text-[#0a0b0d] shadow-[0_0_0_1px_rgba(255,255,255,0.5),0_14px_44px_rgba(255,255,255,0.18)] hover:-translate-y-0.5 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.6),0_18px_56px_rgba(255,255,255,0.28)]`;
+
+/** Botão secundário: pílula de vidro. */
+export const glassButtonClass = `${buttonBase} border border-white/20 bg-white/[0.07] font-medium text-white backdrop-blur-xl hover:border-white/30 hover:bg-white/[0.13]`;
+
+export const gradientText =
+  "bg-[linear-gradient(100deg,#00e5a0_0%,#60a5fa_40%,#a78bfa_70%,#f472b6_100%)] bg-clip-text text-transparent";
+
+export function Reveal({ children, className = "", delay = 0, y = 32 }: { children: ReactNode; className?: string; delay?: number; y?: number }) {
   const ref = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
-  return <motion.div ref={ref} className={className} initial={{ opacity: 0, y }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, ease: ease2, delay }}>{children}</motion.div>;
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      initial={reducedMotion ? false : { opacity: 0, y }}
+      animate={inView || reducedMotion ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, ease: ease2, delay }}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 export function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: ReactNode; description?: string }) {
-  return <div className="mx-auto mb-14 max-w-2xl text-center md:mb-16">
-    <p className="mb-3 text-[11px] font-bold tracking-[0.12em] text-primary uppercase">{eyebrow}</p>
-    <h2 className="text-[clamp(1.75rem,4vw,3rem)] leading-[1.1] font-extrabold tracking-[-0.04em] text-foreground">{title}</h2>
-    {description && <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground md:text-base">{description}</p>}
-  </div>;
+  return (
+    <div className="mx-auto mb-12 max-w-[760px] text-center md:mb-16">
+      <p className="mb-4 text-[13px] font-semibold tracking-[-0.005em] text-primary">{eyebrow}</p>
+      <h2 className="m-0 bg-gradient-to-b from-white via-white to-white/60 bg-clip-text text-[clamp(2rem,4.6vw,3.5rem)] leading-[1.06] font-semibold tracking-[-0.045em] text-balance text-transparent">
+        {title}
+      </h2>
+      {description && (
+        <p className="mx-auto mt-5 max-w-[600px] text-[17px] leading-relaxed tracking-[-0.01em] text-white/65 md:text-[18px]">{description}</p>
+      )}
+    </div>
+  );
+}
+
+/** Pílula de vidro com ponto de status, usada nas etiquetas das seções. */
+export function GlassPill({ children }: { children: ReactNode }) {
+  return (
+    <p className="m-0 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-[12.5px] font-medium tracking-[-0.01em] text-white/85 backdrop-blur-xl">
+      <span className="relative flex size-2">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:animate-none" />
+        <span className="relative inline-flex size-2 rounded-full bg-primary" />
+      </span>
+      {children}
+    </p>
+  );
 }

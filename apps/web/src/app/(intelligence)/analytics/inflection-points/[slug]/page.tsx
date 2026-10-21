@@ -1,10 +1,22 @@
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AnalyticsError, getInflectionPoint } from "@/entities/analytics/api";
-import { AnalyticsPointDetail } from "@/views/analytics/AnalyticsPointDetail";
-import { AnalyticsUnavailable } from "@/views/analytics/AnalyticsOverview";
+import { AnalyticsError, getInflectionPoint } from "@/entities/analytics";
+import { createMetadata } from "@/shared/config/metadata";
+import { AnalyticsPointDetail } from "@/views/analytics";
+import { AnalyticsUnavailable } from "@/views/analytics";
 
-export const metadata: Metadata = { title: "Ponto de inflexão - Iron Ledger" };
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  try {
+    const point = await getInflectionPoint(slug);
+    return createMetadata({
+      title: `Ponto de inflexão em ${point.metric}`,
+      description: point.explanation,
+    });
+  } catch {
+    // Página de erro/404: o próprio componente trata; o título genérico basta.
+    return createMetadata({ title: "Ponto de inflexão" });
+  }
+}
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

@@ -1,0 +1,33 @@
+meta {
+  name: Register
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseurl}}/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Maria Silva",
+    "email": "maria@example.com",
+    "password": "troque-esta-senha"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("accessToken", res.getBody().accessToken);
+  }
+}
+
+docs {
+  Cadastro público. O usuário nasce sem papéis e recebe o mesmo payload do login. E-mail repetido retorna 409 EMAIL_ALREADY_REGISTERED.
+}

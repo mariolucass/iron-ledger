@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { PageHeader } from "@/shared/ui/data-list";
 import { Layout } from "@/widgets/layout";
-import type { InflectionPoint, SeriesPoint } from "@/entities/analytics/api";
+import type { InflectionPoint, SeriesPoint } from "@/entities/analytics";
 import { ImpactBadge, SeverityBadge } from "./AnalyticsOverview";
 import { formatChange, formatDate, formatMetric } from "./format";
 
@@ -93,28 +94,21 @@ export function AnalyticsPointDetail({ point }: { point: InflectionPoint }) {
   return (
     <Layout title="Ponto de inflexão">
       <div className="mx-auto max-w-5xl space-y-6">
-        <Link href="/analytics" className="text-sm text-primary hover:underline">
-          ← Voltar para analytics
-        </Link>
-
-        <header className="rounded-xl border border-border bg-card p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">
-                Categoria <strong className="text-foreground">{point.product_category}</strong>
-                {point.seller_state ? ` · Vendedor de ${point.seller_state}` : ""}
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold">{point.metric_label}</h1>
-              {point.metric_description && (
-                <p className="mt-1 text-sm text-muted-foreground">{point.metric_description}</p>
-              )}
-            </div>
-            <div className="flex gap-2">
+        <PageHeader
+          back={{ href: "/analytics", label: "Analytics" }}
+          eyebrow={`Categoria ${point.product_category}${point.seller_state ? ` · Vendedor de ${point.seller_state}` : ""}`}
+          title={point.metric_label}
+          description={point.metric_description ?? undefined}
+          badges={
+            <>
               <ImpactBadge impact={point.impact} direction={point.direction} />
               <SeverityBadge severity={point.severity} />
-            </div>
-          </div>
-          <p className="mt-4">{point.explanation}</p>
+            </>
+          }
+        />
+
+        <section aria-label="Explicação" className="rounded-xl border border-border bg-card p-6">
+          <p className="m-0">{point.explanation}</p>
           <p className="mt-4 break-all text-xs text-muted-foreground">
             Mudança a partir da semana de {formatDate(point.detected_at, "long")}
             {point.classification_label ? ` · ${point.classification_label}` : ""} · Vendedor{" "}
@@ -126,7 +120,7 @@ export function AnalyticsPointDetail({ point }: { point: InflectionPoint }) {
             </Link>{" "}
             · Fonte: {point.source}
           </p>
-        </header>
+        </section>
 
         <section
           aria-label="Valores da mudança"

@@ -1,7 +1,9 @@
-import { CheckCircle2, Database, GitBranch, Globe, Package, Shield, TrendingUp, Zap, type LucideIcon } from "lucide-react";
+import { Activity, Boxes, CheckCircle2, Database, GitBranch, Globe, Package, Shield, TrendingUp, Users, Warehouse, Zap, type LucideIcon } from "lucide-react";
 import type { LandingIcon, LandingTone } from "../model/types";
 
 export const landingIcons = {
+  activity: Activity,
+  boxes: Boxes,
   check: CheckCircle2,
   database: Database,
   "git-branch": GitBranch,
@@ -9,6 +11,8 @@ export const landingIcons = {
   package: Package,
   shield: Shield,
   "trending-up": TrendingUp,
+  users: Users,
+  warehouse: Warehouse,
   zap: Zap,
 } satisfies Record<LandingIcon, LucideIcon>;
 

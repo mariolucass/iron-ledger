@@ -47,8 +47,8 @@ model LocationStock {
 
   product   Product           @relation(fields: [productId], references: [id])
   warehouse Warehouse         @relation(fields: [warehouseId], references: [id])
-  location  WarehouseLocation @relation(fields: [locationId], references: [id])
-  lot       InventoryLot?     @relation(fields: [lotId], references: [id])
+  location  WarehouseLocation @relation(fields: [locationId, warehouseId], references: [id, warehouseId], onDelete: Restrict, onUpdate: Restrict)
+  lot       InventoryLot?     @relation(fields: [lotId, productId], references: [id, productId], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([locationId, productId, lotId])
   @@index([productId, warehouseId])

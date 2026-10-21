@@ -22,6 +22,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { PageHeader } from "@/shared/ui/data-list";
 import { Layout } from "@/widgets/layout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
 import { DatePicker } from "@/shared/ui/kit/date-picker";
@@ -110,6 +111,8 @@ export function ReportsPage() {
       <style>{`
         @keyframes spin { 100% { transform: rotate(360deg); } }
       `}</style>
+
+      <PageHeader title="Relatórios" description="Gere e exporte relatórios de atividades, auditoria e controle de estoque." />
 
       {/* Control Panel (Gerador de Relatórios) */}
       <div

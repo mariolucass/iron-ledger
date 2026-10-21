@@ -1,11 +1,10 @@
-import type { Metadata } from "next";
+import { createMetadata } from "@/shared/config/metadata";
 import { LandingPage } from "@/views/landing";
 
-export const metadata: Metadata = {
-  title: "Iron Ledger - O Sistema Operacional Financeiro",
-  description:
-    "Controle financeiro redefinido com auditoria imutavel, transacoes distribuidas e previsao com IA.",
-};
+export const metadata = createMetadata({
+  path: "/",
+  index: true,
+});
 
 export default function Page() {
   return <LandingPage />;
