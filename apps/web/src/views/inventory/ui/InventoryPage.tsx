@@ -1,897 +1,186 @@
 "use client";
 
-import { colors as theme } from "@/shared/config/tokens";
-import {
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
-  Filter,
-  Package,
-  Plus,
-  Search,
-  X,
-} from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { staggerContainer, staggerItem, spring1 } from "@/shared/lib/animation";
-import {
-  type InventoryItem,
-  type Movement,
-} from "../model/inventoryData";
-import { Layout } from "@/widgets/layout";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
-import { fetchInventory, fetchMovements, fetchWarehouses } from "../model/load-inventory";
-import { InventoryStatusBadge } from "@/entities/inventory";
+import { AnimatePresence } from "framer-motion";
+import { ExternalLink, Package, Plus } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { InventoryStatusBadge, type InventoryStatus } from "@/entities/inventory";
+import { warehouseApi } from "@/entities/warehouse";
 import { MovementDialog } from "@/features/record-stock-movement";
+import { withSession } from "@/shared/auth/with-session";
+import { useDebounced } from "@/shared/lib/use-debounced";
+import { useRemoteList } from "@/shared/lib/use-remote-list";
+import {
+  DataTable,
+  EmptyState,
+  FilterBar,
+  ListError,
+  PageHeader,
+  Pagination,
+  SearchField,
+  SelectField,
+  primaryActionClass,
+  secondaryActionClass,
+  type Column,
+} from "@/shared/ui/data-list";
+import { StatusMessage, type Status } from "@/shared/ui/form-primitives";
+import { Layout } from "@/widgets/layout";
+import type { InventoryItem, Movement } from "../model/inventoryData";
+import { fetchInventoryPage, fetchMovementOptions, fetchMovements, PAGE_SIZE } from "../model/load-inventory";
+import { InventoryDrawer } from "./InventoryDrawer";
+import { MovementTable } from "./MovementHistory";
 
-// 3. Sub-componentes e Helpers Visuais
-const movColor = (type: string) => {
-  if (type === "ENTRADA") return { bg: theme.accentGlow, color: theme.accent };
-  if (type === "SAÍDA") return { bg: theme.dangerGlow, color: theme.danger };
-  return { bg: theme.warningGlow, color: theme.warning }; // AJUSTE
-};
+const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 4 });
 
-function InventoryDrawer({
-  item,
-  movements,
-  onClose,
-}: {
-  item: InventoryItem;
-  movements: Movement[];
-  onClose: () => void;
-}) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
-    >
-      {/* Overlay */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(0,0,0,0.6)",
-          backdropFilter: "blur(4px)",
-        }}
-        onClick={onClose}
-      />
+const availableClass: Record<InventoryStatus, string> = { OK: "text-foreground", LOW: "text-warning", CRITICAL: "text-destructive" };
 
-      {/* Panel */}
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={spring1}
-        style={{
-          position: "relative",
-          width: "100%",
-          maxWidth: 480,
-          background: theme.bg,
-          borderLeft: `1px solid ${theme.border}`,
-          padding: 32,
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 32,
-          boxShadow: "-20px 0 60px rgba(0,0,0,0.5)",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 12,
-              }}
-            >
-              <Package size={14} color={theme.textSecondary} />
-              <span
-                style={{
-                  fontSize: 11,
-                  color: theme.textSecondary,
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
-                Detalhes do SKU
-              </span>
-            </div>
-            <h2
-              style={{
-                margin: "0 0 6px",
-                fontSize: 20,
-                fontWeight: 700,
-                color: theme.textPrimary,
-              }}
-            >
-              {item.product}
-            </h2>
-            <span
-              style={{
-                fontFamily: "var(--font-jetbrains-mono)",
-                fontSize: 13,
-                color: theme.accent,
-              }}
-            >
-              {item.sku}
-            </span>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: theme.surface,
-              border: `1px solid ${theme.border}`,
-              borderRadius: "50%",
-              width: 36,
-              height: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: theme.textSecondary,
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.borderColor = theme.textPrimary;
-              e.currentTarget.style.color = theme.textPrimary;
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.borderColor = theme.border;
-              e.currentTarget.style.color = theme.textSecondary;
-            }}
-          >
-            <X size={18} />
-          </button>
-        </div>
+const columns: Column<InventoryItem>[] = [
+  { id: "sku", header: "SKU", className: "font-mono text-[13px] text-white/60", cell: (row) => row.sku },
+  { id: "product", header: "Produto", className: "font-medium text-foreground", cell: (row) => row.product },
+  { id: "warehouse", header: "Depósito", hideBelow: "md", className: "text-white/60", cell: (row) => row.warehouse },
+  { id: "quantity", header: "Saldo total", align: "right", hideBelow: "lg", className: "text-white/70", cell: (row) => `${number.format(row.quantity)} ${row.unit ?? "un"}` },
+  {
+    id: "available",
+    header: "Disponível",
+    align: "right",
+    className: "font-semibold",
+    cell: (row) => <span className={availableClass[row.status]}>{number.format(row.available)}</span>,
+  },
+  { id: "reserved", header: "Reservado", align: "right", hideBelow: "lg", className: "text-white/60", cell: (row) => number.format(row.reserved) },
+  { id: "min", header: "Mínimo", align: "right", hideBelow: "xl", className: "text-white/60", cell: (row) => number.format(row.min) },
+  { id: "status", header: "Status", cell: (row) => <InventoryStatusBadge status={row.status} /> },
+  { id: "last", header: "Últ. movimento", hideBelow: "xl", className: "whitespace-nowrap text-[13px] text-white/60", cell: (row) => row.lastMovement },
+];
 
-        {/* KPIs Grid */}
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
-        >
-          {[
-            { label: "Depósito", value: item.warehouse },
-            { label: "Último Movimento", value: item.lastMovement },
-            {
-              label: "Disponível",
-              value: item.available,
-              highlight:
-                item.status !== "OK"
-                  ? item.status === "CRITICAL"
-                    ? theme.danger
-                    : theme.warning
-                  : theme.textPrimary,
-            },
-            { label: "Reservado", value: item.reserved },
-          ].map(({ label, value, highlight }) => (
-            <div
-              key={label}
-              style={{
-                background: theme.surface,
-                border: `1px solid ${theme.border}`,
-                borderRadius: 8,
-                padding: "16px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  color: theme.textSecondary,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  marginBottom: 6,
-                }}
-              >
-                {label}
-              </div>
-              <div
-                style={{
-                  fontSize: 16,
-                  fontFamily:
-                    typeof value === "number" || value.includes("-")
-                      ? "var(--font-jetbrains-mono)"
-                      : "inherit",
-                  color: highlight || theme.textPrimary,
-                  fontWeight: 600,
-                }}
-              >
-                {value}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Histórico */}
-        <div>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: theme.textSecondary,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              marginBottom: 16,
-            }}
-          >
-            Histórico de Movimentações
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {movements.length === 0 ? (
-              <div
-                style={{
-                  color: theme.textSecondary,
-                  fontSize: 13,
-                  padding: 16,
-                  textAlign: "center",
-                  background: theme.surface,
-                  borderRadius: 8,
-                }}
-              >
-                Nenhuma movimentação recente encontrada.
-              </div>
-            ) : (
-              movements.map((m, i) => {
-                const colors = movColor(m.type);
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      background: theme.surface,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: 8,
-                      padding: "12px 16px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <span
-                        style={{
-                          background: colors.bg,
-                          color: colors.color,
-                          borderRadius: 999,
-                          padding: "2px 10px",
-                          fontSize: 11,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {m.type}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-jetbrains-mono)",
-                          fontWeight: 700,
-                          fontSize: 14,
-                          color: m.qty.startsWith("+")
-                            ? theme.accent
-                            : theme.danger,
-                        }}
-                      >
-                        {m.qty}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: theme.textSecondary,
-                        fontFamily: "var(--font-jetbrains-mono)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Ref: {m.ref}
-                    </div>
-                    <div style={{ fontSize: 11, color: theme.textSecondary }}>
-                      Por: {m.by} <span style={{ opacity: 0.5 }}>·</span> {m.ts}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        <button
-          onClick={() => window.location.assign("/audit-log")}
-          style={{
-            marginTop: "auto",
-            background: theme.surface,
-            border: `1px solid ${theme.border}`,
-            borderRadius: 8,
-            padding: "12px",
-            fontSize: 13,
-            color: theme.textPrimary,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            transition: "all 0.2s",
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.borderColor = theme.accent;
-            e.currentTarget.style.color = theme.accent;
-            e.currentTarget.style.background = theme.accentGlow;
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.borderColor = theme.border;
-            e.currentTarget.style.color = theme.textPrimary;
-            e.currentTarget.style.background = theme.surface;
-          }}
-        >
-          <ExternalLink size={14} />
-          Ver no Log de Auditoria
-        </button>
-      </motion.div>
-    </div>
-  );
-}
-
-// 4. Componente Principal
 export function InventoryPage() {
   const [search, setSearch] = useState("");
-  const [warehouse, setWarehouse] = useState("all");
-  const [warehouseOptions, setWarehouseOptions] = useState<{ id: string; name: string }[]>([]);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [drawer, setDrawer] = useState<InventoryItem | null>(null);
-  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [warehouse, setWarehouse] = useState("");
+  const [page, setPage] = useState(1);
+  const [warehouses, setWarehouses] = useState<{ value: string; label: string }[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [movements, setMovements] = useState<Record<string, Movement[]>>({});
-  const [dataSource, setDataSource] = useState<"loading" | "live" | "error">("loading");
-  const [dataMessage, setDataMessage] = useState("");
-  const [movementDialogOpen, setMovementDialogOpen] = useState(false);
+  const [loadingMovements, setLoadingMovements] = useState<string | null>(null);
+  const [drawer, setDrawer] = useState<InventoryItem | null>(null);
+  const [dialogItems, setDialogItems] = useState<InventoryItem[] | null>(null);
+  const [openingDialog, setOpeningDialog] = useState(false);
+  const [notice, setNotice] = useState<Status>(null);
+  const q = useDebounced(search.trim());
 
-  const loadInventory = async () => {
-    try {
-      const [liveItems, liveWarehouses] = await Promise.all([fetchInventory(), fetchWarehouses()]);
-      setItems(liveItems);
-      setWarehouseOptions(liveWarehouses);
-      setMovements({});
-      setDataSource("live");
-      return true;
-    } catch (error) {
-      setItems([]);
-      setWarehouseOptions([{ id: "all", name: "Todos os estoques" }]);
-      setMovements({});
-      setDataSource("error");
-      setDataMessage(error instanceof Error ? error.message : "Não foi possível carregar o inventário.");
-      return false;
-    }
-  };
+  useEffect(() => {
+    withSession(warehouseApi.list())
+      .then((body) => setWarehouses(body.items.map(({ id, name }) => ({ value: id, label: name }))))
+      .catch(() => undefined);
+  }, []);
 
-  useEffect(() => { void loadInventory(); }, []);
-
-  const toggleExpanded = async (row: InventoryItem) => {
-    if (expanded === row.stockLevelId) { setExpanded(null); return; }
-    setExpanded(row.stockLevelId);
-    if (dataSource === "live" && row.stockLevelId && !movements[row.stockLevelId]) {
-      try {
-        const history = await fetchMovements(row.stockLevelId);
-        setMovements((current) => ({ ...current, [row.stockLevelId]: history }));
-      } catch (error) {
-        setDataMessage(error instanceof Error ? error.message : "Não foi possível carregar os movimentos.");
-      }
-    }
-  };
-
-  const filtered = items.filter(
-    (r) =>
-      (warehouse === "all" || r.warehouseId === warehouse) &&
-      (r.sku.toLowerCase().includes(search.toLowerCase()) ||
-        r.product.toLowerCase().includes(search.toLowerCase())),
+  const { items, total, loading, error, refresh } = useRemoteList(
+    () => fetchInventoryPage({ q: q || undefined, warehouseId: warehouse || undefined, page }),
+    [q, warehouse, page],
   );
 
-  const inputFocus = (e: any) => {
-    e.currentTarget.style.borderColor = theme.accent;
-    e.currentTarget.style.boxShadow = `0 0 0 1px ${theme.accent}`;
+  const toggle = async (row: InventoryItem) => {
+    if (expandedId === row.stockLevelId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(row.stockLevelId);
+    if (movements[row.stockLevelId]) return;
+    setLoadingMovements(row.stockLevelId);
+    try {
+      const history = await fetchMovements(row.stockLevelId);
+      setMovements((current) => ({ ...current, [row.stockLevelId]: history }));
+    } catch (reason) {
+      setNotice({ type: "error", message: reason instanceof Error ? reason.message : "Não foi possível carregar os movimentos." });
+    } finally {
+      setLoadingMovements((current) => (current === row.stockLevelId ? null : current));
+    }
   };
-  const inputBlur = (e: any) => {
-    e.currentTarget.style.borderColor = theme.border;
-    e.currentTarget.style.boxShadow = "none";
+
+  const openMovementDialog = async () => {
+    setOpeningDialog(true);
+    try {
+      setDialogItems(await fetchMovementOptions());
+    } catch (reason) {
+      setNotice({ type: "error", message: reason instanceof Error ? reason.message : "Não foi possível carregar os saldos." });
+    } finally {
+      setOpeningDialog(false);
+    }
   };
+
+  const filtered = Boolean(q || warehouse);
+  const reset = <T,>(set: (value: T) => void) => (value: T) => { set(value); setPage(1); setExpandedId(null); };
 
   return (
-    <Layout title="Controle de Estoque">
-      <style>{`
-        @keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-      `}</style>
+    <Layout title="Estoque">
+      <PageHeader
+        title="Estoque"
+        description="Saldos por produto e depósito, com o reservado já descontado."
+        actions={
+          <button type="button" onClick={() => void openMovementDialog()} disabled={openingDialog || Boolean(error) || (!loading && items.length === 0 && !filtered)} className={`${primaryActionClass} disabled:cursor-not-allowed disabled:opacity-50`}>
+            <Plus size={17} aria-hidden /> {openingDialog ? "Carregando…" : "Novo movimento"}
+          </button>
+        }
+      />
 
-      {dataSource !== "live" && <div className="mb-4 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-xs text-warning">{dataSource === "loading" ? "Conectando à API de inventário…" : dataMessage}</div>}
-      {dataSource === "live" && dataMessage && <div className="mb-4 rounded-lg border border-primary/30 bg-primary-soft px-4 py-3 text-xs text-primary">{dataMessage}</div>}
+      <FilterBar columns="md:grid-cols-[1fr_240px]">
+        <SearchField value={search} onChange={reset(setSearch)} placeholder="Buscar por SKU ou nome" />
+        <SelectField label="Filtrar por depósito" value={warehouse} onChange={reset(setWarehouse)} options={[{ value: "", label: "Todos os depósitos" }, ...warehouses]} />
+      </FilterBar>
 
-      {/* Top bar / Controls */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          marginBottom: 24,
-          flexWrap: "wrap",
+      <div className="mb-4 empty:hidden"><StatusMessage status={notice} /></div>
+      {error && <ListError message={error} onRetry={() => void refresh()} />}
+
+      <DataTable
+        caption="Saldos de estoque"
+        columns={columns}
+        rows={items}
+        getRowKey={(row) => row.stockLevelId}
+        rowTone={(row) => (row.status === "CRITICAL" ? "danger" : undefined)}
+        expandable={{
+          isExpanded: (row) => expandedId === row.stockLevelId,
+          onToggle: (row) => void toggle(row),
+          label: (row) => `Ver movimentos de ${row.sku}`,
+          render: (row) => (
+            <div className="grid gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="m-0 text-[15px] font-semibold tracking-[-0.015em] text-foreground">Últimos 5 movimentos</h3>
+                <button type="button" onClick={() => setDrawer(row)} className={`${secondaryActionClass} !h-9 !px-3.5 !text-[13.5px]`}>
+                  <ExternalLink size={14} aria-hidden /> Ver detalhes
+                </button>
+              </div>
+              <MovementTable movements={movements[row.stockLevelId]} loading={loadingMovements === row.stockLevelId} />
+            </div>
+          ),
         }}
-      >
-        {/* Search */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: 260,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: theme.bg,
-            border: `1px solid ${theme.border}`,
-            borderRadius: 8,
-            padding: "0 14px",
-            transition: "all 0.2s",
-            boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)",
-          }}
-          onFocus={inputFocus}
-          onBlur={inputBlur}
-        >
-          <Search size={16} color={theme.textSecondary} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por SKU ou nome..."
-            style={{
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              color: theme.textPrimary,
-              fontSize: 13,
-              width: "100%",
-              padding: "10px 0",
-            }}
-          />
-        </div>
+        loading={loading}
+        minWidth={820}
+        empty={
+          !error && (
+            <EmptyState
+              icon={Package}
+              message={filtered ? "Nenhum saldo de estoque encontrado para os filtros informados." : "Ainda não há saldos. Cadastre produtos e registre uma entrada para começar."}
+              action={!filtered && <Link href="/products" className={secondaryActionClass}>Ver produtos</Link>}
+            />
+          )
+        }
+      />
 
-        {/* Filter */}
-        <Select value={warehouse} onValueChange={setWarehouse}>
-          <SelectTrigger className="w-[200px]" aria-label="Filtrar por estoque">
-            <Filter size={14} />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {warehouseOptions.map((w) => (
-              <SelectItem key={w.id} value={w.id}>
-                {w.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* CTA Neon */}
-        <button
-          type="button"
-          onClick={() => setMovementDialogOpen(true)}
-          disabled={dataSource !== "live" || items.length === 0}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: theme.accent,
-            color: "#000",
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 20px",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: dataSource === "live" ? "pointer" : "not-allowed",
-            opacity: dataSource === "live" ? 1 : 0.55,
-            boxShadow: `0 0 16px ${theme.accentGlow}`,
-            transition: "transform 0.2s",
-          }}
-          onMouseOver={(e) =>
-            (e.currentTarget.style.transform = "translateY(-2px)")
-          }
-          onMouseOut={(e) =>
-            (e.currentTarget.style.transform = "translateY(0)")
-          }
-        >
-          <Plus size={16} /> Novo movimento
-        </button>
-      </div>
-
-      {/* Tabela Principal */}
-      <div
-        style={{
-          background: theme.surface,
-          border: `1px solid ${theme.border}`,
-          borderRadius: 12,
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: 13,
-              minWidth: "900px",
-            }}
-          >
-            <thead>
-              <tr
-                style={{
-                  borderBottom: `1px solid ${theme.border}`,
-                  background: "rgba(0,0,0,0.2)",
-                }}
-              >
-                <th style={{ width: 48, padding: "16px" }} />
-                {[
-                  "SKU",
-                  "Produto",
-                  "Depósito",
-                  "Saldo total",
-                  "Disponível",
-                  "Reservado",
-                  "Estoque Mín",
-                  "Status",
-                  "Últ. Movimento",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "16px",
-                      textAlign: "left",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: theme.textSecondary,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <motion.tbody
-              variants={staggerContainer}
-              initial="hidden"
-              animate="show"
-            >
-              <AnimatePresence>
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={9} style={{ padding: 40, textAlign: "center", color: theme.textSecondary }}>
-                      Nenhum saldo de estoque encontrado para os filtros informados.
-                    </td>
-                  </tr>
-                )}
-                {filtered.map((row) => {
-                const isExpanded = expanded === row.stockLevelId;
-
-                return (
-                  <React.Fragment key={row.stockLevelId}>
-                    {/* Linha Principal */}
-                    <motion.tr
-                      variants={staggerItem}
-                      style={{
-                        borderBottom: `1px solid ${theme.border}`,
-                        background:
-                          row.status === "CRITICAL"
-                            ? theme.dangerGlow
-                            : "transparent",
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                      }}
-                      onClick={() => void toggleExpanded(row)}
-                      onMouseOver={(e) => {
-                        if (!isExpanded)
-                          e.currentTarget.style.background = theme.surfaceHover;
-                      }}
-                      onMouseOut={(e) => {
-                        if (!isExpanded)
-                          e.currentTarget.style.background =
-                            row.status === "CRITICAL"
-                              ? theme.dangerGlow
-                              : "transparent";
-                      }}
-                    >
-                      <td
-                        style={{
-                          padding: "16px",
-                          color: theme.textSecondary,
-                          textAlign: "center",
-                        }}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown size={16} color={theme.accent} />
-                        ) : (
-                          <ChevronRight size={16} />
-                        )}
-                      </td>
-                      <td
-                        style={{
-                          padding: "16px",
-                          fontFamily: "var(--font-jetbrains-mono)",
-                          fontSize: 12,
-                          color: theme.textSecondary,
-                        }}
-                      >
-                        {row.sku}
-                      </td>
-                      <td
-                        style={{
-                          padding: "16px",
-                          fontWeight: 600,
-                          color: theme.textPrimary,
-                        }}
-                      >
-                        {row.product}
-                      </td>
-                      <td
-                        style={{ padding: "16px", color: theme.textSecondary }}
-                      >
-                        {row.warehouse}
-                      </td>
-                      <td style={{ padding: "16px", color: theme.textSecondary, fontFamily: "var(--font-jetbrains-mono)" }}>
-                        {row.quantity} {row.unit ?? "un"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "16px",
-                          fontWeight: 700,
-                          fontFamily: "var(--font-jetbrains-mono)",
-                          color:
-                            row.status !== "OK"
-                              ? row.status === "CRITICAL" ? theme.danger : theme.warning
-                              : theme.textPrimary,
-                        }}
-                      >
-                        {row.available}
-                      </td>
-                      <td
-                        style={{
-                          padding: "16px",
-                          color: theme.textSecondary,
-                          fontFamily: "var(--font-jetbrains-mono)",
-                        }}
-                      >
-                        {row.reserved}
-                      </td>
-                      <td
-                        style={{
-                          padding: "16px",
-                          color: theme.textSecondary,
-                          fontFamily: "var(--font-jetbrains-mono)",
-                        }}
-                      >
-                        {row.min}
-                      </td>
-                      <td style={{ padding: "16px" }}>
-                        <InventoryStatusBadge status={row.status} />
-                      </td>
-                      <td
-                        style={{
-                          padding: "16px",
-                          color: theme.textSecondary,
-                          fontSize: 12,
-                          fontFamily: "var(--font-jetbrains-mono)",
-                        }}
-                      >
-                        {row.lastMovement}
-                      </td>
-                    </motion.tr>
-
-                    {/* Tabela Expandida (Nested) */}
-                    {isExpanded && (
-                      <tr style={{ background: "rgba(0,0,0,0.4)" }}>
-                        <td colSpan={10} style={{ padding: 0 }}>
-                          <div
-                            style={{
-                              padding: "24px 24px 24px 64px",
-                              borderLeft: `2px solid ${theme.accent}`,
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                marginBottom: 12,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: 12,
-                                  fontWeight: 600,
-                                  color: theme.textSecondary,
-                                  letterSpacing: "0.06em",
-                                  textTransform: "uppercase",
-                                }}
-                              >
-                                Últimos 5 Movimentos
-                              </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDrawer(row);
-                                }}
-                                style={{
-                                  background: theme.surface,
-                                  border: `1px solid ${theme.border}`,
-                                  borderRadius: 6,
-                                  padding: "6px 12px",
-                                  color: theme.textPrimary,
-                                  cursor: "pointer",
-                                  fontSize: 12,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                  transition: "all 0.2s",
-                                }}
-                                onMouseOver={(e) => {
-                                  e.currentTarget.style.borderColor =
-                                    theme.accent;
-                                  e.currentTarget.style.color = theme.accent;
-                                }}
-                                onMouseOut={(e) => {
-                                  e.currentTarget.style.borderColor =
-                                    theme.border;
-                                  e.currentTarget.style.color =
-                                    theme.textPrimary;
-                                }}
-                              >
-                                <ExternalLink size={12} /> Visualização Completa
-                              </button>
-                            </div>
-
-                            <table
-                              style={{
-                                width: "100%",
-                                borderCollapse: "collapse",
-                                fontSize: 12,
-                              }}
-                            >
-                              <thead>
-                                <tr
-                                  style={{
-                                    borderBottom: `1px dashed ${theme.border}`,
-                                  }}
-                                >
-                                  {[
-                                    "Tipo",
-                                    "Qtd",
-                                    "Referência",
-                                    "Por",
-                                    "Data/Hora",
-                                  ].map((h) => (
-                                    <th
-                                      key={h}
-                                      style={{
-                                        padding: "8px 12px",
-                                        textAlign: "left",
-                                        color: theme.textSecondary,
-                                        fontSize: 11,
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      {h}
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(movements[row.stockLevelId] ?? []).map(
-                                  (m, i) => {
-                                    const c = movColor(m.type);
-                                    return (
-                                      <tr
-                                        key={i}
-                                        style={{
-                                          borderBottom:
-                                            i ===
-                                            (movements[row.stockLevelId] ?? [])
-                                              .length -
-                                              1
-                                              ? "none"
-                                              : `1px dashed ${theme.border}`,
-                                        }}
-                                      >
-                                        <td style={{ padding: "8px 12px" }}>
-                                          <span
-                                            style={{
-                                              background: c.bg,
-                                              color: c.color,
-                                              borderRadius: 999,
-                                              padding: "2px 8px",
-                                              fontSize: 10,
-                                              fontWeight: 600,
-                                            }}
-                                          >
-                                            {m.type}
-                                          </span>
-                                        </td>
-                                        <td
-                                          style={{
-                                            padding: "8px 12px",
-                                            fontFamily:
-                                              "var(--font-jetbrains-mono)",
-                                            fontWeight: 700,
-                                            color: m.qty.startsWith("+")
-                                              ? theme.accent
-                                              : theme.danger,
-                                          }}
-                                        >
-                                          {m.qty}
-                                        </td>
-                                        <td
-                                          style={{
-                                            padding: "8px 12px",
-                                            fontFamily:
-                                              "var(--font-jetbrains-mono)",
-                                            color: theme.textSecondary,
-                                          }}
-                                        >
-                                          {m.ref}
-                                        </td>
-                                        <td
-                                          style={{
-                                            padding: "8px 12px",
-                                            color: theme.textSecondary,
-                                          }}
-                                        >
-                                          {m.by}
-                                        </td>
-                                        <td
-                                          style={{
-                                            padding: "8px 12px",
-                                            fontFamily:
-                                              "var(--font-jetbrains-mono)",
-                                            color: theme.textSecondary,
-                                          }}
-                                        >
-                                          {m.ts}
-                                        </td>
-                                      </tr>
-                                    );
-                                  },
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-              </AnimatePresence>
-            </motion.tbody>
-          </table>
-        </div>
-      </div>
+      <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={(next) => { setPage(next); setExpandedId(null); }} noun={["saldo", "saldos"]} />
 
       <AnimatePresence>
-        {drawer && (
-          <InventoryDrawer item={drawer} movements={movements[drawer.stockLevelId] ?? []} onClose={() => setDrawer(null)} />
-        )}
+        {drawer && <InventoryDrawer item={drawer} movements={movements[drawer.stockLevelId] ?? []} onClose={() => setDrawer(null)} />}
       </AnimatePresence>
       <AnimatePresence>
-        {movementDialogOpen && <MovementDialog items={items} onClose={() => setMovementDialogOpen(false)} onSuccess={async (message) => { await loadInventory(); setMovements({}); setDataMessage(message); }} />}
+        {dialogItems && (
+          <MovementDialog
+            items={dialogItems}
+            onClose={() => setDialogItems(null)}
+            onSuccess={async (message) => {
+              setMovements({});
+              await refresh();
+              setNotice({ type: "success", message });
+            }}
+          />
+        )}
       </AnimatePresence>
     </Layout>
   );

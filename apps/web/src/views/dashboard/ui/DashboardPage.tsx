@@ -919,6 +919,7 @@ export function DashboardPage() {
 
       {/* ── Content (relative to sit above bg) ── */}
       <div style={{ position: "relative", zIndex: 1 }}>
+        <h1 className="sr-only">Dashboard</h1>
         {/* ── Greeting Hero ── */}
         <AnimatePresence>
           {loaded && (

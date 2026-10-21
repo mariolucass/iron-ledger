@@ -20,4 +20,8 @@ export class PrismaLoginUserRepository implements LoginUserRepository {
       roles: user.userRoles.map(({ role }) => role.name),
     };
   }
+
+  async recordLogin(userId: string): Promise<void> {
+    await prisma.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
+  }
 }

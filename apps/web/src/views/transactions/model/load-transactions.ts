@@ -20,13 +20,7 @@ export async function fetchStockOptions(): Promise<TransactionStockOption[]> {
   }));
 }
 
-/** `yyyy-mm-dd` do seletor → limites ISO do dia no fuso local. */
-export function dayRange(from: string, to: string): Pick<TransactionQuery, "from" | "to"> {
-  return {
-    from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined,
-    to: to ? new Date(`${to}T23:59:59.999`).toISOString() : undefined,
-  };
-}
+export { dayRange } from "@/shared/lib/day-range";
 
 export const formatDateTime = (value: string) =>
   new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));

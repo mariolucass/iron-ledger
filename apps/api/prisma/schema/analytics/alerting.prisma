@@ -59,7 +59,8 @@ model Alert {
   type           AlertType
   severity       AlertSeverity
   status         AlertStatus   @default(OPEN)
-  /// Chave de deduplicação: evita abrir o mesmo alerta enquanto houver um aberto.
+  /// UNIQUE parcial na migration: uma chave por alerta OPEN/ACKNOWLEDGED.
+  /// SUPPRESSED e RESOLVED liberam a chave para uma nova ocorrência.
   dedupKey       String        @map("dedup_key")
   title          String
   message        String

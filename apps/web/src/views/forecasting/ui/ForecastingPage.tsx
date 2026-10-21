@@ -17,6 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
+import { PageHeader } from "@/shared/ui/data-list";
 import { Layout } from "@/widgets/layout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
 
@@ -98,6 +99,8 @@ export function ForecastingPage() {
 
   return (
     <Layout title="Previsão de Demanda">
+      <PageHeader title="Previsão de demanda" description="Projeção de demanda por produto e armazém, com o estoque necessário para atendê-la." />
+
       {/* Top bar */}
       <div
         style={{

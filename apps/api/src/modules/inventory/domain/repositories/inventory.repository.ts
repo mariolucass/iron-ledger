@@ -57,7 +57,7 @@ export type StockReservationRecord = {
 };
 
 export interface InventoryRepository {
-  list(input: { sku?: string; warehouseId?: string; page: number; pageSize: number }): Promise<{
+  list(input: { sku?: string; q?: string; warehouseId?: string; page: number; pageSize: number }): Promise<{
     items: InventoryItem[];
     page: number;
     pageSize: number;

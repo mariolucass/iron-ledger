@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
+import { createMetadata } from "@/shared/config/metadata";
 import { DashboardPage } from "@/views/dashboard";
 
-export const metadata: Metadata = {
-  title: "Dashboard - Iron Ledger",
+export const metadata = createMetadata({
+  title: "Dashboard",
   description:
-    "Visao geral e inteligencia operacional em tempo real do seu ecossistema financeiro.",
-};
+    "Visão geral e inteligência operacional em tempo real do seu ecossistema financeiro.",
+  path: "/dashboard",
+});
 
 export default function Page() {
   return <DashboardPage />;

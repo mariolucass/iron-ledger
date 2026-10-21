@@ -50,7 +50,7 @@ model StockTransferItem {
 
   transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
   product  Product       @relation(fields: [productId], references: [id])
-  lot      InventoryLot? @relation(fields: [lotId], references: [id])
+  lot      InventoryLot? @relation(fields: [lotId, productId], references: [id, productId], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([transferId, productId, lotId])
   @@index([productId])

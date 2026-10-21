@@ -1,4 +1,8 @@
+import type { Route } from "next";
+
 export type LandingIcon =
+  | "activity"
+  | "boxes"
   | "check"
   | "database"
   | "git-branch"
@@ -6,47 +10,47 @@ export type LandingIcon =
   | "package"
   | "shield"
   | "trending-up"
+  | "users"
+  | "warehouse"
   | "zap";
 
 export type LandingTone = "blue" | "emerald" | "orange" | "primary" | "purple" | "red" | "yellow";
 
-export interface LandingFeature {
-  description: string;
-  icon: LandingIcon;
-  size: "large" | "small";
-  title: string;
-  tone: LandingTone;
-}
-
-export interface LandingStat {
-  duration: number;
-  label: string;
-  prefix?: string;
-  suffix?: string;
-  value: number;
-}
-
-export interface LandingTestimonial {
-  author: string;
-  initials: string;
-  quote: string;
-  role: string;
-  stars: number;
-  tone: LandingTone;
-}
-
-export interface LandingTechnology {
-  icon: LandingIcon;
-  name: string;
-  tone: LandingTone;
-}
-
-export interface LandingLinkGroup {
-  links: string[];
-  title: string;
-}
-
 export interface LandingNavLink {
   href: `#${string}`;
   label: string;
+}
+
+/** Cartão do mosaico de recursos; `span` é a largura em colunas de uma grade de 6. */
+export interface LandingFeature {
+  description: string;
+  icon: LandingIcon;
+  /** Trecho curto que ilustra o recurso (ex.: um diff, um caminho). */
+  sample?: string;
+  span: 2 | 3 | 4;
+  title: string;
+  tone: LandingTone;
+}
+
+export interface LandingStep {
+  description: string;
+  title: string;
+}
+
+export interface LandingFlowNode {
+  detail: string;
+  icon: LandingIcon;
+  title: string;
+  tone: LandingTone;
+}
+
+export interface LandingFooterLink {
+  label: string;
+  /** Sem `href` a página ainda não existe: o rodapé mostra o item como "Em breve". */
+  href?: Route;
+}
+
+export interface LandingLinkGroup {
+  links: LandingFooterLink[];
+  title: string;
 }

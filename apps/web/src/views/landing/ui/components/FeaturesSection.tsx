@@ -1,33 +1,87 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
-import { ease2 } from "@/shared/lib/animation";
+import { useRef, type PointerEvent, type ReactNode } from "react";
 import { landingFeatures } from "../../model/fixtures";
-import type { LandingFeature } from "../../model/types";
+import type { LandingTone } from "../../model/types";
 import { landingIcons, landingTones } from "../config";
+import { OrbField } from "@/shared/ui/orbs";
 import { Reveal, SectionHeading } from "./LandingPrimitives";
 
-function FeatureCard({ feature, delay }: { feature: LandingFeature; delay: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
-  const Icon = landingIcons[feature.icon];
-  const tone = landingTones[feature.tone];
+const spanClass = { 2: "md:col-span-2", 3: "md:col-span-3", 4: "md:col-span-4" } as const;
 
-  return <motion.article ref={ref} initial={{ opacity: 0, y: 32 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: ease2, delay }} className={`group relative h-full overflow-hidden rounded-2xl border border-border bg-card p-7 transition duration-200 hover:-translate-y-1 hover:bg-card-elevated hover:shadow-elevated ${tone.hover}`}>
-    <div className={`mb-5 flex size-11 items-center justify-center rounded-xl border ${tone.soft} ${tone.border}`}><Icon size={20} strokeWidth={1.8} className={tone.text} /></div>
-    <h3 className="mb-2.5 text-[17px] leading-tight font-bold tracking-[-0.025em] text-foreground">{feature.title}</h3>
-    <p className="text-[13.5px] leading-relaxed text-muted-foreground">{feature.description}</p>
-    <div aria-hidden className={`absolute -top-5 -right-5 size-20 rounded-full opacity-0 blur-3xl transition-opacity group-hover:opacity-30 ${tone.soft}`} />
-  </motion.article>;
+const glow: Record<LandingTone, string> = {
+  primary: "rgba(0,229,160,0.16)",
+  blue: "rgba(96,165,250,0.16)",
+  purple: "rgba(167,139,250,0.18)",
+  emerald: "rgba(52,211,153,0.16)",
+  orange: "rgba(251,146,60,0.16)",
+  yellow: "rgba(250,204,21,0.14)",
+  red: "rgba(248,113,113,0.16)",
+};
+
+/** Cartão de vidro com um brilho que segue o cursor. */
+function SpotlightCard({ children, className, tone }: { children: ReactNode; className: string; tone: LandingTone }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const element = ref.current;
+    if (!element) return;
+    const rect = element.getBoundingClientRect();
+    element.style.setProperty("--sx", `${event.clientX - rect.left}px`);
+    element.style.setProperty("--sy", `${event.clientY - rect.top}px`);
+  };
+  return (
+    <div
+      ref={ref}
+      onPointerMove={onPointerMove}
+      className={`group relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition-colors duration-300 hover:border-white/20 motion-reduce:transition-none md:p-8 ${className}`}
+    >
+      <div
+        aria-hidden
+        style={{ background: `radial-gradient(380px circle at var(--sx, 50%) var(--sy, 50%), ${glow[tone]}, transparent 70%)` }}
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <div className="relative flex h-full flex-col">{children}</div>
+    </div>
+  );
 }
 
 export function FeaturesSection() {
-  return <section id="features" className="relative z-10 mx-auto max-w-[1200px] px-5 py-16 md:px-10 md:py-24">
-    <Reveal><SectionHeading eyebrow="Recursos" title={<>O essencial para acompanhar<br /><span className="text-muted-foreground">a rotina da operação.</span></>} description="Recursos para reduzir conferências manuais e manter as informações de estoque e financeiro organizadas." /></Reveal>
-    <div className="grid gap-4 md:grid-cols-3 md:grid-rows-2">
-      {landingFeatures.slice(0, 5).map((feature, index) => <div key={feature.title} className={index === 0 ? "md:row-span-2" : ""}><FeatureCard feature={feature} delay={index * 0.08} /></div>)}
-    </div>
-    <div className="mt-4"><FeatureCard feature={landingFeatures[5]} delay={0.4} /></div>
-  </section>;
+  return (
+    <section id="features" className="relative isolate z-10 px-5 py-20 md:px-10 md:py-32">
+      <OrbField variant="aurora" />
+      <div className="mx-auto max-w-[1100px]">
+        <Reveal>
+          <SectionHeading
+            eyebrow="Recursos"
+            title="O que o sistema faz, sem rodeios"
+            description="Cada recurso abaixo existe hoje no produto. Nada de promessa para depois."
+          />
+        </Reveal>
+
+        <div className="grid gap-4 md:grid-cols-6">
+          {landingFeatures.map((feature, index) => {
+            const Icon = landingIcons[feature.icon];
+            const tone = landingTones[feature.tone];
+            return (
+              <Reveal key={feature.title} delay={(index % 3) * 0.06} className={spanClass[feature.span]}>
+                <SpotlightCard tone={feature.tone} className="h-full min-h-[240px]">
+                  <span aria-hidden className={`mb-6 grid size-12 place-items-center rounded-2xl border ${tone.border} ${tone.soft} ${tone.text}`}>
+                    <Icon size={22} strokeWidth={1.7} />
+                  </span>
+                  <h3 className="m-0 mb-2.5 text-[21px] leading-tight font-semibold tracking-[-0.03em] text-foreground">{feature.title}</h3>
+                  <p className="m-0 max-w-[520px] text-[15.5px] leading-relaxed tracking-[-0.008em] text-white/65">{feature.description}</p>
+                  {feature.sample && (
+                    <p className="m-0 mt-auto inline-flex w-fit pt-6">
+                      <span className="rounded-xl border border-white/10 bg-black/30 px-3 py-1.5 font-mono text-[13px] text-white/80">{feature.sample}</span>
+                    </p>
+                  )}
+                </SpotlightCard>
+              </Reveal>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
 }

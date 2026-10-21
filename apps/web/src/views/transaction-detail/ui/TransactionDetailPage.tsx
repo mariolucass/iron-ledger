@@ -2,8 +2,9 @@
 
 import { colors as theme } from "@/shared/config/tokens";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, GitBranch, History, Loader2, Undo2 } from "lucide-react";
+import { ExternalLink, GitBranch, History, Loader2, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
 import { usePolling } from "@/shared/lib/use-polling";
@@ -17,6 +18,7 @@ import {
   type SagaStep,
   type TransactionDetail,
 } from "@/entities/transaction";
+import { PageHeader } from "@/shared/ui/data-list";
 import { Layout } from "@/widgets/layout";
 import { fetchTransaction, formatDateTime, stepDuration } from "../model/load-transaction";
 
@@ -61,16 +63,12 @@ export function TransactionDetailPage({ id }: { id: string }) {
   // A Saga avança no worker; enquanto não terminar, a tela acompanha.
   usePolling(load, 2_000, !!tx && !isTerminalStatus(tx.status));
 
-  const back = (
-    <button onClick={() => router.push("/transactions")} className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-      <ArrowLeft size={16} /> Voltar para Transações
-    </button>
-  );
+  const backLink = { href: "/transactions" as Route, label: "Transações" };
 
   if (!tx) {
     return (
       <Layout title="Detalhes da Transação">
-        {back}
+        <PageHeader back={backLink} title="Detalhes da transação" />
         {error
           ? <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive-soft px-4 py-3 text-sm text-destructive">{error.notFound ? "Transação não encontrada." : error.message}</div>
           : <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={14} className="animate-spin" />Carregando transação…</div>}
@@ -84,22 +82,19 @@ export function TransactionDetailPage({ id }: { id: string }) {
 
   return (
     <Layout title="Detalhes da Transação">
-      {back}
       {error && <div role="status" className="mb-4 rounded-lg border border-warning/40 bg-warning-soft px-4 py-2 text-xs text-warning">Atualização falhou: {error.message}</div>}
 
-      {/* Cabeçalho */}
-      <div style={{ ...panel, padding: 32, marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24, flexWrap: "wrap", position: "relative", overflow: "hidden" }}>
+      <PageHeader
+        back={backLink}
+        title={tx.code}
+        badges={<TransactionStatusBadge status={tx.status} />}
+        meta={<>{formatDateTime(tx.createdAt)}{tx.completedAt && <> · Finalizada {formatDateTime(tx.completedAt)}</>}</>}
+        description={tx.failureReason ? <span className={tx.status === "FAILED" ? "text-destructive" : "text-warning"}>{tx.failureReason}</span> : undefined}
+      />
+
+      {/* Identificadores do workflow */}
+      <div style={{ ...panel, padding: "20px 24px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: statusGlow[tx.status], filter: "blur(60px)", opacity: 0.15, pointerEvents: "none" }} />
-        <div>
-          <div style={{ ...label, marginBottom: 8 }}>Transação</div>
-          <div style={{ ...mono, fontSize: 28, fontWeight: 700, color: theme.textPrimary, marginBottom: 16 }}>{tx.code}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-            <TransactionStatusBadge status={tx.status} />
-            <span style={{ ...mono, fontSize: 13, color: theme.textSecondary }}>{formatDateTime(tx.createdAt)}</span>
-            {tx.completedAt && <span style={{ fontSize: 13, color: theme.textSecondary }}>Finalizada {formatDateTime(tx.completedAt)}</span>}
-          </div>
-          {tx.failureReason && <p style={{ marginTop: 16, fontSize: 13, color: tx.status === "FAILED" ? theme.danger : theme.warning }}>{tx.failureReason}</p>}
-        </div>
         <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 16px", fontSize: 12, background: "rgba(0,0,0,0.2)", padding: "14px 18px", borderRadius: 8, border: `1px solid ${theme.border}` }}>
           <dt style={{ color: theme.textSecondary }}>Workflow</dt><dd style={{ ...mono, color: theme.textPrimary }}>{tx.workflowId}</dd>
           <dt style={{ color: theme.textSecondary }}>Run</dt><dd style={{ ...mono, color: theme.textPrimary }}>{tx.workflowRunId ?? "—"}</dd>

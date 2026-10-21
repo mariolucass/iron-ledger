@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
+import { PageHeader } from "@/shared/ui/data-list";
 import { Layout } from "@/widgets/layout";
 import { mockAlerts } from "../model/fixtures";
 import { selectAlertsSummary, selectFilteredAlerts } from "../model/selectors";
@@ -24,10 +25,12 @@ export function AlertsPage() {
   const counts: Record<AlertTab, number> = { ALL: alerts.length, ACTIVE: summary.activeCount, ACKNOWLEDGED: summary.acknowledgedCount, RESOLVED: summary.resolvedCount };
 
   return <Layout title="Centro de Alertas">
-    <header className="mb-7 flex items-end justify-between gap-4 max-sm:flex-col max-sm:items-start">
-      <div><div className="mb-2 flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] text-primary uppercase"><span className="size-1.5 animate-pulse rounded-full bg-primary" />Monitoramento em tempo real</div><h1 className="text-[26px] font-extrabold tracking-[-0.04em] text-foreground">Centro de Alertas</h1><p className="mt-1 text-[13.5px] text-muted-foreground">Eventos críticos, previsões e integridade operacional do sistema.</p></div>
-      <div className="font-mono text-[11px] text-subtle-foreground">ÚLTIMA SINCRONIZAÇÃO · 13:58:42 UTC</div>
-    </header>
+    <PageHeader
+      eyebrow="Monitoramento em tempo real"
+      title="Centro de alertas"
+      description="Anomalias e eventos críticos do sistema, por severidade e origem."
+      actions={<span className="font-mono text-[12.5px] text-white/50">Última sincronização · 13:58:42 UTC</span>}
+    />
     <AlertsSummary {...summary} total={alerts.length} />
     <AlertsFilterBar activeTab={tab} counts={counts} search={search} severity={severity} source={source} canResolveAll={summary.activeCount + summary.acknowledgedCount > 0} onTabChange={setTab} onSearchChange={setSearch} onSeverityChange={setSeverity} onSourceChange={setSource} onResolveAll={() => setAlerts((current) => current.map((alert) => ({ ...alert, status: "RESOLVED" })))} />
     <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-2.5">

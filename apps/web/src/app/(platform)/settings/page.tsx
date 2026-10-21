@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import { createMetadata } from "@/shared/config/metadata";
 import { SettingsPage } from "@/views/settings";
 
-export const metadata: Metadata = {
-  title: "Configuracoes - Iron Ledger",
-  description: "Gerenciamento de preferencias, integracoes e permissoes do workspace.",
-};
+export const metadata = createMetadata({
+  title: "Configurações",
+  description: "Gerenciamento de preferências, integrações e permissões do workspace.",
+  path: "/settings",
+});
 
 export default function Page() {
   return <SettingsPage />;

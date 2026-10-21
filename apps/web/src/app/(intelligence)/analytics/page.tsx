@@ -1,16 +1,17 @@
-import type { Metadata } from "next";
+import { createMetadata } from "@/shared/config/metadata";
 import {
   getAnalyticsCatalog,
   getAnalyticsSummary,
   getInflectionPoints,
-} from "@/entities/analytics/api";
-import { AnalyticsOverview, AnalyticsUnavailable } from "@/views/analytics/AnalyticsOverview";
+} from "@/entities/analytics";
+import { AnalyticsOverview, AnalyticsUnavailable } from "@/views/analytics";
 
-export const metadata: Metadata = {
-  title: "Analytics - Iron Ledger",
+export const metadata = createMetadata({
+  title: "Analytics",
   description:
     "Mudanças persistentes em vendas, cancelamento, atraso e avaliação de vendedores e categorias.",
-};
+  path: "/analytics",
+});
 
 const PAGE_SIZE = 20;
 

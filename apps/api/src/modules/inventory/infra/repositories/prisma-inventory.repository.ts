@@ -21,13 +21,22 @@ import {
 const number = (value: Prisma.Decimal): number => value.toNumber();
 
 export class PrismaInventoryRepository implements InventoryRepository {
-  async list(input: { sku?: string; warehouseId?: string; page: number; pageSize: number }) {
+  async list(input: { sku?: string; q?: string; warehouseId?: string; page: number; pageSize: number }) {
     const { page, pageSize, skip, take } = pagination(input.page, input.pageSize);
     const where: Prisma.StockLevelWhereInput = {
       product: {
         isActive: true,
         deletedAt: null,
         ...(input.sku ? { sku: { contains: input.sku, mode: "insensitive" } } : {}),
+        // `q` procura no SKU ou no nome do produto.
+        ...(input.q
+          ? {
+              OR: [
+                { sku: { contains: input.q, mode: "insensitive" } },
+                { name: { contains: input.q, mode: "insensitive" } },
+              ],
+            }
+          : {}),
       },
       warehouse: { isActive: true },
       ...(input.warehouseId ? { warehouseId: input.warehouseId } : {}),

@@ -23,7 +23,7 @@
   },
   "prisma": {
     "schema": "prisma/schema",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seeds/index.ts"
   },
   "dependencies": {
     "@iron-ledger/event-bus": "workspace:*",

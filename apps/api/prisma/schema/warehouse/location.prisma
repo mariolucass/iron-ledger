@@ -23,12 +23,13 @@ model WarehouseLocation {
   deletedAt    DateTime?    @map("deleted_at")
 
   warehouse       Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
-  parent          WarehouseLocation?  @relation("LocationTree", fields: [parentId], references: [id], onDelete: Restrict)
+  parent          WarehouseLocation?  @relation("LocationTree", fields: [parentId, warehouseId], references: [id, warehouseId], onDelete: Restrict, onUpdate: Restrict)
   children        WarehouseLocation[] @relation("LocationTree")
   locationStocks  LocationStock[]
   stockMovements  StockMovement[]
   stockCountItems StockCountItem[]
 
+  @@unique([id, warehouseId])
   @@unique([warehouseId, code])
   @@unique([warehouseId, path])
   @@index([parentId])

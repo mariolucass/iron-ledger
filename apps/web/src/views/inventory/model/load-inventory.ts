@@ -1,4 +1,4 @@
-import { inventoryApi } from "@/entities/inventory";
+import { inventoryApi, type InventoryQuery } from "@/entities/inventory";
 import { warehouseApi } from "@/entities/warehouse";
 import { withSession } from "@/shared/auth/with-session";
 import type { InventoryItem, Movement } from "./inventoryData";
@@ -7,10 +7,12 @@ const dateTime = (value: string) => new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short", timeStyle: "short",
 }).format(new Date(value));
 
+export const PAGE_SIZE = 20;
+
 /** Page-specific presentation; entity clients keep the original API contract. */
-export async function fetchInventory(): Promise<InventoryItem[]> {
-  const body = await withSession(inventoryApi.list({ pageSize: 100 }));
-  return body.items.map((item) => ({
+export async function fetchInventoryPage(query: InventoryQuery): Promise<{ items: InventoryItem[]; total: number }> {
+  const body = await withSession(inventoryApi.list({ pageSize: PAGE_SIZE, ...query }));
+  const items = body.items.map((item): InventoryItem => ({
     stockLevelId: item.stockLevelId,
     sku: item.sku,
     product: item.productName,
@@ -24,6 +26,7 @@ export async function fetchInventory(): Promise<InventoryItem[]> {
     status: item.status,
     lastMovement: dateTime(item.updatedAt),
   }));
+  return { items, total: body.total };
 }
 
 export async function fetchWarehouses() {
@@ -48,3 +51,7 @@ export async function fetchMovements(stockLevelId: string): Promise<Movement[]> 
   });
 }
 
+/** Opções do diálogo "Novo movimento": todos os saldos (até 100), sem depender da página aberta. */
+export async function fetchMovementOptions(): Promise<InventoryItem[]> {
+  return (await fetchInventoryPage({ pageSize: 100 })).items;
+}

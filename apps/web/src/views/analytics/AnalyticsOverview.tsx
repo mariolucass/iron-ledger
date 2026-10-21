@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/shared/ui/data-list";
 import { Layout } from "@/widgets/layout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
 import type {
@@ -7,7 +8,7 @@ import type {
   Impact,
   InflectionPointsResponse,
   InflectionPoint,
-} from "@/entities/analytics/api";
+} from "@/entities/analytics";
 import { formatDate, formatMetric, formatNumber, impactLabel } from "./format";
 
 const severityLabel: Record<string, string> = {
@@ -167,21 +168,19 @@ export function AnalyticsOverview({
   return (
     <Layout title="Analytics">
       <div className="space-y-7">
-        <header>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            Inteligência de negócios · Laboratório com dados da Olist
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold">
-            O que mudou de patamar — e precisa de atenção
-          </h1>
-          <p className="mt-2 max-w-3xl text-muted-foreground">
-            O estoque e a auditoria registram <strong>o que aconteceu</strong>. Esta área
-            responde <strong>o que mudou</strong>: vendedores e categorias cujas vendas,
-            cancelamentos, atrasos ou avaliações saíram do comportamento habitual e não voltaram.
-            Uma queda persistente de pedidos pode indicar ruptura de estoque; uma alta pede
-            reposição maior; mais atraso costuma anteceder avaliações piores.
-          </p>
-        </header>
+        <PageHeader
+          eyebrow="Inteligência de negócios · Laboratório com dados da Olist"
+          title="O que mudou de patamar e precisa de atenção"
+          description={
+            <>
+              O estoque e a auditoria registram <strong className="font-semibold text-foreground">o que aconteceu</strong>. Esta área
+              responde <strong className="font-semibold text-foreground">o que mudou</strong>: vendedores e categorias cujas vendas,
+              cancelamentos, atrasos ou avaliações saíram do comportamento habitual e não voltaram.
+              Uma queda persistente de pedidos pode indicar ruptura de estoque; uma alta pede
+              reposição maior; mais atraso costuma anteceder avaliações piores.
+            </>
+          }
+        />
 
         <section aria-label="Como funciona" className="grid gap-3 md:grid-cols-3">
           {HOW_IT_WORKS.map((step) => (

@@ -10,24 +10,25 @@ export class PrismaAuditRepository implements AuditRepository {
       ? entry.actorId
       : null;
     const knownActor = validActorId
-      ? await prisma.user.findUnique({ where: { id: validActorId }, select: { id: true } })
+      ? await prisma.user.findUnique({ where: { id: validActorId }, select: { email: true } })
       : null;
-    const row = await prisma.auditLog.upsert({
-      where: { eventId: entry.eventId },
-      update: {},
-      create: {
+    // ON CONFLICT DO NOTHING: retries never UPDATE an immutable audit row.
+    await prisma.auditLog.createMany({
+      skipDuplicates: true,
+      data: {
         eventId: entry.eventId,
         eventName: entry.eventName,
         occurredAt: new Date(entry.occurredAt),
-        actorId: knownActor?.id,
+        actorId: validActorId,
+        actorEmail: knownActor?.email,
         entityType: entry.entityType,
         entityId: entry.entityId,
         action: entry.action,
         correlationId: entry.correlationId,
         payload: entry.payload as Prisma.InputJsonObject,
       },
-      include: { actor: { select: { email: true } } },
     });
+    const row = await prisma.auditLog.findUniqueOrThrow({ where: { eventId: entry.eventId } });
     return this.map(row);
   }
 
@@ -38,13 +39,15 @@ export class PrismaAuditRepository implements AuditRepository {
       : undefined;
     const actorFilters: Prisma.AuditLogWhereInput[] | undefined = input.actor
       ? actorId
-        ? [{ actorId }, { actor: { email: { contains: input.actor, mode: "insensitive" } } }]
-        : [{ actor: { email: { contains: input.actor, mode: "insensitive" } } }]
+        ? [{ actorId }, { actorEmail: { contains: input.actor, mode: "insensitive" } }]
+        : [{ actorEmail: { contains: input.actor, mode: "insensitive" } }]
       : undefined;
     const where: Prisma.AuditLogWhereInput = {
       ...(input.eventName ? { eventName: { contains: input.eventName, mode: "insensitive" } } : {}),
       ...(input.entityType ? { entityType: { equals: input.entityType, mode: "insensitive" } } : {}),
       ...(input.entityId ? { entityId: { contains: input.entityId, mode: "insensitive" } } : {}),
+      ...(input.action ? { action: input.action } : {}),
+      ...(input.correlationId ? { correlationId: { contains: input.correlationId, mode: "insensitive" } } : {}),
       ...(actorFilters ? { OR: actorFilters } : {}),
       ...(input.from || input.to
         ? { occurredAt: { ...(input.from ? { gte: input.from } : {}), ...(input.to ? { lte: input.to } : {}) } }
@@ -53,7 +56,6 @@ export class PrismaAuditRepository implements AuditRepository {
     const [rows, total] = await prisma.$transaction([
       prisma.auditLog.findMany({
         where,
-        include: { actor: { select: { email: true } } },
         orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
         skip,
         take,
@@ -66,7 +68,7 @@ export class PrismaAuditRepository implements AuditRepository {
   private map(row: {
     id: string; eventId: string; eventName: string; occurredAt: Date; actorId: string | null;
     entityType: string; entityId: string; action: string; correlationId: string | null;
-    payload: Prisma.JsonValue; actor: { email: string } | null;
+    payload: Prisma.JsonValue; actorEmail: string | null;
   }): AuditLog {
     return {
       id: row.id,
@@ -74,7 +76,7 @@ export class PrismaAuditRepository implements AuditRepository {
       eventName: row.eventName,
       occurredAt: row.occurredAt.toISOString(),
       actorId: row.actorId,
-      actorEmail: row.actor?.email ?? null,
+      actorEmail: row.actorEmail,
       entityType: row.entityType,
       entityId: row.entityId,
       action: row.action as AuditLog["action"],

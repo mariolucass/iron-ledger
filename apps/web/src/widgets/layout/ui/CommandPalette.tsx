@@ -13,6 +13,7 @@ import {
 } from "react";
 import { ease2 } from "@/shared/lib/animation";
 import { isNavigationItemActive, navigationItems } from "../model/navigation";
+import { glassPanel } from "./glass";
 import { useRecentPages } from "../model/hooks";
 import type { NavigationItem } from "../model/types";
 
@@ -56,6 +57,10 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
 
   useEffect(() => setFocusedIndex(0), [query]);
 
+  useEffect(() => {
+    document.getElementById(`palette-option-${focusedIndex}`)?.scrollIntoView({ block: "nearest" });
+  }, [focusedIndex]);
+
   const navigate = (path: Route) => {
     router.push(path);
     onClose();
@@ -80,7 +85,7 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
       onClick={onClose}
-      className="fixed inset-0 z-[1000] flex items-start justify-center bg-black/65 pt-[14vh] backdrop-blur-[10px]"
+      className="fixed inset-0 z-[1000] flex items-start justify-center bg-black/55 pt-[14vh] backdrop-blur-md"
     >
       <motion.div
         role="dialog"
@@ -92,22 +97,27 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
         transition={{ duration: 0.2, ease: ease2 }}
         onClick={(event) => event.stopPropagation()}
         onKeyDown={handleKeyDown}
-        className="mx-5 w-full max-w-[560px] overflow-hidden rounded-[18px] border border-border-strong bg-[#111] shadow-[0_40px_100px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.04)]"
+        className={`mx-5 w-full max-w-[580px] overflow-hidden rounded-[28px] ${glassPanel} shadow-[0_40px_100px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)]`}
       >
-        <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-          <Search size={16} className="shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-3 border-b border-white/[0.08] px-5 py-4">
+          <Search size={18} aria-hidden className="shrink-0 text-white/60" />
           <input
             ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Pesquisar páginas, ações..."
-            className="w-full bg-transparent text-[15px] tracking-[-0.01em] text-foreground outline-none placeholder:text-subtle-foreground"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="palette-listbox"
+            aria-activedescendant={results.length ? `palette-option-${focusedIndex}` : undefined}
+            aria-autocomplete="list"
+            className="w-full bg-transparent text-[17px] tracking-[-0.015em] text-foreground outline-none placeholder:text-white/45"
           />
-          <kbd className="shrink-0 rounded border border-border bg-card px-1.5 py-0.5 text-[10px] text-subtle-foreground">
+          <kbd className="shrink-0 rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-0.5 font-sans text-[11.5px] text-white/55">
             ESC
           </kbd>
         </div>
-        <div className="max-h-[380px] overflow-y-auto p-2">
+        <div id="palette-listbox" role="listbox" aria-label="Resultados" className="max-h-[400px] overflow-y-auto p-2">
           {!query && recentResults.length > 0 && (
             <div className="mb-2">
               <PaletteGroupLabel>Recente</PaletteGroupLabel>
@@ -121,7 +131,7 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
                   onSelect={() => navigate(item.path)}
                 />
               ))}
-              <div className="mx-1 my-2 h-px bg-border" />
+              <div className="mx-1 my-2 h-px bg-white/[0.08]" />
             </div>
           )}
           {groupedResults.map(([section, items]) => (
@@ -135,6 +145,7 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
                   <PaletteItem
                     key={item.path}
                     item={item}
+                    index={index}
                     active={isNavigationItemActive(pathname, item.path)}
                     focused={index === focusedIndex}
                     onFocus={() => setFocusedIndex(index)}
@@ -145,14 +156,14 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
             </div>
           ))}
           {!results.length && (
-            <div className="px-6 py-8 text-center text-[13px] text-subtle-foreground">
-              <Search size={28} className="mx-auto mb-3 opacity-30" />
+            <div role="status" className="px-6 py-10 text-center text-[14px] text-white/60">
+              <Search size={28} aria-hidden className="mx-auto mb-3 opacity-40" />
               Nenhum resultado para “
-              <strong className="text-muted-foreground">{query}</strong>”
+              <strong className="text-foreground">{query}</strong>”
             </div>
           )}
         </div>
-        <div className="flex items-center gap-4 border-t border-border bg-black/20 px-5 py-2.5">
+        <div className="flex items-center gap-4 border-t border-white/[0.08] bg-black/20 px-5 py-3">
           {[
             ["↑↓", "Navegar"],
             ["↵", "Selecionar"],
@@ -160,9 +171,9 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
           ].map(([key, hint]) => (
             <span
               key={key}
-              className="flex items-center gap-1.5 text-[11px] text-subtle-foreground"
+              className="flex items-center gap-1.5 text-[12px] text-white/55"
             >
-              <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
+              <kbd className="rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-0.5 font-sans text-[11.5px]">
                 {key}
               </kbd>
               {hint}
@@ -176,7 +187,7 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
 
 function PaletteGroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="px-2.5 pt-1 pb-1.5 text-[9.5px] font-bold tracking-[0.1em] text-subtle-foreground uppercase">
+    <h3 className="px-3 pt-1.5 pb-1.5 text-[12px] font-semibold tracking-[-0.005em] text-white/55">
       {children}
     </h3>
   );
@@ -185,6 +196,7 @@ function PaletteGroupLabel({ children }: { children: React.ReactNode }) {
 function PaletteItem({
   active,
   focused,
+  index,
   item,
   onFocus,
   onSelect,
@@ -192,6 +204,8 @@ function PaletteItem({
 }: {
   active: boolean;
   focused: boolean;
+  /** Posição na lista de resultados; ausente nos itens "Recentes", que não participam da seleção por setas. */
+  index?: number;
   item: NavigationItem;
   onFocus?: () => void;
   onSelect: () => void;
@@ -201,28 +215,29 @@ function PaletteItem({
   return (
     <button
       type="button"
+      id={index === undefined ? undefined : `palette-option-${index}`}
+      role="option"
+      aria-selected={focused}
+      tabIndex={-1}
       onClick={onSelect}
       onMouseEnter={onFocus}
-      className={`mb-px flex w-full items-center gap-3 rounded-[10px] border px-2.5 py-2 text-left text-[13.5px] tracking-[-0.01em] transition ${focused ? "border-border-strong bg-card-hover text-foreground" : "border-transparent text-muted-foreground hover:bg-card"}`}
+      className={`mb-px flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-[14.5px] tracking-[-0.01em] transition-colors motion-reduce:transition-none ${focused ? "border-white/[0.12] bg-white/[0.08] text-foreground" : "border-transparent text-white/70 hover:bg-white/[0.04]"}`}
     >
       <span
-        className={`flex size-7 shrink-0 items-center justify-center rounded-lg border ${active ? "border-primary/30 bg-primary-soft text-primary" : "border-border bg-card"}`}
+        aria-hidden
+        className={`flex size-8 shrink-0 items-center justify-center rounded-xl border ${active ? "border-primary/30 bg-primary-soft text-primary" : "border-white/10 bg-white/[0.04]"}`}
       >
-        <Icon size={13} />
+        <Icon size={15} />
       </span>
-      <span className={`flex-1 ${active ? "text-primary" : ""}`}>
-        {item.label}
-      </span>
+      <span className={`flex-1 ${active ? "text-primary" : ""}`}>{item.label}</span>
       {suffix ? (
-        <span className="text-[10px] text-subtle-foreground">{suffix}</span>
+        <span className="text-[12px] text-white/50">{suffix}</span>
       ) : item.shortcut ? (
-        <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px] text-subtle-foreground">
+        <kbd className="rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-0.5 font-sans text-[11.5px] text-white/55">
           {item.shortcut}
         </kbd>
       ) : null}
-      {focused && (
-        <span className="ml-1 text-[10px] text-subtle-foreground">↵</span>
-      )}
+      {focused && <span aria-hidden className="ml-1 text-[12px] text-white/50">↵</span>}
     </button>
   );
 }

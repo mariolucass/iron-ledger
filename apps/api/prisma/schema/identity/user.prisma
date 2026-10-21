@@ -35,7 +35,6 @@ model User {
   verificationTokens  VerificationToken[]
   apiKeys             ApiKey[]
   stockMovements      StockMovement[]
-  auditLogs           AuditLog[]
 
   @@index([status, deletedAt])
   @@map("users")
