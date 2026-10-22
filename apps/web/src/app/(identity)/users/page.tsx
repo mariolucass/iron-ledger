@@ -1,5 +1,6 @@
 import { createMetadata } from "@/shared/config/metadata";
 import { UsersPage } from "@/views/users";
+import { userServerApi } from "@/entities/user/server";
 
 export const metadata = createMetadata({
   title: "Usuários",
@@ -7,6 +8,10 @@ export const metadata = createMetadata({
   path: "/users",
 });
 
-export default function Page() {
-  return <UsersPage />;
+export default async function Page() {
+  const [initial, roles] = await Promise.all([
+    userServerApi.list({ page: 1, pageSize: 20 }),
+    userServerApi.listRoles(),
+  ]);
+  return <UsersPage initial={initial} initialRoles={roles.items} />;
 }

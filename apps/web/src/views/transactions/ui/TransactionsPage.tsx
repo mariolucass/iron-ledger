@@ -3,6 +3,7 @@
 import { ArrowLeftRight, Plus, RefreshCw } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import {
   isTerminalStatus,
@@ -49,20 +50,20 @@ const columns: Column<TransactionSummary>[] = [
     cell: (tx) => (
       <span className="grid">
         <span className="font-mono text-[13px] font-medium">{tx.code}</span>
-        {tx.externalRef && <span className="text-[12.5px] font-normal text-white/55">{tx.externalRef}</span>}
+        {tx.externalRef && <span className="text-[12.5px] font-normal text-ink/55">{tx.externalRef}</span>}
       </span>
     ),
   },
-  { id: "type", header: "Tipo", className: "text-white/70", cell: (tx) => typeLabel[tx.type] },
+  { id: "type", header: "Tipo", className: "text-ink/70", cell: (tx) => typeLabel[tx.type] },
   { id: "status", header: "Status", cell: (tx) => <TransactionStatusBadge status={tx.status} /> },
-  { id: "items", header: "Itens", className: "whitespace-nowrap text-white/70", cell: (tx) => `${tx.itemCount} · ${tx.totalQuantity} un` },
-  { id: "by", header: "Iniciado por", hideBelow: "lg", className: "font-mono text-[12.5px] text-white/60", cell: (tx) => tx.initiatedBy.slice(0, 8) },
-  { id: "created", header: "Criado em", className: "whitespace-nowrap text-white/60", cell: (tx) => formatDateTime(tx.createdAt) },
+  { id: "items", header: "Itens", className: "whitespace-nowrap text-ink/70", cell: (tx) => `${tx.itemCount} · ${tx.totalQuantity} un` },
+  { id: "by", header: "Iniciado por", hideBelow: "lg", className: "font-mono text-[12.5px] text-ink/60", cell: (tx) => tx.initiatedBy.slice(0, 8) },
+  { id: "created", header: "Criado em", className: "whitespace-nowrap text-ink/60", cell: (tx) => formatDateTime(tx.createdAt) },
   {
     id: "reason",
     header: "Motivo",
     hideBelow: "xl",
-    className: "max-w-[260px] text-white/60",
+    className: "max-w-[260px] text-ink/60",
     cell: (tx) => <span className="block truncate" title={tx.failureReason ?? undefined}>{tx.failureReason ?? "—"}</span>,
   },
 ];
@@ -115,12 +116,12 @@ export function TransactionsPage() {
         }
       />
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
         <SegmentedTabs label="Filtrar por status" value={activeTab} onChange={reset(setActiveTab)} options={tabOptions} />
-        <div className="flex items-center gap-2">
-          <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={reset(setFrom)} className="h-11" />
-          <span aria-hidden className="text-white/45">–</span>
-          <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={reset(setTo)} className="h-11" />
+        <div className="grid grid-cols-2 items-center gap-2 sm:flex">
+          <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={reset(setFrom)} className="h-11 w-full sm:w-[150px]" />
+          <span aria-hidden className="text-ink/45 max-sm:hidden">–</span>
+          <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={reset(setTo)} className="h-11 w-full sm:w-[150px]" />
         </div>
       </div>
 
@@ -146,17 +147,19 @@ export function TransactionsPage() {
 
       <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} noun={["transação", "transações"]} />
 
-      {dialogOpen && (
-        <StartTransactionDialog
-          items={stockOptions}
-          loading={stockLoading}
-          onClose={() => setDialogOpen(false)}
-          onStarted={(transaction) => {
-            setDialogOpen(false);
-            router.push(`/transactions/${transaction.id}` as Route);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {dialogOpen && (
+          <StartTransactionDialog
+            items={stockOptions}
+            loading={stockLoading}
+            onClose={() => setDialogOpen(false)}
+            onStarted={(transaction) => {
+              setDialogOpen(false);
+              router.push(`/transactions/${transaction.id}` as Route);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </Layout>
   );
 }

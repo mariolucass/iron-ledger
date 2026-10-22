@@ -9,6 +9,8 @@ import {
   useFormContext,
   useFormState,
   type ControllerProps,
+  type ControllerRenderProps,
+  type Control,
   type FieldPath,
   type FieldValues,
 } from "react-hook-form";
@@ -25,9 +27,7 @@ type FormFieldContextValue<
   name: TName;
 };
 
-const FormFieldContext = React.createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue,
-);
+const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
@@ -41,6 +41,37 @@ const FormField = <
     </FormFieldContext.Provider>
   );
 };
+
+function FormFieldRow<TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>({
+  control,
+  name,
+  label,
+  description,
+  children,
+  className,
+}: {
+  control: Control<TFieldValues>;
+  name: TName;
+  label: string;
+  description?: string;
+  children: (field: ControllerRenderProps<TFieldValues, TName>) => React.ReactElement;
+  className?: string;
+}) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>{children(field)}</FormControl>
+          {description && <FormDescription>{description}</FormDescription>}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
 
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
@@ -69,35 +100,26 @@ type FormItemContextValue = {
   id: string;
 };
 
-const FormItemContext = React.createContext<FormItemContextValue>(
-  {} as FormItemContextValue,
-);
+const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 
 function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   const id = React.useId();
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div
-        data-slot="form-item"
-        className={cn("grid gap-2", className)}
-        {...props}
-      />
+      <div data-slot="form-item" className={cn("grid content-start gap-2", className)} {...props} />
     </FormItemContext.Provider>
   );
 }
 
-function FormLabel({
-  className,
-  ...props
-}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
   const { error, formItemId } = useFormField();
 
   return (
     <Label
       data-slot="form-label"
       data-error={!!error}
-      className={cn("data-[error=true]:text-destructive", className)}
+      className={cn("text-[13px] tracking-[-0.005em] text-ink/75 data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -105,18 +127,13 @@ function FormLabel({
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId } =
-    useFormField();
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
 
   return (
     <Slot
       data-slot="form-control"
       id={formItemId}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
+      aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
       aria-invalid={!!error}
       {...props}
     />
@@ -130,7 +147,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-description"
       id={formDescriptionId}
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-[12.5px] leading-snug text-muted-foreground", className)}
       {...props}
     />
   );
@@ -148,7 +165,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn("text-destructive text-sm", className)}
+      className={cn("text-[12.5px] leading-snug text-destructive", className)}
       {...props}
     >
       {body}
@@ -165,4 +182,5 @@ export {
   FormDescription,
   FormMessage,
   FormField,
+  FormFieldRow,
 };

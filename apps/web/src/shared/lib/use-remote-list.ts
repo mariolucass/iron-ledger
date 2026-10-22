@@ -20,11 +20,12 @@ interface State<T> extends RemotePage<T> {
  * - `reload` atualiza em silêncio, sem acender `loading` (para polling);
  *   `refresh` refaz a busca mostrando o carregamento.
  */
-export function useRemoteList<T>(fetcher: () => Promise<RemotePage<T>>, deps: readonly unknown[]) {
+export function useRemoteList<T>(fetcher: () => Promise<RemotePage<T>>, deps: readonly unknown[], initial?: RemotePage<T>) {
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
   const latest = useRef(0);
-  const [state, setState] = useState<State<T>>({ items: [], total: 0, loading: true, error: "" });
+  const [state, setState] = useState<State<T>>({ items: initial?.items ?? [], total: initial?.total ?? 0, loading: !initial, error: "" });
+  const skipInitialFetch = useRef(Boolean(initial));
 
   const run = useCallback(async (silent: boolean) => {
     const id = ++latest.current;
@@ -40,6 +41,10 @@ export function useRemoteList<T>(fetcher: () => Promise<RemotePage<T>>, deps: re
   }, []);
 
   useEffect(() => {
+    if (skipInitialFetch.current) {
+      skipInitialFetch.current = false;
+      return;
+    }
     void run(false);
     return () => {
       latest.current++;

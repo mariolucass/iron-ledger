@@ -9,8 +9,15 @@ const base = {
 
 export const createUserFormSchema = z.object({
   ...base,
-  email: z.string().trim().min(1, "Informe o e-mail.").email("Digite um endereço de e-mail válido."),
-  password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres.").max(72, "A senha deve ter no máximo 72 caracteres."),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Informe o e-mail.")
+    .email("Digite um endereço de e-mail válido."),
+  password: z
+    .string()
+    .min(8, "A senha deve ter no mínimo 8 caracteres.")
+    .max(72, "A senha deve ter no máximo 72 caracteres."),
 });
 
 export const editUserFormSchema = z.object({
@@ -21,7 +28,13 @@ export const editUserFormSchema = z.object({
 
 export type UserFormValues = z.infer<typeof createUserFormSchema>;
 
-export const emptyUserForm: UserFormValues = { name: "", email: "", password: "", status: "ACTIVE", roles: [] };
+export const emptyUserForm: UserFormValues = {
+  name: "",
+  email: "",
+  password: "",
+  status: "ACTIVE",
+  roles: [],
+};
 
 export const sameRoles = (a: string[], b: string[]) =>
   a.length === b.length && [...a].sort().every((role, index) => role === [...b].sort()[index]);

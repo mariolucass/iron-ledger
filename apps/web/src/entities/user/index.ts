@@ -21,3 +21,5 @@ export type {
 } from "./model/types";
 export { UserIdentity } from "./ui/user-identity";
 export { UserStatusBadge, userStatusLabel } from "./ui/user-status-badge";
+export { CurrentUserProvider, useCurrentUser, initialsOf, roleLabelOf, firstNameOf } from "./model/current-user";
+export { UserAvatar } from "./ui/UserAvatar";

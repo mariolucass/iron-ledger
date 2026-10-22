@@ -8,9 +8,25 @@ import {
   authLabelClass,
   authSubmitClass,
 } from "@/shared/ui/auth-form-styles";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/shared/ui/kit/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/shared/ui/kit/form";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, ArrowRight, Eye, EyeOff, KeyRound, Loader2, Mail, User } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  Mail,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { ComponentType } from "react";
@@ -28,10 +44,38 @@ type FieldConfig = {
 };
 
 const fields: FieldConfig[] = [
-  { name: "name", label: "Nome completo", placeholder: "Maria Silva", icon: User, type: "text", autoComplete: "name" },
-  { name: "email", label: "E-mail corporativo", placeholder: "voce@empresa.com", icon: Mail, type: "email", autoComplete: "email" },
-  { name: "password", label: "Senha", placeholder: "Mínimo de 8 caracteres", icon: KeyRound, type: "password", autoComplete: "new-password" },
-  { name: "confirmPassword", label: "Confirmar senha", placeholder: "Repita a senha", icon: KeyRound, type: "password", autoComplete: "new-password" },
+  {
+    name: "name",
+    label: "Nome completo",
+    placeholder: "Maria Silva",
+    icon: User,
+    type: "text",
+    autoComplete: "name",
+  },
+  {
+    name: "email",
+    label: "E-mail corporativo",
+    placeholder: "voce@empresa.com",
+    icon: Mail,
+    type: "email",
+    autoComplete: "email",
+  },
+  {
+    name: "password",
+    label: "Senha",
+    placeholder: "Mínimo de 8 caracteres",
+    icon: KeyRound,
+    type: "password",
+    autoComplete: "new-password",
+  },
+  {
+    name: "confirmPassword",
+    label: "Confirmar senha",
+    placeholder: "Repita a senha",
+    icon: KeyRound,
+    type: "password",
+    autoComplete: "new-password",
+  },
 ];
 
 export default function RegisterFormClient() {
@@ -41,10 +85,15 @@ export default function RegisterFormClient() {
   return (
     <>
       <header className="mb-8">
-        <h1 id="register-title" className="m-0 mb-2 text-[clamp(1.875rem,4vw,2.25rem)] leading-[1.08] font-semibold tracking-[-0.045em] text-white">
+        <h1
+          id="register-title"
+          className="m-0 mb-2 text-[clamp(1.875rem,4vw,2.25rem)] leading-[1.08] font-semibold tracking-[-0.045em] text-white"
+        >
           Criar conta
         </h1>
-        <p className="m-0 text-[15.5px] leading-relaxed tracking-[-0.01em] text-white/65">Cadastre-se para acessar o workspace do Iron Ledger.</p>
+        <p className="m-0 text-[15.5px] leading-relaxed tracking-[-0.01em] text-white/65">
+          Cadastre-se para acessar o workspace do Iron Ledger.
+        </p>
       </header>
 
       <Form {...form}>
@@ -113,7 +162,12 @@ export default function RegisterFormClient() {
           <button type="submit" disabled={isSubmitting} className={authSubmitClass}>
             {isSubmitting ? (
               <>
-                <Loader2 size={17} className="animate-spin motion-reduce:animate-none" aria-hidden /> Criando conta...
+                <Loader2
+                  size={17}
+                  className="animate-spin motion-reduce:animate-none"
+                  aria-hidden
+                />{" "}
+                Criando conta...
               </>
             ) : (
               <>
@@ -126,7 +180,10 @@ export default function RegisterFormClient() {
 
       <p className="m-0 mt-7 text-center text-[14.5px] text-white/65">
         Já tem uma conta?{" "}
-        <Link href="/login" className="rounded-md font-semibold text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-primary/60">
+        <Link
+          href="/login"
+          className="rounded-md font-semibold text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-primary/60"
+        >
           Entrar
         </Link>
       </p>

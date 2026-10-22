@@ -1,5 +1,8 @@
 import { createMetadata } from "@/shared/config/metadata";
 import { InventoryPage } from "@/views/inventory";
+import { inventoryServerApi } from "@/entities/inventory/server";
+import { warehouseServerApi } from "@/entities/warehouse/server";
+import { presentInventoryPage, PAGE_SIZE } from "@/views/inventory/server";
 
 export const metadata = createMetadata({
   title: "Estoque",
@@ -7,6 +10,15 @@ export const metadata = createMetadata({
   path: "/inventory",
 });
 
-export default function Page() {
-  return <InventoryPage />;
+export default async function Page() {
+  const [inventory, warehouses] = await Promise.all([
+    inventoryServerApi.list({ page: 1, pageSize: PAGE_SIZE }),
+    warehouseServerApi.list(),
+  ]);
+  return (
+    <InventoryPage
+      initial={presentInventoryPage(inventory)}
+      initialWarehouses={warehouses.items.map(({ id, name }) => ({ value: id, label: name }))}
+    />
+  );
 }

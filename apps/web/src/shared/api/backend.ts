@@ -2,7 +2,8 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/shared/auth/session";
 
-const apiUrl = () => process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+const apiUrl = () =>
+  process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
 export async function backendRequest(
   request: NextRequest,
@@ -11,7 +12,10 @@ export async function backendRequest(
 ): Promise<NextResponse> {
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
   if (!token) {
-    return NextResponse.json({ error: "UNAUTHORIZED", message: "Sessão ausente." }, { status: 401 });
+    return NextResponse.json(
+      { error: "UNAUTHORIZED", message: "Sessão ausente." },
+      { status: 401 },
+    );
   }
 
   const url = new URL(pathname, apiUrl());

@@ -19,7 +19,15 @@ import {
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
 import { PageHeader } from "@/shared/ui/data-list";
 import { Layout } from "@/widgets/layout";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/kit/select";
+import type { ForecastAccuracyDetail, ForecastAccuracyResponse } from "@/entities/analytics";
+import { ForecastAccuracySection } from "./ForecastAccuracySection";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/kit/select";
 
 // 1. Tema "Cryptix" Integrado
 
@@ -76,9 +84,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               }}
             >
               <span style={{ color: theme.textSecondary }}>{p.name}:</span>
-              <strong style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
-                {p.value}
-              </strong>
+              <strong style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{p.value}</strong>
             </div>
           ),
       )}
@@ -86,20 +92,26 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export function ForecastingPage() {
+export function ForecastingPage({
+  accuracy = null,
+  detail = null,
+}: {
+  accuracy?: ForecastAccuracyResponse | null;
+  detail?: ForecastAccuracyDetail | null;
+}) {
   const [period, setPeriod] = useState<Period>("1 mês");
   const [search, setSearch] = useState("");
   const data = generateData(period);
 
   const minStock = 5;
-  const crossingPoint = data.find(
-    (d) => d.forecast !== null && d.forecast <= minStock,
-  );
-
+  const crossingPoint = data.find((d) => d.forecast !== null && d.forecast <= minStock);
 
   return (
     <Layout title="Previsão de Demanda">
-      <PageHeader title="Previsão de demanda" description="Projeção de demanda por produto e armazém, com o estoque necessário para atendê-la." />
+      <PageHeader
+        title="Previsão de demanda"
+        description="Projeção de demanda por produto e armazém, com o estoque necessário para atendê-la."
+      />
 
       {/* Top bar */}
       <div
@@ -138,7 +150,7 @@ export function ForecastingPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search product or SKU..."
+            placeholder="Buscar produto ou categoria..."
             style={{
               background: "transparent",
               border: "none",
@@ -194,12 +206,10 @@ export function ForecastingPage() {
                   boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
                 }}
                 onMouseOver={(e) => {
-                  if (!isActive)
-                    e.currentTarget.style.color = theme.textPrimary;
+                  if (!isActive) e.currentTarget.style.color = theme.textPrimary;
                 }}
                 onMouseOut={(e) => {
-                  if (!isActive)
-                    e.currentTarget.style.color = theme.textSecondary;
+                  if (!isActive) e.currentTarget.style.color = theme.textSecondary;
                 }}
               >
                 {p}
@@ -275,32 +285,20 @@ export function ForecastingPage() {
             >
               <Activity size={14} color={theme.accent} />
               <span style={{ fontSize: 12, color: theme.textSecondary }}>
-                Modelo:{" "}
-                <strong style={{ color: theme.textPrimary }}>ARIMA-X</strong>
+                Modelo: <strong style={{ color: theme.textPrimary }}>ARIMA-X</strong>
               </span>
             </div>
           </div>
 
           <ResponsiveContainer width="100%" height={320}>
-            <AreaChart
-              data={data}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            >
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor={theme.accent}
-                    stopOpacity={0.2}
-                  />
+                  <stop offset="5%" stopColor={theme.accent} stopOpacity={0.2} />
                   <stop offset="95%" stopColor={theme.accent} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke={theme.border}
-                vertical={false}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke={theme.border} vertical={false} />
               <XAxis
                 dataKey="date"
                 tick={{
@@ -338,9 +336,7 @@ export function ForecastingPage() {
                   color: theme.textSecondary,
                   paddingTop: 20,
                 }}
-                formatter={(value) => (
-                  <span style={{ color: theme.textSecondary }}>{value}</span>
-                )}
+                formatter={(value) => <span style={{ color: theme.textSecondary }}>{value}</span>}
               />
 
               <ReferenceLine
@@ -480,9 +476,7 @@ export function ForecastingPage() {
               >
                 2
               </div>
-              <div style={{ fontSize: 12, color: theme.textSecondary }}>
-                / Min: 5 unidades
-              </div>
+              <div style={{ fontSize: 12, color: theme.textSecondary }}>/ Min: 5 unidades</div>
             </div>
           </div>
 
@@ -508,9 +502,7 @@ export function ForecastingPage() {
                   borderLeft: `3px solid ${f.belowMin ? theme.danger : theme.accent}`,
                 }}
               >
-                <span style={{ fontSize: 13, color: theme.textSecondary }}>
-                  Em {f.label}
-                </span>
+                <span style={{ fontSize: 13, color: theme.textSecondary }}>Em {f.label}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span
                     style={{
@@ -522,9 +514,7 @@ export function ForecastingPage() {
                   >
                     {f.value}
                   </span>
-                  {f.belowMin && (
-                    <AlertTriangle size={14} color={theme.danger} />
-                  )}
+                  {f.belowMin && <AlertTriangle size={14} color={theme.danger} />}
                 </div>
               </div>
             ))}
@@ -577,11 +567,7 @@ export function ForecastingPage() {
               marginTop: "auto",
             }}
           >
-            <AlertTriangle
-              size={16}
-              color={theme.danger}
-              style={{ flexShrink: 0, marginTop: 2 }}
-            />
+            <AlertTriangle size={16} color={theme.danger} style={{ flexShrink: 0, marginTop: 2 }} />
             <div>
               <div
                 style={{
@@ -594,13 +580,15 @@ export function ForecastingPage() {
                 Alerta Crítico de Ruptura
               </div>
               <div style={{ fontSize: 12, color: theme.danger, opacity: 0.8 }}>
-                Ruptura de estoque (stockout) prevista para os próximos 4 dias
-                se não houver reposição.
+                Ruptura de estoque (stockout) prevista para os próximos 4 dias se não houver
+                reposição.
               </div>
             </div>
           </div>
         </motion.div>
       </motion.div>
+
+      <ForecastAccuracySection accuracy={accuracy} detail={detail} search={search} />
 
       {/* Alerts Section */}
       <div>
@@ -625,8 +613,7 @@ export function ForecastingPage() {
           }}
         >
           {stockAlerts.map((alert) => {
-            const style =
-              severityColor[alert.severity as keyof typeof severityColor];
+            const style = severityColor[alert.severity as keyof typeof severityColor];
             return (
               <motion.div
                 variants={staggerItem}
@@ -682,9 +669,7 @@ export function ForecastingPage() {
                     marginBottom: 16,
                   }}
                 >
-                  <div style={{ fontSize: 12, color: theme.textSecondary }}>
-                    {alert.warehouse}
-                  </div>
+                  <div style={{ fontSize: 12, color: theme.textSecondary }}>{alert.warehouse}</div>
                   <div
                     style={{
                       width: 4,

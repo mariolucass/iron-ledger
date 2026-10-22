@@ -2,31 +2,18 @@ import { inventoryApi, type InventoryQuery } from "@/entities/inventory";
 import { warehouseApi } from "@/entities/warehouse";
 import { withSession } from "@/shared/auth/with-session";
 import type { InventoryItem, Movement } from "./inventoryData";
+import { presentInventoryPage } from "./present-inventory";
 
 const dateTime = (value: string) => new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short", timeStyle: "short",
 }).format(new Date(value));
 
-export const PAGE_SIZE = 20;
+export { PAGE_SIZE } from "./pagination";
+import { PAGE_SIZE } from "./pagination";
 
 /** Page-specific presentation; entity clients keep the original API contract. */
 export async function fetchInventoryPage(query: InventoryQuery): Promise<{ items: InventoryItem[]; total: number }> {
-  const body = await withSession(inventoryApi.list({ pageSize: PAGE_SIZE, ...query }));
-  const items = body.items.map((item): InventoryItem => ({
-    stockLevelId: item.stockLevelId,
-    sku: item.sku,
-    product: item.productName,
-    warehouse: item.warehouseName,
-    warehouseId: item.warehouseId,
-    quantity: item.quantity,
-    unit: item.unit,
-    available: item.available,
-    reserved: item.reserved,
-    min: item.minStock,
-    status: item.status,
-    lastMovement: dateTime(item.updatedAt),
-  }));
-  return { items, total: body.total };
+  return presentInventoryPage(await withSession(inventoryApi.list({ pageSize: PAGE_SIZE, ...query })));
 }
 
 export async function fetchWarehouses() {

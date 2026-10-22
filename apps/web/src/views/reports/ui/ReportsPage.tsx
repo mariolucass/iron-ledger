@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import { useState } from "react";
+import { format as formatDate, subMonths } from "date-fns";
 import {
   Bar,
   BarChart,
@@ -89,11 +90,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function ReportsPage() {
   const [reportType, setReportType] = useState(reportTypes[0]);
   const [format, setFormat] = useState(formats[0]);
-  const [periodFrom, setPeriodFrom] = useState("2026-06-01");
-  const [periodTo, setPeriodTo] = useState("2026-06-09");
+  const [periodFrom, setPeriodFrom] = useState(() => formatDate(subMonths(new Date(), 1), "yyyy-MM-01"));
+  const [periodTo, setPeriodTo] = useState(() => formatDate(new Date(), "yyyy-MM-01"));
   const [isGenerating, setIsGenerating] = useState(false);
+  const today = formatDate(new Date(), "yyyy-MM-dd");
+  const invalidPeriod = !periodFrom || !periodTo || periodFrom > periodTo || periodFrom > today || periodTo > today;
 
   const handleGenerate = () => {
+    const currentDate = formatDate(new Date(), "yyyy-MM-dd");
+    if (!periodFrom || !periodTo || periodFrom > periodTo || periodFrom > currentDate || periodTo > currentDate) return;
     setIsGenerating(true);
     setTimeout(() => setIsGenerating(false), 2000); // Simula o tempo de geração
   };
@@ -223,7 +228,7 @@ export function ReportsPage() {
               <DatePicker
                 aria-label="Data inicial"
                 value={periodFrom}
-                max={periodTo || undefined}
+                max={periodTo && periodTo < today ? periodTo : today}
                 onChange={setPeriodFrom}
                 clearable={false}
                 className="h-10 flex-1"
@@ -233,11 +238,17 @@ export function ReportsPage() {
                 aria-label="Data final"
                 value={periodTo}
                 min={periodFrom || undefined}
+                max={today}
                 onChange={setPeriodTo}
                 clearable={false}
                 className="h-10 flex-1"
               />
             </div>
+            {invalidPeriod && (
+              <p role="alert" className="mt-2 text-xs text-destructive">
+                Selecione um período válido até a data de hoje. Não é possível gerar relatórios do futuro.
+              </p>
+            )}
           </div>
 
           {/* Formato */}
@@ -276,20 +287,20 @@ export function ReportsPage() {
         >
           <button
             onClick={handleGenerate}
-            disabled={isGenerating}
+            disabled={isGenerating || invalidPeriod}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 8,
-              background: isGenerating ? theme.surfaceHover : theme.accent,
-              color: isGenerating ? theme.textSecondary : "#000",
-              border: `1px solid ${isGenerating ? theme.border : "transparent"}`,
+              background: isGenerating || invalidPeriod ? theme.surfaceHover : theme.accent,
+              color: isGenerating || invalidPeriod ? theme.textSecondary : "#000",
+              border: `1px solid ${isGenerating || invalidPeriod ? theme.border : "transparent"}`,
               borderRadius: 8,
               padding: "12px 24px",
               fontSize: 14,
               fontWeight: 700,
-              cursor: isGenerating ? "not-allowed" : "pointer",
-              boxShadow: isGenerating ? "none" : `0 0 16px ${theme.accentGlow}`,
+              cursor: isGenerating || invalidPeriod ? "not-allowed" : "pointer",
+              boxShadow: isGenerating || invalidPeriod ? "none" : `0 0 16px ${theme.accentGlow}`,
               transition: "all 0.2s",
             }}
           >

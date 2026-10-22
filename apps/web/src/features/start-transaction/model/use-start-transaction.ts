@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import type { z } from "zod";
 import { transactionApi, type TransactionDetail } from "@/entities/transaction";
 import { withSession } from "@/shared/auth/with-session";
 import { startTransactionSchema } from "./start-transaction-schema";
@@ -11,45 +14,44 @@ interface Options {
   onStarted: (transaction: TransactionDetail) => void;
 }
 
+type FormInput = z.input<typeof startTransactionSchema>;
+type FormOutput = z.output<typeof startTransactionSchema>;
+
 export function useStartTransaction({ items, onStarted }: Options) {
   const sellable = useMemo(() => items.filter((item) => item.available > 0), [items]);
-  const [chosenStockLevelId, setStockLevelId] = useState("");
-  // Os saldos podem chegar depois da abertura do formulário: assume o primeiro disponível.
-  const stockLevelId = chosenStockLevelId || sellable[0]?.stockLevelId || "";
-  const [quantity, setQuantity] = useState("1");
-  const [externalRef, setExternalRef] = useState("");
-  const [failConfirmation, setFailConfirmation] = useState(false);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  // Uma chave por abertura do formulário: reenvios do mesmo pedido não duplicam a transação.
   const [idempotencyKey] = useState(() => `web-${crypto.randomUUID()}`);
-
+  const form = useForm<FormInput, unknown, FormOutput>({
+    resolver: zodResolver(startTransactionSchema),
+    defaultValues: {
+      stockLevelId: sellable[0]?.stockLevelId ?? "",
+      quantity: 1,
+      externalRef: "",
+      failConfirmation: false,
+    },
+  });
+  const { getValues, setValue } = form;
+  const stockLevelId = form.watch("stockLevelId");
   const selected = sellable.find((item) => item.stockLevelId === stockLevelId);
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  useEffect(() => {
+    if (!getValues("stockLevelId") && sellable[0])
+      setValue("stockLevelId", sellable[0].stockLevelId);
+  }, [getValues, setValue, sellable]);
+
+  const submit = form.handleSubmit(async (values) => {
     setError("");
-    const result = startTransactionSchema.safeParse({ stockLevelId, quantity, externalRef, failConfirmation });
-    if (!result.success) {
-      setError(result.error.issues[0]?.message ?? "Dados inválidos.");
+    const current = sellable.find((item) => item.stockLevelId === values.stockLevelId);
+    if (current && values.quantity > current.available) {
+      form.setError("quantity", { message: `Disponível para este saldo: ${current.available}.` });
       return;
     }
-    if (selected && result.data.quantity > selected.available) {
-      setError(`Disponível para este saldo: ${selected.available}.`);
-      return;
-    }
-    setSubmitting(true);
     try {
-      onStarted(await withSession(transactionApi.start(result.data, { idempotencyKey })));
+      onStarted(await withSession(transactionApi.start(values, { idempotencyKey })));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível iniciar a transação.");
-    } finally {
-      setSubmitting(false);
     }
-  };
+  });
 
-  return {
-    sellable, selected, stockLevelId, setStockLevelId, quantity, setQuantity,
-    externalRef, setExternalRef, failConfirmation, setFailConfirmation, error, submitting, submit,
-  };
+  return { form, sellable, selected, stockLevelId, error, submit };
 }

@@ -1,9 +1,19 @@
 "use client";
 
-import { Save } from "lucide-react";
+import { Check, Save } from "lucide-react";
 import { USER_STATUSES, userStatusLabel, type RoleSummary, type UserDetail } from "@/entities/user";
-import { Button } from "@/shared/ui/kit/button";
-import { Field, StatusMessage, inputClass } from "@/shared/ui/form-primitives";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormFieldRow,
+  FormItem,
+  FormMessage,
+} from "@/shared/ui/kit/form";
+import { cn } from "@/shared/ui/kit/utils";
+import { inputClass } from "@/shared/ui/form-primitives";
+import { SelectInput } from "@/shared/ui/kit/select";
+import { FormActions, FormSection } from "@/shared/ui/form-page";
 import { useUserForm } from "../model/use-user-form";
 
 export function UserForm({
@@ -18,80 +28,145 @@ export function UserForm({
   onCancel: () => void;
 }) {
   const { form, submit, status, isEditing } = useUserForm({ user, onSaved });
-  const {
-    register,
-    watch,
-    setValue,
-    formState: { errors, isSubmitting, isDirty },
-  } = form;
-  const selected = watch("roles");
-
-  const toggleRole = (name: string, checked: boolean) =>
-    setValue("roles", checked ? [...selected, name] : selected.filter((role) => role !== name), { shouldDirty: true });
+  const { isSubmitting, isDirty } = form.formState;
 
   return (
-    <form onSubmit={submit} noValidate className="grid max-w-[960px] gap-6">
-      <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="m-0 text-base font-bold text-foreground">Dados do usuário</h2>
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          <Field label="Nome completo" error={errors.name?.message}>
-            {(props) => <input {...props} {...register("name")} className={inputClass} autoComplete="off" />}
-          </Field>
-          <Field label="E-mail" error={errors.email?.message} hint={isEditing ? "O e-mail não pode ser alterado." : undefined}>
-            {(props) => (
-              <input {...props} {...register("email")} className={inputClass} type="email" readOnly={isEditing} disabled={isEditing} autoComplete="off" spellCheck={false} />
-            )}
-          </Field>
-          {isEditing ? (
-            <Field label="Situação" error={errors.status?.message} hint="Usuários inativos ou suspensos não conseguem entrar.">
-              {(props) => (
-                <select {...props} {...register("status")} className={inputClass}>
-                  {USER_STATUSES.map((value) => <option key={value} value={value}>{userStatusLabel[value]}</option>)}
-                </select>
-              )}
-            </Field>
-          ) : (
-            <Field label="Senha inicial" error={errors.password?.message} hint="A pessoa pode trocá-la depois em Configurações > Segurança.">
-              {(props) => <input {...props} {...register("password")} className={inputClass} type="password" autoComplete="new-password" />}
-            </Field>
-          )}
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="m-0 text-base font-bold text-foreground">Papéis</h2>
-        <p className="mt-1 mb-0 text-[13px] text-muted-foreground">Sem nenhum papel, o usuário só consulta informações.</p>
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {roles.map((role) => (
-            <label
-              key={role.id}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${selected.includes(role.name) ? "border-primary/50 bg-primary-soft" : "border-border bg-background hover:border-border-strong"}`}
-            >
+    <Form {...form}>
+      <form onSubmit={submit} noValidate className="grid gap-9">
+        <FormSection title="Dados do usuário">
+          <FormFieldRow control={form.control} name="name" label="Nome completo">
+            {(field) => <input {...field} className={inputClass} autoComplete="off" />}
+          </FormFieldRow>
+          <FormFieldRow
+            control={form.control}
+            name="email"
+            label="E-mail"
+            description={isEditing ? "O e-mail não pode ser alterado." : undefined}
+          >
+            {(field) => (
               <input
-                type="checkbox"
-                className="mt-0.5 size-4 accent-[var(--primary)]"
-                checked={selected.includes(role.name)}
-                onChange={(event) => toggleRole(role.name, event.target.checked)}
+                {...field}
+                className={inputClass}
+                type="email"
+                readOnly={isEditing}
+                disabled={isEditing}
+                autoComplete="off"
+                spellCheck={false}
               />
-              <span className="min-w-0">
-                <span className="block font-mono text-sm font-semibold text-foreground">{role.name}</span>
-                <span className="mt-0.5 block text-[13px] leading-normal text-muted-foreground">{role.description ?? "Sem descrição."}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </section>
+            )}
+          </FormFieldRow>
+          {isEditing ? (
+            <FormFieldRow
+              control={form.control}
+              name="status"
+              label="Situação"
+              description="Usuários inativos ou suspensos não conseguem entrar."
+            >
+              {(field) => (
+                <SelectInput
+                  {...field}
+                  options={USER_STATUSES.map((value) => ({
+                    value: value,
+                    label: userStatusLabel[value],
+                  }))}
+                />
+              )}
+            </FormFieldRow>
+          ) : (
+            <FormFieldRow
+              control={form.control}
+              name="password"
+              label="Senha inicial"
+              description="A pessoa pode trocá-la depois em Configurações > Segurança."
+            >
+              {(field) => (
+                <input
+                  {...field}
+                  className={inputClass}
+                  type="password"
+                  autoComplete="new-password"
+                />
+              )}
+            </FormFieldRow>
+          )}
+        </FormSection>
 
-      <StatusMessage status={status} />
+        <FormField
+          control={form.control}
+          name="roles"
+          render={({ field }) => (
+            <FormItem className="gap-3">
+              <FormSection
+                title="Papéis"
+                description="Sem nenhum papel, o usuário só consulta informações."
+                flush
+              >
+                <FormControl>
+                  <div
+                    role="group"
+                    aria-label="Papéis do usuário"
+                    className="divide-y divide-border"
+                  >
+                    {roles.map((role) => {
+                      const checked = field.value.includes(role.name);
+                      return (
+                        <label
+                          key={role.id}
+                          className="flex cursor-pointer items-center gap-4 px-5 py-3.5 transition-colors duration-150 hover:bg-card-hover has-[:focus-visible]:bg-card-hover motion-reduce:transition-none md:px-6"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-mono text-[13.5px] font-medium text-foreground">
+                              {role.name}
+                            </span>
+                            <span className="mt-0.5 block text-[13px] leading-snug font-normal text-muted-foreground">
+                              {role.description ?? "Sem descrição."}
+                            </span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            className="peer sr-only"
+                            checked={checked}
+                            onChange={(event) =>
+                              field.onChange(
+                                event.target.checked
+                                  ? [...field.value, role.name]
+                                  : field.value.filter((name) => name !== role.name),
+                              )
+                            }
+                          />
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "grid size-[22px] shrink-0 place-items-center rounded-full border transition-colors duration-150 peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary/30 motion-reduce:transition-none",
+                              checked
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border-strong",
+                            )}
+                          >
+                            {checked && <Check size={13} strokeWidth={3} />}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </FormControl>
+              </FormSection>
+              <FormMessage className="px-1" />
+            </FormItem>
+          )}
+        />
 
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="ghost" size="lg" onClick={onCancel} disabled={isSubmitting}>
-          {isEditing ? "Voltar" : "Cancelar"}
-        </Button>
-        <Button type="submit" size="lg" disabled={isSubmitting || (isEditing && !isDirty)}>
-          <Save /> {isSubmitting ? "Salvando…" : isEditing ? "Guardar alterações" : "Criar usuário"}
-        </Button>
-      </div>
-    </form>
+        <FormActions
+          status={status}
+          onCancel={onCancel}
+          cancelLabel={isEditing ? "Voltar" : "Cancelar"}
+          submitting={isSubmitting}
+          disabled={isEditing && !isDirty}
+          dirty={isEditing ? isDirty : undefined}
+          icon={<Save />}
+          submitLabel={isEditing ? "Guardar alterações" : "Criar usuário"}
+        />
+      </form>
+    </Form>
   );
 }

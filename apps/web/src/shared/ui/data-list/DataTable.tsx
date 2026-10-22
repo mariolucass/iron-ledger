@@ -9,6 +9,8 @@ import { TableRowsSkeleton } from "../page-skeletons";
 
 const hideBelow = { sm: "max-sm:hidden", md: "max-md:hidden", lg: "max-lg:hidden", xl: "max-xl:hidden" } as const;
 
+const glass = "border border-ink/10 bg-ink/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl";
+
 const tone = { danger: "bg-destructive-soft/60", warning: "bg-warning-soft/50" } as const;
 
 export interface Column<T> {
@@ -69,18 +71,79 @@ export function DataTable<T>({ columns, rows, getRowKey, rowHref, expandable, on
   const interactive = Boolean(rowHref || expandable || onRowClick);
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
-      <div className="overflow-x-auto">
+    <div className="md:overflow-hidden md:rounded-2xl md:border md:border-ink/10 md:bg-ink/[0.03] md:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:backdrop-blur-xl">
+      {/* Celular: cada linha vira um cartão com todas as colunas (nenhum dado some, nada rola na horizontal). */}
+      <ul aria-label={caption} aria-busy={loading} className={`m-0 grid list-none gap-3 p-0 transition-opacity duration-150 md:hidden motion-reduce:transition-none ${loading && rows.length ? "opacity-60" : ""}`}>
+        {showSkeleton && [0, 1, 2].map((key) => (
+          <li key={key} aria-hidden className={`h-28 animate-pulse rounded-2xl ${glass} motion-reduce:animate-none`} />
+        ))}
+        {rows.map((row) => {
+          const key = getRowKey(row);
+          const href = rowHref?.(row);
+          const open = expandable?.isExpanded(row) ?? false;
+          const detailId = `${idBase}-m-${key}`;
+          const highlight = rowTone?.(row);
+          const [first, ...rest] = columns;
+          const title = first.cell(row);
+          return (
+            <li
+              key={key}
+              onClick={interactive ? (event) => handleRowClick(event, row) : undefined}
+              className={`rounded-2xl border border-ink/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl ${highlight ? tone[highlight] : "bg-ink/[0.03]"} ${interactive ? "cursor-pointer active:bg-ink/[0.06]" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 text-[15px] font-medium break-words">
+                  {href ? (
+                    <Link href={href} className="rounded-md text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/60">{title}</Link>
+                  ) : onRowClick ? (
+                    <button type="button" onClick={() => onRowClick(row)} className="cursor-pointer rounded-md border-0 bg-transparent p-0 text-left text-inherit outline-none focus-visible:ring-2 focus-visible:ring-primary/60">{title}</button>
+                  ) : (
+                    title
+                  )}
+                </div>
+                {expandable ? (
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    aria-controls={detailId}
+                    aria-label={expandable.label(row)}
+                    onClick={() => expandable.onToggle(row)}
+                    className="grid size-10 shrink-0 -translate-y-1 translate-x-1 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-ink/55 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  >
+                    <ChevronRight size={18} aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-90 text-primary" : ""}`} />
+                  </button>
+                ) : href ? (
+                  <ChevronRight size={18} aria-hidden className="mt-0.5 shrink-0 text-ink/40" />
+                ) : null}
+              </div>
+              {rest.length > 0 && (
+                <dl className="m-0 mt-3 grid gap-2.5 border-t border-ink/[0.08] pt-3">
+                  {rest.map((column) => (
+                    <div key={column.id} className="flex items-baseline justify-between gap-4 text-[14px]">
+                      <dt className="shrink-0 text-[12.5px] text-ink/55">{column.header}</dt>
+                      <dd className={`m-0 min-w-0 text-right break-words ${column.className ?? ""}`}>{column.cell(row)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {open && expandable && (
+                <div id={detailId} className="-mx-4 mt-4 -mb-4 rounded-b-2xl border-t border-ink/[0.08] border-l-2 border-l-primary/70 bg-sunken px-4 py-4">{expandable.render(row)}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="hidden overflow-x-auto md:block">
         <table style={{ minWidth }} className="w-full border-collapse text-left text-[14px]">
           <caption className="sr-only">{caption}</caption>
           <thead>
-            <tr className="border-b border-white/[0.08] bg-white/[0.025]">
+            <tr className="border-b border-ink/[0.08] bg-ink/[0.025]">
               {expandable && <th scope="col" className="w-12 px-3 py-3.5"><span className="sr-only">Detalhes</span></th>}
               {columns.map((column) => (
                 <th
                   key={column.id}
                   scope="col"
-                  className={`px-5 py-3.5 text-[12.5px] font-medium tracking-[-0.005em] text-white/55 ${column.align === "right" ? "text-right" : ""} ${column.hideBelow ? hideBelow[column.hideBelow] : ""}`}
+                  className={`px-4 py-3 text-[12.5px] font-medium tracking-[-0.005em] text-ink/55 ${column.align === "right" ? "text-right" : ""} ${column.hideBelow ? hideBelow[column.hideBelow] : ""}`}
                 >
                   {column.header}
                 </th>
@@ -99,7 +162,7 @@ export function DataTable<T>({ columns, rows, getRowKey, rowHref, expandable, on
                 <Fragment key={key}>
                   <tr
                     onClick={interactive ? (event) => handleRowClick(event, row) : undefined}
-                    className={`border-b border-white/[0.06] transition-colors duration-150 last:border-0 motion-reduce:transition-none ${highlight ? tone[highlight] : ""} ${interactive ? "cursor-pointer hover:bg-white/[0.05] focus-within:bg-white/[0.05]" : ""} ${open ? "bg-white/[0.05]" : ""}`}
+                    className={`border-b border-ink/[0.06] transition-colors duration-150 last:border-0 motion-reduce:transition-none ${highlight ? tone[highlight] : ""} ${interactive ? "cursor-pointer hover:bg-ink/[0.05] focus-within:bg-ink/[0.05]" : ""} ${open ? "bg-ink/[0.05]" : ""}`}
                   >
                     {expandable && (
                       <td className="w-12 px-3 py-4 text-center align-middle">
@@ -109,7 +172,7 @@ export function DataTable<T>({ columns, rows, getRowKey, rowHref, expandable, on
                           aria-controls={detailId}
                           aria-label={expandable.label(row)}
                           onClick={() => expandable.onToggle(row)}
-                          className="inline-grid size-8 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-white/55 outline-none transition-colors hover:bg-white/[0.08] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none"
+                          className="inline-grid size-8 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-ink/55 outline-none transition-colors hover:bg-ink/[0.08] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none"
                         >
                           <ChevronRight size={17} aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-90 text-primary" : ""}`} />
                         </button>
@@ -120,7 +183,7 @@ export function DataTable<T>({ columns, rows, getRowKey, rowHref, expandable, on
                       return (
                         <td
                           key={column.id}
-                          className={`px-5 py-4 align-middle ${column.align === "right" ? "text-right tabular-nums" : ""} ${column.hideBelow ? hideBelow[column.hideBelow] : ""} ${column.className ?? ""}`}
+                          className={`px-4 py-4 align-middle ${column.align === "right" ? "text-right tabular-nums" : ""} ${column.hideBelow ? hideBelow[column.hideBelow] : ""} ${column.className ?? ""}`}
                         >
                           {href && index === 0 ? (
                             <Link href={href} className="rounded-md text-foreground outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60">
@@ -138,9 +201,9 @@ export function DataTable<T>({ columns, rows, getRowKey, rowHref, expandable, on
                     })}
                   </tr>
                   {open && expandable && (
-                    <tr id={detailId} className="border-b border-white/[0.06] last:border-0">
+                    <tr id={detailId} className="border-b border-ink/[0.06] last:border-0">
                       <td colSpan={columnCount} className="p-0">
-                        <div className="border-l-2 border-primary/70 bg-black/25 py-5 pr-5 pl-6 md:pl-[4.25rem]">{expandable.render(row)}</div>
+                        <div className="border-l-2 border-primary/70 bg-sunken px-6 py-4 md:pl-16">{expandable.render(row)}</div>
                       </td>
                     </tr>
                   )}
@@ -150,7 +213,7 @@ export function DataTable<T>({ columns, rows, getRowKey, rowHref, expandable, on
           </tbody>
         </table>
       </div>
-      {showEmpty && empty}
+      {showEmpty && <div className="max-md:rounded-2xl max-md:border max-md:border-ink/10 max-md:bg-ink/[0.03] md:contents">{empty}</div>}
     </div>
   );
 }

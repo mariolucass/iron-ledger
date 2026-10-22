@@ -11,7 +11,7 @@ export default function Loading() {
     <PageLoading>
       <DetailHeaderSkeleton />
       <StatGridSkeleton />
-      <div className="grid max-w-[960px] gap-6">
+      <div className="grid max-w-240 gap-6">
         <PanelSkeleton rows={4} />
         <ChartSkeleton className="h-48" />
       </div>

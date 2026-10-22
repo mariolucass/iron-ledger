@@ -100,6 +100,63 @@ export interface InflectionPointsResponse {
   offset: number;
 }
 
+export type AccuracyStatus = "GOOD" | "FAIR" | "POOR" | "UNKNOWN";
+
+export interface ForecastAccuracyItem {
+  product_id: string;
+  category: string;
+  units_total: number;
+  evaluated_weeks: number;
+  evaluated_units: number;
+  /** 1 - WAPE, de 0 a 1. Nulo quando não houve venda na janela avaliada. */
+  accuracy: number | null;
+  wape: number | null;
+  /** (previsto - real) / real: positivo superestima, negativo subestima. */
+  bias: number | null;
+  interval_coverage: number | null;
+  status: AccuracyStatus;
+  next_period_start: string;
+  next_predicted: number;
+}
+
+export interface ForecastAccuracyResponse {
+  items: ForecastAccuracyItem[];
+  summary: {
+    products: number;
+    skipped_products: number;
+    accuracy: number | null;
+    wape: number | null;
+    bias: number | null;
+    evaluated_units: number;
+    evaluated_until: string | null;
+    by_status: Record<"GOOD" | "FAIR" | "POOR", number>;
+  };
+  model: {
+    name: string;
+    description: string;
+    granularity: string;
+    window_weeks: number;
+    evaluation_weeks: number;
+    interval_confidence: number;
+    thresholds: { good: number; fair: number };
+    source: string;
+    limitation: string;
+  };
+}
+
+export interface ForecastAccuracyPoint {
+  periodStart: string;
+  actual: number;
+  predicted: number;
+  lower: number | null;
+  upper: number | null;
+  error: number;
+}
+
+export interface ForecastAccuracyDetail extends ForecastAccuracyItem {
+  series: ForecastAccuracyPoint[];
+}
+
 export class AnalyticsError extends Error {
   constructor(public readonly status: number) {
     super(
@@ -150,3 +207,16 @@ export function getInflectionPoints(
 
 export const getInflectionPoint = (slug: string) =>
   analyticsGet<InflectionPoint>(`/analytics/inflection-points/${encodeURIComponent(slug)}`);
+
+export function getForecastAccuracy(query: { category?: string; search?: string; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  return analyticsGet<ForecastAccuracyResponse>(`/analytics/forecast-accuracy?${params}`);
+}
+
+export const getForecastAccuracyDetail = (productId: string) =>
+  analyticsGet<ForecastAccuracyDetail>(
+    `/analytics/forecast-accuracy/${encodeURIComponent(productId)}`,
+  );
