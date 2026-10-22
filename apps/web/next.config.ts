@@ -17,6 +17,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
 
+  // Acesso ao dev server por outros dispositivos via Tailscale (IP 100.x.y.z ou MagicDNS)
+  allowedDevOrigins: ["100.*.*.*", "*.ts.net", "**.ts.net"],
+
   // Requer: npm i -D babel-plugin-react-compiler
   reactCompiler: true,
 

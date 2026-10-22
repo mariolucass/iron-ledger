@@ -16,15 +16,10 @@ import type {
 
 export const inventoryApi = {
   list: (query: InventoryQuery = {}) =>
-    requestJson<PaginatedResponse<InventoryItem>>(
-      withQuery("/api/inventory", query),
-    ),
+    requestJson<PaginatedResponse<InventoryItem>>(withQuery("/api/inventory", query)),
   listMovements: (stockLevelId: string, query: PaginationQuery = {}) =>
     requestJson<PaginatedResponse<StockMovement>>(
-      withQuery(
-        `/api/inventory/${encodeURIComponent(stockLevelId)}/movements`,
-        query,
-      ),
+      withQuery(`/api/inventory/${encodeURIComponent(stockLevelId)}/movements`, query),
     ),
   createMovement: (input: CreateMovementInput) =>
     requestJson<StockMovement>("/api/inventory/movements", {
@@ -37,12 +32,9 @@ export const inventoryApi = {
       body: JSON.stringify(input),
     }),
   releaseReservation: (id: string) =>
-    requestJson<StockReservation>(
-      `/api/inventory/reservations/${encodeURIComponent(id)}/release`,
-      {
-        method: "POST",
-      },
-    ),
+    requestJson<StockReservation>(`/api/inventory/reservations/${encodeURIComponent(id)}/release`, {
+      method: "POST",
+    }),
   commitReservation: (id: string) =>
     requestJson<CommitReservationResponse>(
       `/api/inventory/reservations/${encodeURIComponent(id)}/commit`,

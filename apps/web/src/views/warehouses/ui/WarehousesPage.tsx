@@ -3,6 +3,7 @@
 import { Boxes, Layers, MapPin, Plus, Warehouse as WarehouseIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import {
   WAREHOUSE_TYPES,
@@ -11,6 +12,7 @@ import {
   type WarehouseSummary,
   type WarehouseType,
 } from "@/entities/warehouse";
+import { WarehouseDialog } from "@/features/save-warehouse";
 import { withSession } from "@/shared/auth/with-session";
 import { useDebounced } from "@/shared/lib/use-debounced";
 import { useRemoteList } from "@/shared/lib/use-remote-list";
@@ -24,6 +26,7 @@ import {
   StatCard,
   primaryActionClass,
 } from "@/shared/ui/data-list";
+import { StatusMessage, type Status } from "@/shared/ui/form-primitives";
 import { Badge } from "@/shared/ui/kit/badge";
 import { CardGridSkeleton } from "@/shared/ui/page-skeletons";
 import { Layout } from "@/widgets/layout";
@@ -49,16 +52,16 @@ function WarehouseCard({ warehouse }: { warehouse: WarehouseSummary }) {
   return (
     <Link
       href={`/warehouses/${warehouse.id}` as Route}
-      className={`group grid gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 outline-none hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${warehouse.isActive ? "" : "opacity-70"}`}
+      className={`group grid gap-4 rounded-[24px] border border-ink/10 bg-ink/[0.03] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 outline-none hover:-translate-y-0.5 hover:border-ink/20 hover:bg-ink/[0.06] focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${warehouse.isActive ? "" : "opacity-70"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-mono text-[13px] text-white/55">{warehouse.code}</div>
+          <div className="font-mono text-[13px] text-ink/55">{warehouse.code}</div>
           <h2 className="m-0 mt-1 truncate text-[18px] font-semibold tracking-[-0.025em] text-foreground group-hover:text-primary">
             {warehouse.name}
           </h2>
           {(warehouse.city || warehouse.state) && (
-            <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-white/55">
+            <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-ink/55">
               <MapPin size={13} aria-hidden />{" "}
               {[warehouse.city, warehouse.state].filter(Boolean).join(", ")}
             </div>
@@ -71,10 +74,10 @@ function WarehouseCard({ warehouse }: { warehouse: WarehouseSummary }) {
           <Badge variant="outline">{warehouseTypeLabel[warehouse.type]}</Badge>
         </div>
       </div>
-      <dl className="m-0 grid grid-cols-4 gap-2 border-t border-white/[0.08] pt-4 text-center">
+      <dl className="m-0 grid grid-cols-4 gap-2 border-t border-ink/[0.08] pt-4 text-center">
         {stats.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-[12.5px] text-white/55">{label}</dt>
+            <dt className="text-[12.5px] text-ink/55">{label}</dt>
             <dd className="m-0 mt-0.5 text-[15px] font-semibold text-foreground tabular-nums">
               {value}
             </dd>
@@ -85,10 +88,12 @@ function WarehouseCard({ warehouse }: { warehouse: WarehouseSummary }) {
   );
 }
 
-export function WarehousesPage() {
+export function WarehousesPage({ initial }: { initial: { items: WarehouseSummary[]; total: number } }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("active");
   const [type, setType] = useState<WarehouseType | "">("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [notice, setNotice] = useState<Status>(null);
   const q = useDebounced(search.trim());
 
   const { items, total, loading, error, refresh } = useRemoteList(
@@ -101,7 +106,7 @@ export function WarehousesPage() {
           pageSize: PAGE_SIZE,
         }),
       ),
-    [q, status, type],
+    [q, status, type], initial,
   );
 
   const units = items.reduce((sum, item) => sum + item.totalQuantity, 0);
@@ -114,9 +119,9 @@ export function WarehousesPage() {
         title="Armazéns"
         description="Instalações, localizações e estoque por unidade."
         actions={
-          <Link href="/warehouses/new" className={primaryActionClass}>
+          <button type="button" onClick={() => setDialogOpen(true)} className={primaryActionClass}>
             <Plus size={17} aria-hidden /> Registrar instalação
-          </Link>
+          </button>
         }
       />
 
@@ -150,6 +155,8 @@ export function WarehousesPage() {
         />
       </FilterBar>
 
+      <div className="mb-4 empty:hidden"><StatusMessage status={notice} /></div>
+
       {error && <ListError message={error} onRetry={() => void refresh()} />}
 
       {loading && items.length === 0 && !error && <CardGridSkeleton count={3} />}
@@ -164,7 +171,7 @@ export function WarehousesPage() {
       </div>
 
       {!loading && items.length === 0 && !error && (
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+        <div className="rounded-[24px] border border-ink/10 bg-ink/[0.03] backdrop-blur-xl">
           <EmptyState
             icon={WarehouseIcon}
             message={
@@ -174,14 +181,26 @@ export function WarehousesPage() {
             }
             action={
               !filtered && (
-                <Link href="/warehouses/new" className={primaryActionClass}>
+                <button type="button" onClick={() => setDialogOpen(true)} className={primaryActionClass}>
                   <Plus size={17} aria-hidden /> Registrar a primeira instalação
-                </Link>
+                </button>
               )
             }
           />
         </div>
       )}
+
+      <AnimatePresence>
+        {dialogOpen && (
+          <WarehouseDialog
+            onClose={() => setDialogOpen(false)}
+            onCreated={(warehouse) => {
+              setNotice({ type: "success", message: `Instalação ${warehouse.code} registrada.` });
+              void refresh();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </Layout>
   );
 }

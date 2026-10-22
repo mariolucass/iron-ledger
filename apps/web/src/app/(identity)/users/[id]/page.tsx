@@ -1,12 +1,17 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { UserEditorPage } from "@/views/user-editor";
+import { ComingSoonPage } from "@/views/coming-soon";
+import { userDetailPages } from "@/views/user-detail";
 
-export const metadata = createMetadata({
-  title: "Usuário",
-  description: "Dados, situação e papéis do usuário.",
-});
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  return <UserEditorPage userId={id} />;
+  return createMetadata(userDetailPages.profile(id));
+}
+
+export default async function Page({ params }: PageProps) {
+  const { id } = await params;
+  return <ComingSoonPage {...userDetailPages.profile(id)} />;
 }

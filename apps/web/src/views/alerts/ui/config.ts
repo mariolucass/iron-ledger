@@ -2,11 +2,38 @@ import { Activity, AlertTriangle, Bell, Info, ShieldAlert, Zap } from "lucide-re
 import type { Severity, Source, Status } from "../model/types";
 
 export const severityConfig = {
-  CRITICAL: { label: "Crítico", icon: ShieldAlert, text: "text-destructive", soft: "bg-destructive-soft", border: "border-l-destructive" },
-  HIGH: { label: "Alto", icon: AlertTriangle, text: "text-warning", soft: "bg-warning-soft", border: "border-l-warning" },
-  MEDIUM: { label: "Médio", icon: Info, text: "text-warning", soft: "bg-warning-soft", border: "border-l-warning" },
-  LOW: { label: "Baixo", icon: Activity, text: "text-info", soft: "bg-info-soft", border: "border-l-info" },
-} satisfies Record<Severity, { label: string; icon: typeof Activity; text: string; soft: string; border: string }>;
+  CRITICAL: {
+    label: "Crítico",
+    icon: ShieldAlert,
+    text: "text-destructive",
+    soft: "bg-destructive-soft",
+    border: "border-l-destructive",
+  },
+  HIGH: {
+    label: "Alto",
+    icon: AlertTriangle,
+    text: "text-warning",
+    soft: "bg-warning-soft",
+    border: "border-l-warning",
+  },
+  MEDIUM: {
+    label: "Médio",
+    icon: Info,
+    text: "text-warning",
+    soft: "bg-warning-soft",
+    border: "border-l-warning",
+  },
+  LOW: {
+    label: "Baixo",
+    icon: Activity,
+    text: "text-info",
+    soft: "bg-info-soft",
+    border: "border-l-info",
+  },
+} satisfies Record<
+  Severity,
+  { label: string; icon: typeof Activity; text: string; soft: string; border: string }
+>;
 
 export const sourceConfig = {
   FORECASTING: { label: "Previsão AI", icon: Activity },

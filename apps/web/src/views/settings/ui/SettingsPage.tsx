@@ -30,7 +30,7 @@ export function SettingsPage() {
   const renderPanel = () => {
     if (activeTab === "INTEGRATIONS") return <IntegrationsPanel />;
     if (settings.loading) {
-      return <div className="min-h-80 animate-pulse rounded-xl bg-white/[0.035]" aria-label="Carregando configurações" />;
+      return <div className="min-h-80 animate-pulse rounded-xl bg-ink/[0.035]" aria-label="Carregando configurações" />;
     }
     if (!profile) {
       return (

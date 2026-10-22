@@ -23,12 +23,15 @@ export function FinalCta() {
   const { x, y, onPointerMove, onPointerLeave } = usePointerParallax();
 
   return (
-    <section className="relative z-10 px-5 py-6 pb-16 md:px-10 md:py-10 md:pb-24">
+    <section className="relative z-10 px-4 py-6 pb-16 md:px-10 md:py-10 md:pb-24">
       <Reveal>
+        {/* A sombra fica no invólucro: o clip-path do cartão cortaria qualquer sombra externa. */}
+        <div className="mx-auto max-w-[1100px] rounded-[2rem] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)] md:rounded-[2.5rem]">
+        {/* clip-path (e não só overflow-hidden): o Safari/iOS deixa orbes com blur vazarem do border-radius. */}
         <div
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}
-          className="relative isolate mx-auto max-w-[1100px] overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0b0d] px-6 py-16 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_40px_120px_-30px_rgba(0,0,0,0.9)] md:rounded-[2.5rem] md:px-14 md:py-24"
+          className="relative isolate overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0b0d] px-6 py-14 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] [clip-path:inset(0_round_2rem)] md:rounded-[2.5rem] md:px-14 md:py-24 md:[clip-path:inset(0_round_2.5rem)]"
         >
           {/* Orbes */}
           <ParallaxOrb x={x} y={y} depth={-60} color="green" position="-top-40 -left-32 size-[440px]" opacity={0.7} motion={0} />
@@ -82,6 +85,7 @@ export function FinalCta() {
               Sem cartão de crédito. Você pode explorar o sistema antes de configurar sua operação.
             </p>
           </div>
+        </div>
         </div>
       </Reveal>
     </section>

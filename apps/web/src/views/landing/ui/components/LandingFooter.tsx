@@ -29,13 +29,13 @@ function FooterLink({ link }: { link: LandingFooterLink }) {
 
 export function LandingFooter() {
   return (
-    <footer className="relative z-10 isolate overflow-hidden px-5 pt-16 md:px-10 md:pt-24">
+    <footer className="relative z-10 isolate overflow-hidden px-5 pt-16 pb-10 md:px-10 md:pt-24 md:pb-0">
       {/* Fio de luz no topo, na mesma paleta dos orbes do CTA */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
       <div aria-hidden className="pointer-events-none absolute inset-x-[10%] top-0 h-px bg-gradient-to-r from-primary/0 via-primary/60 to-info/0 blur-[1px]" />
 
       {/* Brilho ambiente atrás do nome gigante */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[420px] overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[420px] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_35%,black_65%,transparent)]">
         <div className="absolute bottom-[-180px] left-[8%] size-[420px] animate-[orb-drift-a_20s_ease-in-out_infinite] rounded-full bg-[radial-gradient(circle,#00e5a0,transparent_68%)] opacity-[0.22] blur-[80px] motion-reduce:animate-none" />
         <div className="absolute bottom-[-220px] left-[38%] size-[460px] animate-[orb-drift-c_24s_ease-in-out_infinite] rounded-full bg-[radial-gradient(circle,#a78bfa,transparent_68%)] opacity-[0.22] blur-[90px] motion-reduce:animate-none" />
         <div className="absolute right-[6%] bottom-[-190px] size-[400px] animate-[orb-drift-b_22s_ease-in-out_infinite] rounded-full bg-[radial-gradient(circle,#60a5fa,transparent_68%)] opacity-[0.2] blur-[80px] motion-reduce:animate-none" />
@@ -91,7 +91,7 @@ export function LandingFooter() {
 
       {/* Nome gigante que se perde no fundo, como assinatura */}
       <div aria-hidden className="pointer-events-none mx-auto mt-6 max-w-[1200px] select-none md:mt-2">
-        <p className="m-0 translate-y-[18%] bg-gradient-to-b from-white/[0.13] via-white/[0.04] to-transparent bg-clip-text text-center text-[clamp(4rem,19vw,17rem)] leading-[0.85] font-semibold tracking-[-0.06em] whitespace-nowrap text-transparent">
+        <p className="m-0 bg-gradient-to-b from-white/[0.13] via-white/[0.04] to-transparent md:translate-y-[18%] bg-clip-text text-center text-[clamp(4rem,19vw,17rem)] leading-[0.85] font-semibold tracking-[-0.06em] whitespace-nowrap text-transparent">
           Iron Ledger
         </p>
       </div>

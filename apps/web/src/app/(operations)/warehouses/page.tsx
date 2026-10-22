@@ -1,5 +1,6 @@
 import { createMetadata } from "@/shared/config/metadata";
 import { WarehousesPage } from "@/views/warehouses";
+import { warehouseServerApi } from "@/entities/warehouse/server";
 
 export const metadata = createMetadata({
   title: "Armazéns",
@@ -7,6 +8,7 @@ export const metadata = createMetadata({
   path: "/warehouses",
 });
 
-export default function Page() {
-  return <WarehousesPage />;
+export default async function Page() {
+  const initial = await warehouseServerApi.search({ status: "active", pageSize: 100 });
+  return <WarehousesPage initial={initial} />;
 }

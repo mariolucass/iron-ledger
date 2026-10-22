@@ -175,7 +175,8 @@ contém somente exemplos comentados; copiá-lo não troca suas credenciais.
 
 - **API e banco:** `pnpm db:*`, os scripts `prisma:*` em `apps/api`, o seed e a API
   usam o mesmo carregador. Use `pnpm db:status` para verificar migrações sem alterar
-  o banco. Para argumentos extras: `pnpm --dir apps/api prisma:migrate --name exemplo`.
+  o banco. Use `pnpm db:dev` para executar `prisma migrate dev` ou
+  `pnpm db:dev --name exemplo` para nomear uma migração.
   Invocar `prisma` diretamente ignora o carregador do projeto; prefira esses scripts.
 - **Portas:** defina `API_PORT` e `WEB_PORT` na raiz. `API_URL` e
   `NEXT_PUBLIC_APP_URL` são opcionais: os comandos locais as derivam das portas
@@ -289,6 +290,19 @@ mostra a série semanal, os valores usados no cálculo e o que verificar.
 | `GET /analytics/metrics` | Catálogo das métricas: descrição, unidade, se maior é melhor, o que verificar |
 | `GET /analytics/inflection-points` | Lista paginada com `total`; filtros `seller_id`, `metric`, `severity`, `classification`, `impact` |
 | `GET /analytics/inflection-points/:id` | Ponto com rótulos legíveis, UF do vendedor e `series` semana a semana |
+
+**Precisão da previsão de demanda.** Em `/forecasting`, cada produto recebe uma
+previsão semanal (média das 4 semanas anteriores) que é reavaliada semana a
+semana contra a venda real nas últimas 12 semanas completas (backtest). A
+acurácia é `1 − WAPE`, o viés mostra se o modelo superestima ou subestima e a
+cobertura indica quantas semanas caíram dentro do intervalo de 95%. É uma
+linha de base: mede o quanto um modelo simples acertaria, não substitui um
+modelo sazonal.
+
+| Endpoint (`http://localhost:8000`) | Retorna |
+| --- | --- |
+| `GET /analytics/forecast-accuracy` | Acurácia, WAPE, viés e cobertura por produto (`category`, `search`, `limit`), mais o resumo geral |
+| `GET /analytics/forecast-accuracy/:productId` | Métricas do produto e série semanal previsto × real com intervalo |
 
 Cada ponto traz, além dos valores brutos, `metric_label`, `unit`,
 `direction` (`UP`/`DOWN`), `impact` (`POSITIVE`/`NEGATIVE`, já considerando se

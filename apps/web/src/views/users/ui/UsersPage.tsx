@@ -3,7 +3,7 @@
 import { Plus, Users } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   USER_STATUSES,
   UserStatusBadge,
@@ -41,7 +41,7 @@ const columns: Column<UserSummary>[] = [
     cell: (user) => (
       <span className="grid min-w-0">
         <span className="truncate font-medium">{user.name}</span>
-        <span className="truncate text-[13px] font-normal text-white/55">{user.email}</span>
+        <span className="truncate text-[13px] font-normal text-ink/55">{user.email}</span>
       </span>
     ),
   },
@@ -50,17 +50,17 @@ const columns: Column<UserSummary>[] = [
     header: "Papéis",
     cell: (user) => (
       <div className="flex flex-wrap gap-1.5">
-        {user.roles.length ? user.roles.map((name) => <Badge key={name} variant="outline">{name}</Badge>) : <span className="text-white/50">Sem papel</span>}
+        {user.roles.length ? user.roles.map((name) => <Badge key={name} variant="outline">{name}</Badge>) : <span className="text-ink/50">Sem papel</span>}
       </div>
     ),
   },
   { id: "status", header: "Situação", cell: (user) => <UserStatusBadge status={user.status} /> },
-  { id: "mfa", header: "2FA", hideBelow: "md", className: "text-white/60", cell: (user) => (user.mfaEnabled ? "Ativo" : "—") },
+  { id: "mfa", header: "2FA", hideBelow: "md", className: "text-ink/60", cell: (user) => (user.mfaEnabled ? "Ativo" : "—") },
   {
     id: "lastLogin",
     header: "Último acesso",
     hideBelow: "md",
-    className: "whitespace-nowrap text-white/60",
+    className: "whitespace-nowrap text-ink/60",
     cell: (user) => (user.lastLoginAt ? dateTime.format(new Date(user.lastLoginAt)) : "Nunca"),
   },
 ];
@@ -70,21 +70,20 @@ const statusOptions = [
   ...USER_STATUSES.map((value) => ({ value, label: userStatusLabel[value] })),
 ];
 
-export function UsersPage() {
+export function UsersPage({ initial, initialRoles }: {
+  initial: { items: UserSummary[]; total: number };
+  initialRoles: RoleSummary[];
+}) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<UserStatus | "">("");
   const [role, setRole] = useState("");
   const [page, setPage] = useState(1);
-  const [roles, setRoles] = useState<RoleSummary[]>([]);
+  const [roles] = useState<RoleSummary[]>(initialRoles);
   const q = useDebounced(search.trim());
-
-  useEffect(() => {
-    withSession(userApi.listRoles()).then((body) => setRoles(body.items)).catch(() => undefined);
-  }, []);
 
   const { items, total, loading, error, refresh } = useRemoteList(
     () => withSession(userApi.list({ q: q || undefined, status: status || undefined, role: role || undefined, page, pageSize: PAGE_SIZE })),
-    [q, status, role, page],
+    [q, status, role, page], initial,
   );
 
   const filtered = Boolean(q || status || role);

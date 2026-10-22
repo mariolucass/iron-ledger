@@ -1,27 +1,23 @@
-import { ArrowLeftRight, Bell, Package, TrendingUp } from "lucide-react";
-import React from "react";
+import type { Route } from "next";
 
 export interface KPI {
   label: string;
   value: string;
-  numericValue: number;
-  icon: React.ElementType;
-  change: string;
-  changeUp: boolean;
-  hasProcessing?: boolean;
-  accentColor: string;
+  /** Contexto curto abaixo do valor (ex.: variação ou janela de tempo). */
+  detail: string;
+  /** Tom do detalhe: `negative` só quando o número pede ação. */
+  tone: "neutral" | "positive" | "negative";
+  href: Route;
   sparkline: number[];
 }
 
 export interface DashboardTransaction {
   id: string;
-  type: string;
+  type: "ENTRADA" | "SAÍDA" | "AJUSTE";
   status: string;
   initiatedBy: string;
   timestamp: string;
   relativeTime: string;
-  avatarInitials: string;
-  avatarColor: string;
 }
 
 export interface DashboardStockAlert {
@@ -35,44 +31,35 @@ export interface DashboardStockAlert {
 
 export const kpis: KPI[] = [
   {
-    label: "Total de SKUs em Estoque",
+    label: "SKUs em estoque",
     value: "4.821",
-    numericValue: 4821,
-    icon: Package,
-    change: "+12 hoje",
-    changeUp: true,
-    accentColor: "#00E5A0",
+    detail: "+12 hoje",
+    tone: "positive",
+    href: "/inventory",
     sparkline: [4720, 4745, 4780, 4790, 4800, 4809, 4821],
   },
   {
-    label: "Transações Ativas",
+    label: "Transações ativas",
     value: "38",
-    numericValue: 38,
-    icon: ArrowLeftRight,
-    change: "6 em processamento",
-    changeUp: true,
-    hasProcessing: true,
-    accentColor: "#60A5FA",
+    detail: "6 em processamento",
+    tone: "neutral",
+    href: "/transactions",
     sparkline: [22, 31, 28, 35, 29, 34, 38],
   },
   {
-    label: "Alertas Pendentes",
+    label: "Alertas pendentes",
     value: "14",
-    numericValue: 14,
-    icon: Bell,
-    change: "3 de gravidade alta",
-    changeUp: false,
-    accentColor: "#FF453A",
+    detail: "3 de gravidade alta",
+    tone: "negative",
+    href: "/alerts",
     sparkline: [6, 9, 11, 8, 12, 10, 14],
   },
   {
-    label: "Precisão da Previsão",
+    label: "Precisão da previsão",
     value: "94,2%",
-    numericValue: 94.2,
-    icon: TrendingUp,
-    change: "Últimos 30 dias",
-    changeUp: true,
-    accentColor: "#A78BFA",
+    detail: "Últimos 30 dias",
+    tone: "neutral",
+    href: "/forecasting",
     sparkline: [88, 90, 89, 91, 93, 92, 94],
   },
 ];
@@ -85,8 +72,6 @@ export const dashboardRecentTransactions: DashboardTransaction[] = [
     initiatedBy: "vendas@ironledger",
     timestamp: "2026-06-09 14:32:01",
     relativeTime: "há 2 min",
-    avatarInitials: "VE",
-    avatarColor: "#00E5A0",
   },
   {
     id: "TXN-00483920",
@@ -95,8 +80,6 @@ export const dashboardRecentTransactions: DashboardTransaction[] = [
     initiatedBy: "estoque-centro@ironledger",
     timestamp: "2026-06-09 14:28:47",
     relativeTime: "há 5 min",
-    avatarInitials: "EC",
-    avatarColor: "#60A5FA",
   },
   {
     id: "TXN-00483919",
@@ -105,8 +88,6 @@ export const dashboardRecentTransactions: DashboardTransaction[] = [
     initiatedBy: "admin@ironledger",
     timestamp: "2026-06-09 14:11:03",
     relativeTime: "há 23 min",
-    avatarInitials: "AD",
-    avatarColor: "#FF453A",
   },
   {
     id: "TXN-00483918",
@@ -115,8 +96,6 @@ export const dashboardRecentTransactions: DashboardTransaction[] = [
     initiatedBy: "vendas@ironledger",
     timestamp: "2026-06-09 13:55:22",
     relativeTime: "há 39 min",
-    avatarInitials: "VE",
-    avatarColor: "#F5A623",
   },
   {
     id: "TXN-00483917",
@@ -125,8 +104,6 @@ export const dashboardRecentTransactions: DashboardTransaction[] = [
     initiatedBy: "estoque-sul@ironledger",
     timestamp: "2026-06-09 13:40:10",
     relativeTime: "há 54 min",
-    avatarInitials: "ES",
-    avatarColor: "#00E5A0",
   },
 ];
 
