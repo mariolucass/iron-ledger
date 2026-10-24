@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
-import { useSignOut } from "@/features/sign-out";
+import { useSignOut } from "@/features/identity/sign-out";
 import { ease2 } from "@/shared/lib/animation";
 import { useEscape } from "@/shared/lib/use-escape";
 import { useOutsideClick } from "@/shared/lib/use-outside-click";

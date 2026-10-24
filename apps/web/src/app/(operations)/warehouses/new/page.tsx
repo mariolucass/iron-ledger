@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { WarehouseEditorPage } from "@/views/warehouse-editor";
+import { WarehouseEditorPage } from "@/views/operations/warehouse-editor";
 
 export const metadata = createMetadata({
   title: "Nova instalação",

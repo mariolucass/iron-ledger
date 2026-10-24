@@ -4,7 +4,7 @@ import {
   getAnalyticsSummary,
   getInflectionPoints,
 } from "@/entities/analytics";
-import { AnalyticsOverview, AnalyticsUnavailable } from "@/views/analytics";
+import { AnalyticsOverview, AnalyticsUnavailable } from "@/views/intelligence/analytics";
 
 export const metadata = createMetadata({
   title: "Analytics",

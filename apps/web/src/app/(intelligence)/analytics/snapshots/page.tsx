@@ -1,6 +1,6 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { inventorySnapshotPages } from "@/views/inventory-snapshots";
+import { ComingSoonPage } from "@/views/common/coming-soon";
+import { inventorySnapshotPages } from "@/views/intelligence/inventory-snapshots";
 
 const page = inventorySnapshotPages.list;
 

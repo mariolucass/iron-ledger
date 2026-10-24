@@ -1,6 +1,6 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { securityPages } from "@/views/security";
+import { ComingSoonPage } from "@/views/common/coming-soon";
+import { securityPages } from "@/views/identity/security";
 
 const page = securityPages.identities;
 

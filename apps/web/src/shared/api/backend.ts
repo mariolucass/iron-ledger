@@ -32,7 +32,7 @@ export async function backendRequest(
         ...init.headers,
       },
       cache: "no-store",
-      signal: AbortSignal.timeout(8_000),
+      signal: init.signal ?? AbortSignal.timeout(8_000),
     });
     const response = new NextResponse(await upstream.text(), {
       status: upstream.status,

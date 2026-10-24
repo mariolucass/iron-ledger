@@ -1,11 +1,8 @@
+import { unitServerApi } from "@/entities/unit-of-measure/server";
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { unitOfMeasurePages } from "@/views/units-of-measure";
-
-const page = unitOfMeasurePages.list;
-
-export const metadata = createMetadata({ ...page, path: "/products/units-of-measure" });
-
-export default function Page() {
-  return <ComingSoonPage {...page} />;
+import { UnitsPage } from "@/views/operations/units-of-measure";
+export const metadata = createMetadata({ title: "Unidades de medida", description: "Unidades do catálogo", path: "/products/units-of-measure" });
+export default async function Page() {
+  const initial = await unitServerApi.list({ page: 1, pageSize: 20 });
+  return <UnitsPage initial={initial} />;
 }

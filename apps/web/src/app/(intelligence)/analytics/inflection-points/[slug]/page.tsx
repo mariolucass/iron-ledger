@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { AnalyticsError, getInflectionPoint } from "@/entities/analytics";
 import { createMetadata } from "@/shared/config/metadata";
-import { AnalyticsPointDetail } from "@/views/analytics";
-import { AnalyticsUnavailable } from "@/views/analytics";
+import { AnalyticsPointDetail } from "@/views/intelligence/analytics";
+import { AnalyticsUnavailable } from "@/views/intelligence/analytics";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

@@ -2,7 +2,7 @@ import { env } from "./config/env";
 import { prisma } from "./infra/database/prisma.client";
 import { createServer } from "./infra/http/server";
 import { logger } from "./infra/logger";
-import { createRabbitMqEventBus } from "./infra/messaging/rabbitmq.client";
+import { createEventBus } from "./infra/messaging/rabbitmq.client";
 import { OutboxRelay } from "./infra/outbox/outbox.relay";
 import { RecordAuditUseCase } from "./modules/audit/application/use-cases/record-audit.use-case";
 import { startDomainEventConsumer } from "./modules/audit/infra/consumers/domain-event.consumer";
@@ -10,7 +10,7 @@ import { PrismaAuditRepository } from "./modules/audit/infra/repositories/prisma
 import { TemporalWorkflowOrchestrator } from "./modules/transaction/infra/temporal/transaction-saga.starter";
 
 async function bootstrap(): Promise<void> {
-  const eventBus = createRabbitMqEventBus(env.RABBITMQ_URL);
+  const eventBus = createEventBus(env.EVENT_BUS, env.RABBITMQ_URL);
   const workflowOrchestrator = new TemporalWorkflowOrchestrator({
     address: env.TEMPORAL_ADDRESS,
     namespace: env.TEMPORAL_NAMESPACE,
@@ -29,8 +29,9 @@ async function bootstrap(): Promise<void> {
     eventBus,
     workflowOrchestrator,
     onEventsCommitted: () => outboxRelay.wake(),
+    temporalHealth: () => workflowOrchestrator.health(),
   }).listen(env.PORT, "0.0.0.0", () => {
-    logger.info({ port: env.PORT, outboxRelay: env.OUTBOX_RELAY_ENABLED }, `iron-ledger API disponível em http://localhost:${env.PORT}`);
+    logger.info({ port: env.PORT, eventBus: env.EVENT_BUS, outboxRelay: env.OUTBOX_RELAY_ENABLED }, `iron-ledger API disponível em http://localhost:${env.PORT}`);
   });
 
   let shuttingDown = false;

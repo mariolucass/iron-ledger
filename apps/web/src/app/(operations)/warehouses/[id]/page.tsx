@@ -1,6 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { warehouseDetailPages } from "@/views/warehouse-detail";
+import { WarehouseOverviewPage, warehouseDetailPages } from "@/views/operations/warehouse-detail";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -13,5 +12,5 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
-  return <ComingSoonPage {...warehouseDetailPages.overview(id)} />;
+  return <WarehouseOverviewPage warehouseId={id} />;
 }

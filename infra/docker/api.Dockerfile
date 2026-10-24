@@ -19,7 +19,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
   pnpm install --filter @iron-ledger/api... --frozen-lockfile
 # Pacotes compartilhados são consumidos a partir de dist/: compila as dependências do app.
 COPY tsconfig.base.json ./
-COPY scripts/app-env.cjs scripts/app-env.d.cts scripts/run-prisma.mjs ./scripts/
+COPY scripts/lib ./scripts/lib
+COPY scripts/db/run-prisma.mjs ./scripts/db/
 COPY packages packages
 RUN pnpm --filter "@iron-ledger/api^..." --if-present run build
 

@@ -12,6 +12,9 @@ export function createWarehouseRouter(controller: WarehouseController, jwtSecret
   router.use(jwtGuard(jwtSecret));
   router.get("/", controller.list);
   router.get("/:id", controller.get);
+  router.get("/:id/locations/:locationId", controller.location);
+  router.get("/:id/access", canWrite, controller.access);
+  router.get("/:id/:section", controller.section);
   router.post("/", canWrite, controller.create);
   router.patch("/:id", canWrite, controller.update);
   router.delete("/:id", canWrite, controller.deactivate);

@@ -1,4 +1,4 @@
-import { loadWorkspaceEnv } from "../../../../scripts/app-env.cjs";
+import { loadWorkspaceEnv } from "../../../../scripts/lib/app-env.cjs";
 import { PrismaClient } from "@prisma/client";
 import { catalogSeed } from "./catalog.seed";
 import { identitySeed } from "./identity.seed";

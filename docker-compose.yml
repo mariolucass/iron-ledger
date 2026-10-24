@@ -77,6 +77,12 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-iron_ledger}:${RABBITMQ_PASSWORD:-iron_ledger}@rabbitmq:5672
       JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-before-production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE:-iron-ledger-tasks}
+      # Painel de serviços (/platform/services) consulta estes endereços internos.
+      ANALYTICS_URL: http://analytics:8000
+      KAFKA_BROKERS: kafka:29092
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@ironledger.local}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe123!}
     command: ["sh", "-c", "pnpm --dir apps/api prisma:deploy && pnpm --dir apps/api prisma:seed"]

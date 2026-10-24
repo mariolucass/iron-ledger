@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { UsersPage } from "@/views/users";
+import { UsersPage } from "@/views/identity/users";
 import { userServerApi } from "@/entities/user/server";
 
 export const metadata = createMetadata({

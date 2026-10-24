@@ -1,11 +1,12 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, House } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { nonLinkSegments, pathLabels } from "@/shared/config/app-navigation";
+import { navigationRecordMatches, navigationRoute } from "@/shared/config/app-navigation";
+import type { NavigationRecordMatch } from "@/shared/config/app-navigation-types";
+import { useRecordNames } from "../../../model/record-names";
 
 interface Crumb {
   href: Route;
@@ -16,13 +17,11 @@ interface Crumb {
 
 const HOME: Route = "/dashboard";
 
-const OPAQUE_ID = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,}|\d+)$/i;
+const OPAQUE_ID =
+  /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,}|\d+)$/i;
 
-/** "meu-ponto_x" -> "Meu ponto x"; ids opacos (UUID, número) viram "Detalhes". */
+/** Rota não declarada: "meu-ponto_x" -> "Meu ponto x"; ids opacos (UUID, número) viram "Detalhes". */
 function labelFor(segment: string): string {
-  const known = pathLabels[segment];
-  if (known) return known;
-
   let text = segment;
   try {
     text = decodeURIComponent(segment);
@@ -34,13 +33,26 @@ function labelFor(segment: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-function buildTrail(pathname: string): Crumb[] {
+/** Registros aparecem pelo nome; na rota do próprio registro, a página atual vem depois dele (ex.: "Visão geral"). */
+function buildTrail(pathname: string, nameOf: (record: NavigationRecordMatch) => string | null | undefined): Crumb[] {
   const parts = pathname.split("/").filter(Boolean);
-  return parts.map((part, index) => ({
-    href: `/${parts.slice(0, index + 1).join("/")}` as Route,
-    label: labelFor(part),
-    linkable: index === parts.length - 1 || !nonLinkSegments.has(part),
-  }));
+  const records = navigationRecordMatches(pathname);
+  const trail = parts.map((part, index) => {
+    const href = `/${parts.slice(0, index + 1).join("/")}` as Route;
+    const route = navigationRoute(href);
+    const record = records.find(({ path }) => path === href);
+    return {
+      href,
+      label: (record && nameOf(record)) || (route?.label ?? labelFor(part)),
+      linkable: href !== pathname && route?.page !== false,
+    };
+  });
+  const current = records.at(-1);
+  const overview = current?.pages.find(({ suffix }) => !suffix);
+  if (current?.path === pathname && overview && nameOf(current) !== null) {
+    trail.push({ href: pathname as Route, label: overview.label, linkable: false });
+  }
+  return trail;
 }
 
 const pill =
@@ -50,8 +62,8 @@ const interactive = `${pill} font-medium text-muted-foreground hover:bg-ink/[0.0
 
 export function Breadcrumbs({ fallbackTitle }: { fallbackTitle: string }) {
   const pathname = usePathname();
-  const reducedMotion = useReducedMotion();
-  const trail = buildTrail(pathname);
+  const nameOf = useRecordNames();
+  const trail = buildTrail(pathname, nameOf);
 
   if (!trail.length) {
     return (
@@ -63,6 +75,7 @@ export function Breadcrumbs({ fallbackTitle }: { fallbackTitle: string }) {
 
   const current = trail[trail.length - 1]!;
   const parent = trail.length > 1 ? trail[trail.length - 2]! : undefined;
+  const mobileBack = parent?.href === current.href ? trail[trail.length - 3] : parent;
   // Voltar para o "Início" é redundante quando a própria página é o Dashboard.
   const showHome = trail[0]!.href !== HOME;
 
@@ -70,14 +83,14 @@ export function Breadcrumbs({ fallbackTitle }: { fallbackTitle: string }) {
     <nav aria-label="Navegação estrutural" className="min-w-0">
       {/* Celular: estilo "voltar" do iOS — ‹ Nível anterior · Página atual */}
       <div className="flex min-w-0 items-center gap-1 sm:hidden">
-        {parent && (
+        {mobileBack && (
           <Link
-            href={parent.linkable ? parent.href : HOME}
-            aria-label={`Voltar para ${parent.label}`}
+            href={mobileBack.linkable ? mobileBack.href : HOME}
+            aria-label={`Voltar para ${mobileBack.label}`}
             className={`${interactive} -ml-1.5 shrink-0 gap-0.5 pr-2.5 pl-1.5 text-primary hover:text-primary`}
           >
             <ChevronLeft size={18} strokeWidth={2.25} aria-hidden />
-            <span className="max-w-[28vw] truncate">{parent.label}</span>
+            <span className="max-w-[28vw] truncate">{mobileBack.label}</span>
           </Link>
         )}
         <span
@@ -89,16 +102,14 @@ export function Breadcrumbs({ fallbackTitle }: { fallbackTitle: string }) {
       </div>
 
       {/* Tablet e desktop: trilha completa */}
-      <motion.ol
-        key={pathname}
-        initial={reducedMotion ? false : { opacity: 0, x: -6 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className="m-0 hidden min-w-0 list-none items-center gap-0.5 p-0 sm:flex"
-      >
+      <ol className="m-0 hidden min-w-0 list-none items-center gap-0.5 p-0 sm:flex">
         {showHome && (
           <li className="flex shrink-0 items-center gap-0.5">
-            <Link href={HOME} aria-label="Início" className={`${interactive} w-8 justify-center px-0`}>
+            <Link
+              href={HOME}
+              aria-label="Início"
+              className={`${interactive} w-8 justify-center px-0`}
+            >
               <House size={15} strokeWidth={1.9} aria-hidden />
             </Link>
             <Separator />
@@ -108,7 +119,10 @@ export function Breadcrumbs({ fallbackTitle }: { fallbackTitle: string }) {
         {trail.map((crumb, index) => {
           const last = index === trail.length - 1;
           return (
-            <li key={crumb.href} className={`flex items-center gap-0.5 ${last ? "min-w-0" : "shrink-0"}`}>
+            <li
+              key={`${crumb.href}:${index}`}
+              className={`flex items-center gap-0.5 ${last ? "min-w-0" : "shrink-0"}`}
+            >
               {last ? (
                 <span
                   aria-current="page"
@@ -120,11 +134,20 @@ export function Breadcrumbs({ fallbackTitle }: { fallbackTitle: string }) {
               ) : (
                 <>
                   {crumb.linkable ? (
-                    <Link href={crumb.href} className={interactive}>
+                    <Link
+                      href={crumb.href}
+                      title={crumb.label}
+                      className={`${interactive} max-w-[220px] truncate`}
+                    >
                       {crumb.label}
                     </Link>
                   ) : (
-                    <span className={`${pill} font-medium text-muted-foreground`}>{crumb.label}</span>
+                    <span
+                      title={crumb.label}
+                      className={`${pill} max-w-[220px] truncate font-medium text-muted-foreground`}
+                    >
+                      {crumb.label}
+                    </span>
                   )}
                   <Separator />
                 </>
@@ -132,7 +155,7 @@ export function Breadcrumbs({ fallbackTitle }: { fallbackTitle: string }) {
             </li>
           );
         })}
-      </motion.ol>
+      </ol>
     </nav>
   );
 }

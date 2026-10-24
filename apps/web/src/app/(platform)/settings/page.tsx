@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { SettingsPage } from "@/views/settings";
+import { SettingsPage } from "@/views/platform/settings";
 
 export const metadata = createMetadata({
   title: "Configurações",

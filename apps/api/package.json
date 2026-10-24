@@ -12,14 +12,14 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prisma:generate": "node ../../scripts/run-prisma.mjs generate",
-    "prisma:validate": "node ../../scripts/run-prisma.mjs validate",
-    "prisma:migrate": "node ../../scripts/run-prisma.mjs migrate dev",
-    "prisma:deploy": "node ../../scripts/run-prisma.mjs migrate deploy",
-    "prisma:seed": "node ../../scripts/run-prisma.mjs db seed",
-    "prisma:studio": "node ../../scripts/run-prisma.mjs studio",
-    "prisma:reset": "node ../../scripts/run-prisma.mjs migrate reset",
-    "prisma:status": "node ../../scripts/run-prisma.mjs migrate status"
+    "prisma:generate": "node ../../scripts/db/run-prisma.mjs generate",
+    "prisma:validate": "node ../../scripts/db/run-prisma.mjs validate",
+    "prisma:migrate": "node ../../scripts/db/run-prisma.mjs migrate dev",
+    "prisma:deploy": "node ../../scripts/db/run-prisma.mjs migrate deploy",
+    "prisma:seed": "node ../../scripts/db/run-prisma.mjs db seed",
+    "prisma:studio": "node ../../scripts/db/run-prisma.mjs studio",
+    "prisma:reset": "node ../../scripts/db/run-prisma.mjs migrate reset",
+    "prisma:status": "node ../../scripts/db/run-prisma.mjs migrate status"
   },
   "prisma": {
     "schema": "prisma/schema",

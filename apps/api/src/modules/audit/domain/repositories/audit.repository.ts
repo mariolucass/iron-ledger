@@ -5,6 +5,7 @@ export type AuditQuery = {
   entityType?: string;
   entityId?: string;
   actor?: string;
+  userActorsOnly?: boolean;
   action?: AuditLog["action"];
   correlationId?: string;
   from?: Date;

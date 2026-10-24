@@ -1,11 +1,8 @@
+import { categoryServerApi } from "@/entities/category/server";
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { productCategoryPages } from "@/views/product-categories";
-
-const page = productCategoryPages.list;
-
-export const metadata = createMetadata({ ...page, path: "/products/categories" });
-
-export default function Page() {
-  return <ComingSoonPage {...page} />;
+import { CategoriesPage } from "@/views/operations/product-categories";
+export const metadata = createMetadata({ title: "Categorias", description: "Categorias do catálogo", path: "/products/categories" });
+export default async function Page() {
+  const initial = await categoryServerApi.list({ page: 1, pageSize: 20 });
+  return <CategoriesPage initial={initial} />;
 }

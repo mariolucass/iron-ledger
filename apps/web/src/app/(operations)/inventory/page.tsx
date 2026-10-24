@@ -1,8 +1,8 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { InventoryPage } from "@/views/inventory";
+import { InventoryPage } from "@/views/operations/inventory";
 import { inventoryServerApi } from "@/entities/inventory/server";
 import { warehouseServerApi } from "@/entities/warehouse/server";
-import { presentInventoryPage, PAGE_SIZE } from "@/views/inventory/server";
+import { presentInventoryPage, PAGE_SIZE } from "@/views/operations/inventory/server";
 
 export const metadata = createMetadata({
   title: "Estoque",

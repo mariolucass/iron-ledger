@@ -41,7 +41,7 @@ function detail(overrides: Partial<ProductDetail> = {}): ProductDetail {
     id: "p1", sku: "SKU-1", name: "Produto", description: null, unit: "un", baseUnitId: unitId,
     status: "ACTIVE", isActive: true, trackingMode: "NONE", minStock: 5, maxStock: 20, reorderPoint: null,
     safetyStock: null, leadTimeDays: null, shelfLifeDays: null, weightKg: null, lengthCm: null, widthCm: null,
-    heightCm: null, ncm: null, standardCost: null, currency: "BRL", categoryId: null, categoryName: null,
+    heightCm: null, ncm: null, standardCost: null, salePrice: null, brand: null, currency: "BRL", categoryId: null, categoryName: null,
     barcodes: [], version: 0, createdAt: "", updatedAt: "", ...overrides,
   };
 }

@@ -1,6 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { transactionHistoryPages } from "@/views/transaction-history";
+import { TransactionHistoryPage, transactionHistoryPages } from "@/views/operations/transaction-history";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -13,5 +12,5 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
-  return <ComingSoonPage {...transactionHistoryPages.history(id)} />;
+  return <TransactionHistoryPage id={id} section="history" />;
 }

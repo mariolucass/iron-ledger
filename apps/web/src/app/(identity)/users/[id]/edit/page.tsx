@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { UserEditorPage } from "@/views/user-editor";
+import { UserEditorPage } from "@/views/identity/user-editor";
 
 export const metadata = createMetadata({
   title: "Editar usuário",

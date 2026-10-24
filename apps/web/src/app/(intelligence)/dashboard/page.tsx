@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { DashboardPage } from "@/views/dashboard";
+import { DashboardPage } from "@/views/intelligence/dashboard";
 
 export const metadata = createMetadata({
   title: "Dashboard",

@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { LoginPage } from "@/views/login";
+import { LoginPage } from "@/views/identity/login";
 
 export const metadata = createMetadata({
   title: "Entrar",

@@ -29,6 +29,10 @@ model Product {
   /// Fiscal (Brasil).
   ncm           String?
   standardCost  Decimal?      @map("standard_cost") @db.Decimal(19, 4)
+  /// Preço de venda de referência; base para margem em analytics.
+  salePrice     Decimal?      @map("sale_price") @db.Decimal(19, 4)
+  /// Marca ou fornecedor em texto livre, até existir a entidade Supplier.
+  brand         String?
   currency      String        @default("BRL") @db.Char(3)
   metadata      Json?
   version       Int           @default(0)

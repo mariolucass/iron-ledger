@@ -7,6 +7,7 @@ const querySchema = z.object({
   entityType: z.string().trim().min(1).optional(),
   entityId: z.string().trim().min(1).optional(),
   actor: z.string().trim().min(1).optional(),
+  userActorsOnly: z.enum(["true"]).transform(() => true).optional(),
   action: z.enum(["CREATE", "UPDATE", "DELETE", "LOGIN", "PERMISSION_CHANGE"]).optional(),
   correlationId: z.string().trim().min(1).max(100).optional(),
   from: z.coerce.date().optional(),

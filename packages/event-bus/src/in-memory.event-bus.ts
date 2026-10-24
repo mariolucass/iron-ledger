@@ -12,6 +12,9 @@ export class InMemoryEventBus implements EventBus {
   readonly deadLetters: Array<{ queue: string; event: DomainEvent; error: unknown }> = [];
   private readonly subscriptions: Array<{ options: SubscribeOptions; handler: EventHandler }> = [];
 
+  /** Sem broker: existe só para compartilhar o ciclo de vida do RabbitMqEventBus. */
+  async connect(): Promise<void> {}
+
   async publish(event: DomainEvent): Promise<void> {
     this.published.push(event);
     const routingKey = routingKeyFor(event.eventName);

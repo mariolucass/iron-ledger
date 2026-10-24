@@ -8,7 +8,9 @@ export function createUserAdminRouter(controller: UserAdminController, jwtSecret
   const router = Router();
   router.use(jwtGuard(jwtSecret), requireRoles());
   router.get("/", controller.list);
+  router.get("/invitations", controller.invitations);
   router.get("/:id", controller.get);
+  router.get("/:id/:section", controller.userSection);
   router.post("/", controller.create);
   router.patch("/:id", controller.update);
   router.put("/:id/roles", controller.setRoles);
@@ -19,5 +21,10 @@ export function createRolesRouter(controller: UserAdminController, jwtSecret: st
   const router = Router();
   router.use(jwtGuard(jwtSecret), requireRoles());
   router.get("/", controller.roles);
+  router.get("/permissions", controller.permissions);
+  router.get("/:id", controller.role);
+  router.get("/:id/:section", controller.roleSection);
+  router.post("/", controller.createRole);
+  router.patch("/:id", controller.updateRole);
   return router;
 }
