@@ -4,6 +4,9 @@ import type { AuthenticatedRequest } from "./jwt.guard";
 /** Papéis com acesso irrestrito. */
 const SUPER_ROLES = new Set(["ADMIN"]);
 
+/** Papel atribuído a identidades de serviço (worker Temporal). */
+export const SERVICE_ROLE = "SERVICE";
+
 /**
  * Exige ao menos um dos papéis informados. Deve ser usado depois do `jwtGuard`.
  * Permissões finas (`recurso:ação`) virão da tabela `identity.permissions`.
@@ -16,6 +19,8 @@ export function requireRoles(...roles: string[]) {
       next();
       return;
     }
-    response.status(403).json({ error: "FORBIDDEN", message: "Permissão insuficiente para esta operação." });
+    response
+      .status(403)
+      .json({ error: "FORBIDDEN", message: "Permissão insuficiente para esta operação." });
   };
 }

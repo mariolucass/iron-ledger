@@ -14,7 +14,10 @@ export function jwtGuard(secret: string) {
     }
 
     try {
-      const payload = jwt.verify(token, secret, { issuer: "iron-ledger-api" });
+      const payload = jwt.verify(token, secret, {
+        issuer: "iron-ledger-api",
+        algorithms: ["HS256"],
+      });
       if (typeof payload === "string" || !payload.sub) throw new Error("Invalid payload");
       request.auth = {
         userId: payload.sub,

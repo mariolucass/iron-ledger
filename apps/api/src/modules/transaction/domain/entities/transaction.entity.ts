@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type { TransactionEvent, TransactionItemStatus, TransactionType } from "@iron-ledger/shared-types";
+import type {
+  TransactionEvent,
+  TransactionItemStatus,
+  TransactionType,
+} from "@iron-ledger/shared-types";
 import type { TransactionOutcome } from "@iron-ledger/workflow-contracts";
+import { AggregateRoot } from "../../../../shared/domain/aggregate-root";
 import { AppError } from "../../../../shared/errors/domain.error";
 import {
   transactionCancelled,
@@ -9,7 +14,11 @@ import {
   transactionFailed,
   transactionStarted,
 } from "../events/transaction.events";
-import { assertTransition, isTerminal, type TransactionStatus } from "../value-objects/transaction-status";
+import {
+  assertTransition,
+  isTerminal,
+  type TransactionStatus,
+} from "../value-objects/transaction-status";
 
 export interface TransactionItem {
   id: string;
@@ -69,11 +78,12 @@ export interface StartTransactionProps {
  * Saga. Concentra as regras de transição e produz os eventos de domínio que o
  * repositório grava no outbox no mesmo commit.
  */
-export class Transaction {
+export class Transaction extends AggregateRoot<TransactionEvent> {
   private changes: StatusChange[] = [];
-  private events: TransactionEvent[] = [];
 
-  private constructor(private state: TransactionSnapshot) {}
+  private constructor(private state: TransactionSnapshot) {
+    super();
+  }
 
   static start(props: StartTransactionProps): Transaction {
     if (!Number.isFinite(props.quantity) || props.quantity <= 0) {
@@ -101,20 +111,28 @@ export class Transaction {
       compensatedAt: null,
       version: 0,
       createdAt: now,
-      items: [{
-        id: randomUUID(),
-        lineNumber: 1,
-        productId: props.stock.productId,
-        warehouseId: props.stock.warehouseId,
-        sku: props.stock.sku,
-        quantity: props.quantity,
-        status: "PENDING",
-        reservationId: null,
-        movementId: null,
-      }],
+      items: [
+        {
+          id: randomUUID(),
+          lineNumber: 1,
+          productId: props.stock.productId,
+          warehouseId: props.stock.warehouseId,
+          sku: props.stock.sku,
+          quantity: props.quantity,
+          status: "PENDING",
+          reservationId: null,
+          movementId: null,
+        },
+      ],
     });
-    transaction.changes.push({ fromStatus: null, toStatus: "PENDING", reason: "Transação criada", changedBy: props.initiatedBy, changedAt: now });
-    transaction.events.push(transactionStarted(transaction.state, now));
+    transaction.changes.push({
+      fromStatus: null,
+      toStatus: "PENDING",
+      reason: "Transação criada",
+      changedBy: props.initiatedBy,
+      changedAt: now,
+    });
+    transaction.record(transactionStarted(transaction.state, now));
     return transaction;
   }
 
@@ -122,9 +140,15 @@ export class Transaction {
     return new Transaction({ ...snapshot, items: snapshot.items.map((item) => ({ ...item })) });
   }
 
-  get id(): string { return this.state.id; }
-  get status(): TransactionStatus { return this.state.status; }
-  get version(): number { return this.state.version; }
+  get id(): string {
+    return this.state.id;
+  }
+  get status(): TransactionStatus {
+    return this.state.status;
+  }
+  get version(): number {
+    return this.state.version;
+  }
 
   snapshot(): TransactionSnapshot {
     return { ...this.state, items: this.state.items.map((item) => ({ ...item })) };
@@ -134,11 +158,12 @@ export class Transaction {
   committed(version: number): void {
     this.state.version = version;
     this.changes = [];
-    this.events = [];
+    this.clearEvents();
   }
 
-  pendingChanges(): readonly StatusChange[] { return this.changes; }
-  pendingEvents(): readonly TransactionEvent[] { return this.events; }
+  pendingChanges(): readonly StatusChange[] {
+    return this.changes;
+  }
 
   /**
    * Marca a Saga como em execução. O worker pode reportar o primeiro passo antes
@@ -200,7 +225,7 @@ export class Transaction {
           item.reservationId = outcome.reservationId;
           item.movementId = outcome.movementId;
         }
-        this.events.push(transactionCompleted(this.state, outcome, now, actorId));
+        this.record(transactionCompleted(this.state, outcome, now, actorId));
         break;
       case "COMPENSATED":
         this.transition("COMPENSATED", outcome.reason, actorId, now);
@@ -211,7 +236,7 @@ export class Transaction {
           item.status = "RELEASED";
           item.reservationId = outcome.reservationId;
         }
-        this.events.push(transactionCompensated(this.state, outcome, now, actorId));
+        this.record(transactionCompensated(this.state, outcome, now, actorId));
         break;
       case "FAILED":
         this.fail(outcome.reason, outcome.failureCode, actorId, now);
@@ -220,13 +245,18 @@ export class Transaction {
         this.transition("CANCELLED", outcome.reason, actorId, now);
         this.state.completedAt = now;
         this.state.failureReason = outcome.reason;
-        this.events.push(transactionCancelled(this.state, outcome.reason, now, actorId));
+        this.record(transactionCancelled(this.state, outcome.reason, now, actorId));
         break;
     }
     return true;
   }
 
-  fail(reason: string, failureCode: string | undefined, actorId: string | null, now = new Date()): void {
+  fail(
+    reason: string,
+    failureCode: string | undefined,
+    actorId: string | null,
+    now = new Date(),
+  ): void {
     this.transition("FAILED", reason, actorId, now);
     this.state.completedAt = now;
     this.state.failureReason = reason;
@@ -234,14 +264,25 @@ export class Transaction {
     for (const item of this.state.items) {
       if (item.status === "PENDING" || item.status === "RESERVED") item.status = "FAILED";
     }
-    this.events.push(transactionFailed(this.state, reason, failureCode, now, actorId));
+    this.record(transactionFailed(this.state, reason, failureCode, now, actorId));
   }
 
-  private transition(to: TransactionStatus, reason: string | null, actorId: string | null, now: Date): void {
+  private transition(
+    to: TransactionStatus,
+    reason: string | null,
+    actorId: string | null,
+    now: Date,
+  ): void {
     const from = this.state.status;
     assertTransition(from, to);
     this.state.status = to;
-    this.changes.push({ fromStatus: from, toStatus: to, reason, changedBy: actorId, changedAt: now });
+    this.changes.push({
+      fromStatus: from,
+      toStatus: to,
+      reason,
+      changedBy: actorId,
+      changedAt: now,
+    });
   }
 }
 

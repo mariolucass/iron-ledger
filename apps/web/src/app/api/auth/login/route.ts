@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { forwardedHeaders, retryAfterHeaders } from "@/shared/api/forwarded-headers";
 import { apiUrl, sessionResponse, upstreamMessage } from "@/shared/auth/upstream-session";
 
 const requestSchema = z.object({
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   try {
     const upstream = await fetch(new URL("/auth/login", apiUrl()), {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...forwardedHeaders(request) },
       body: JSON.stringify({ email: input.data.email, password: input.data.password }),
       cache: "no-store",
       signal: AbortSignal.timeout(5_000),
@@ -30,7 +31,10 @@ export async function POST(request: Request) {
     if (!upstream.ok) {
       const message = upstreamMessage(body, "Não foi possível autenticar com essas credenciais.");
       const status = upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502;
-      return NextResponse.json({ error: "AUTHENTICATION_FAILED", message }, { status });
+      return NextResponse.json(
+        { error: "AUTHENTICATION_FAILED", message },
+        { status, headers: retryAfterHeaders(upstream) },
+      );
     }
 
     return sessionResponse(body, input.data.remember);

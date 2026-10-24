@@ -13,7 +13,24 @@ const schema = z.object({
   TEMPORAL_NAMESPACE: z.string().default("default"),
   TEMPORAL_TASK_QUEUE: z.string().default("iron-ledger-tasks"),
   OUTBOX_POLL_INTERVAL_MS: z.coerce.number().int().min(100).default(1_000),
-  OUTBOX_RELAY_ENABLED: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
+  // Proxies confiáveis à frente da API (o BFF do Next conta como um). Define o IP
+  // usado pelo rate limit a partir de `X-Forwarded-For`; 0 usa o IP da conexão.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
+  // Origens de navegador autorizadas a chamar a API direto (separadas por vírgula).
+  // Vazio desliga o CORS: o web fala só com o BFF, que chama a API pelo servidor.
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .default("")
+    .transform((value) =>
+      value
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ),
+  OUTBOX_RELAY_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
   // Somente para o painel de serviços (/platform/services); a API não depende deles.
   ANALYTICS_PORT: z.coerce.number().int().positive().default(8000),
   ANALYTICS_URL: z.string().url().optional(),

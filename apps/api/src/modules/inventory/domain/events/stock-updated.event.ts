@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
 import type { StockUpdated } from "@iron-ledger/shared-types";
-import { EVENT_PRODUCER } from "../../../../infra/messaging/rabbitmq.client";
-import type { UpdateStockDto } from "../../application/dtos/update-stock.dto";
+import { EVENT_PRODUCER } from "../../../../shared/domain/domain-event";
 import type { StockMovementRecord } from "../repositories/inventory.repository";
 
-export function stockUpdatedEvent(input: UpdateStockDto, movement: StockMovementRecord): StockUpdated {
+/** Gravado no outbox no mesmo commit do movimento; o `eventId` precisa ser UUID. */
+export function stockUpdatedEvent(
+  movement: StockMovementRecord,
+  actorId: string,
+  correlationId?: string,
+): StockUpdated {
   return {
     eventId: randomUUID(),
     eventName: "Inventory.StockUpdated",
@@ -13,13 +17,13 @@ export function stockUpdatedEvent(input: UpdateStockDto, movement: StockMovement
     producer: EVENT_PRODUCER,
     aggregateType: "StockLevel",
     aggregateId: movement.stockLevelId,
-    correlationId: input.correlationId,
-    actorId: input.actorId,
+    correlationId,
+    actorId,
     payload: {
       entityType: "Inventory",
       entityId: movement.stockLevelId,
       action: "UPDATE",
-      correlationId: input.correlationId,
+      correlationId,
       movementId: movement.id,
       productId: movement.productId,
       sku: movement.sku,

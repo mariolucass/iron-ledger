@@ -1,5 +1,5 @@
-import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
+import { handle } from "../../../../infra/http/handle";
 import type { LoginUseCase } from "../../application/use-cases/login.use-case";
 import type { RegisterUserUseCase } from "../../application/use-cases/register-user.use-case";
 
@@ -21,21 +21,8 @@ export class AuthController {
     private readonly registerUser: RegisterUserUseCase,
   ) {}
 
-  handleLogin = async (request: Request, response: Response, next: NextFunction) => {
-    try {
-      const input = loginSchema.parse(request.body);
-      response.json(await this.login.execute(input));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  handleRegister = async (request: Request, response: Response, next: NextFunction) => {
-    try {
-      const input = registerSchema.parse(request.body);
-      response.status(201).json(await this.registerUser.execute(input));
-    } catch (error) {
-      next(error);
-    }
-  };
+  handleLogin = handle(200, (request) => this.login.execute(loginSchema.parse(request.body)));
+  handleRegister = handle(201, (request) =>
+    this.registerUser.execute(registerSchema.parse(request.body)),
+  );
 }

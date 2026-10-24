@@ -1,6 +1,7 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/shared/auth/session";
+import { forwardedHeaders, retryAfterHeaders } from "./forwarded-headers";
 
 const apiUrl = () =>
   process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
@@ -26,9 +27,7 @@ export async function backendRequest(
       headers: {
         authorization: `Bearer ${token}`,
         ...(init.body ? { "content-type": "application/json" } : {}),
-        ...(request.headers.get("x-correlation-id")
-          ? { "x-correlation-id": request.headers.get("x-correlation-id")! }
-          : {}),
+        ...forwardedHeaders(request),
         ...init.headers,
       },
       cache: "no-store",
@@ -36,7 +35,10 @@ export async function backendRequest(
     });
     const response = new NextResponse(await upstream.text(), {
       status: upstream.status,
-      headers: { "content-type": upstream.headers.get("content-type") ?? "application/json" },
+      headers: {
+        "content-type": upstream.headers.get("content-type") ?? "application/json",
+        ...retryAfterHeaders(upstream),
+      },
     });
     const correlationId = upstream.headers.get("x-correlation-id");
     if (correlationId) response.headers.set("x-correlation-id", correlationId);

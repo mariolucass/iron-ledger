@@ -1,22 +1,13 @@
-import type { EventPublisher } from "../../../../infra/messaging/rabbitmq.client";
-import { stockUpdatedEvent } from "../../domain/events/stock-updated.event";
-import type { InventoryRepository } from "../../domain/repositories/inventory.repository";
+import type {
+  InventoryRepository,
+  ReservationActionInput,
+} from "../../domain/repositories/inventory.repository";
 
+/** Confirmar de novo devolve o movimento original sem novo evento (activities at-least-once). */
 export class CommitReservationUseCase {
-  constructor(private readonly inventory: InventoryRepository, private readonly events: EventPublisher) {}
+  constructor(private readonly inventory: InventoryRepository) {}
 
-  async execute(input: { reservationId: string; actorId: string; correlationId?: string }) {
-    const result = await this.inventory.commitReservation(input);
-    const event = stockUpdatedEvent({
-      stockLevelId: result.movement.stockLevelId,
-      type: "OUTBOUND",
-      quantity: result.movement.quantity,
-      referenceId: result.movement.referenceId ?? undefined,
-      actorId: input.actorId,
-      correlationId: input.correlationId,
-    }, result.movement);
-    event.eventId = `Inventory.StockUpdated:${result.movement.id}`;
-    await this.events.publish(event);
-    return result.movement;
+  execute(input: ReservationActionInput) {
+    return this.inventory.commitReservation(input);
   }
 }

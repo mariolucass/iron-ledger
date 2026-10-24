@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pageQueryShape } from "../../../shared/utils/pagination";
 
 export const USER_STATUSES = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
@@ -15,8 +16,7 @@ export const listUsersSchema = z.object({
   q: z.string().trim().min(1).max(100).optional(),
   status: z.enum(USER_STATUSES).optional(),
   role: z.string().trim().min(1).max(64).optional(),
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  ...pageQueryShape,
 });
 
 export const createUserSchema = z.object({
@@ -69,7 +69,13 @@ export interface UserAdminRepository {
   findById(id: string): Promise<UserDetail | null>;
   roles(): Promise<RoleSummary[]>;
   /** Retorna `null` quando o e-mail já está em uso. */
-  create(input: { name: string; email: string; passwordHash: string; roles: string[]; grantedBy: string }): Promise<UserDetail | null>;
+  create(input: {
+    name: string;
+    email: string;
+    passwordHash: string;
+    roles: string[];
+    grantedBy: string;
+  }): Promise<UserDetail | null>;
   update(id: string, input: UpdateUserInput): Promise<UserDetail>;
   /** Substitui os papéis aplicando só a diferença; concessões mantidas preservam a data original. */
   setRoles(id: string, roles: string[], grantedBy: string): Promise<UserDetail>;

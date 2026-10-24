@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import type { StockReleased, StockReserved } from "@iron-ledger/shared-types";
-import { EVENT_PRODUCER } from "../../../../infra/messaging/rabbitmq.client";
+import { EVENT_PRODUCER } from "../../../../shared/domain/domain-event";
 import type { StockReservationRecord } from "../repositories/inventory.repository";
 
+/** Gravado no outbox no mesmo commit da reserva; o `eventId` precisa ser UUID. */
 export function stockReservationEvent(
   eventName: "Inventory.StockReserved" | "Inventory.StockReleased",
   reservation: StockReservationRecord,
@@ -9,7 +11,7 @@ export function stockReservationEvent(
   correlationId?: string,
 ): StockReserved | StockReleased {
   return {
-    eventId: `${eventName}:${reservation.id}`,
+    eventId: randomUUID(),
     eventName,
     eventVersion: 1,
     occurredAt: new Date().toISOString(),

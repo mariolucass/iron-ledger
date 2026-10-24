@@ -1,11 +1,10 @@
-import type { NextFunction, Response } from "express";
 import { z } from "zod";
+import { handle } from "../../../../infra/http/handle";
 import { preferencesSchema } from "../../application/profile";
 import type { ChangePasswordUseCase } from "../../application/use-cases/change-password.use-case";
 import type { GetProfileUseCase } from "../../application/use-cases/get-profile.use-case";
 import type { UpdatePreferencesUseCase } from "../../application/use-cases/update-preferences.use-case";
 import type { UpdateProfileUseCase } from "../../application/use-cases/update-profile.use-case";
-import type { AuthenticatedRequest } from "../guards/jwt.guard";
 
 const updateProfileSchema = z
   .object({
@@ -37,8 +36,6 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(8).max(72),
 });
 
-type Handler = (request: AuthenticatedRequest, response: Response, next: NextFunction) => Promise<void>;
-
 export class ProfileController {
   constructor(
     private readonly getProfile: GetProfileUseCase,
@@ -47,24 +44,14 @@ export class ProfileController {
     private readonly changePassword: ChangePasswordUseCase,
   ) {}
 
-  private handle(run: (userId: string, request: AuthenticatedRequest) => Promise<unknown>): Handler {
-    return async (request, response, next) => {
-      try {
-        response.json(await run(request.auth!.userId, request));
-      } catch (error) {
-        next(error);
-      }
-    };
-  }
-
-  me = this.handle((userId) => this.getProfile.execute(userId));
-  patchMe = this.handle((userId, request) =>
-    this.updateProfile.execute(userId, updateProfileSchema.parse(request.body)),
+  me = handle(200, (request) => this.getProfile.execute(request.auth!.userId));
+  patchMe = handle(200, (request) =>
+    this.updateProfile.execute(request.auth!.userId, updateProfileSchema.parse(request.body)),
   );
-  patchPreferences = this.handle((userId, request) =>
-    this.updatePreferences.execute(userId, preferencesSchema.parse(request.body)),
+  patchPreferences = handle(200, (request) =>
+    this.updatePreferences.execute(request.auth!.userId, preferencesSchema.parse(request.body)),
   );
-  postPassword = this.handle((userId, request) =>
-    this.changePassword.execute(userId, changePasswordSchema.parse(request.body)),
+  postPassword = handle(200, (request) =>
+    this.changePassword.execute(request.auth!.userId, changePasswordSchema.parse(request.body)),
   );
 }

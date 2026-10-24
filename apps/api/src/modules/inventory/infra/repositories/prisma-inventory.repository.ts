@@ -1,27 +1,42 @@
+import type { DomainEvent } from "@iron-ledger/shared-types";
 import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts";
-import { Prisma } from "@prisma/client";
-import { prisma } from "../../../../infra/database/prisma.client";
+import { Prisma, type PrismaClient } from "@prisma/client";
+import { enqueueEvents } from "../../../../infra/outbox/outbox.writer";
 import { AppError } from "../../../../shared/errors/domain.error";
 import { NotFoundError } from "../../../../shared/errors/not-found.error";
 import { pagination } from "../../../../shared/utils/pagination";
-import type { ReleaseStockDto, ReserveStockDto } from "../../application/dtos/reserve-stock.dto";
-import type { UpdateStockDto } from "../../application/dtos/update-stock.dto";
+import { StockLevel } from "../../domain/entities/stock-level.entity";
+import { stockReservationEvent } from "../../domain/events/stock-reserved.event";
+import { stockUpdatedEvent } from "../../domain/events/stock-updated.event";
 import type {
+  InventoryListQuery,
   InventoryRepository,
+  ReservationActionInput,
+  StockMovementInput,
   StockMovementRecord,
+  StockReservationInput,
   StockReservationRecord,
 } from "../../domain/repositories/inventory.repository";
-import {
-  assertResultingBalance,
-  availableQuantity,
-  inventoryStatus,
-  movementDelta,
-} from "../../domain/services/inventory-domain.service";
+import { Quantity } from "../../domain/value-objects/quantity.vo";
 
 const number = (value: Prisma.Decimal): number => value.toNumber();
+const stockLevel = (row: { quantity: Prisma.Decimal; reserved: Prisma.Decimal }) =>
+  new StockLevel(number(row.quantity), number(row.reserved));
+
+type Mutation<T> = { result: T; events: DomainEvent[] };
+
+export interface PrismaInventoryRepositoryOptions {
+  /** Executado após cada commit que gravou eventos (acorda o relay do outbox). */
+  onEventsCommitted?: () => void;
+}
 
 export class PrismaInventoryRepository implements InventoryRepository {
-  async list(input: { sku?: string; q?: string; warehouseId?: string; page: number; pageSize: number }) {
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly options: PrismaInventoryRepositoryOptions = {},
+  ) {}
+
+  async list(input: InventoryListQuery) {
     const { page, pageSize, skip, take } = pagination(input.page, input.pageSize);
     const where: Prisma.StockLevelWhereInput = {
       product: {
@@ -41,23 +56,21 @@ export class PrismaInventoryRepository implements InventoryRepository {
       warehouse: { isActive: true },
       ...(input.warehouseId ? { warehouseId: input.warehouseId } : {}),
     };
-    const [rows, total] = await prisma.$transaction([
-      prisma.stockLevel.findMany({
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.stockLevel.findMany({
         where,
         include: { product: true, warehouse: true },
         orderBy: [{ product: { sku: "asc" } }, { warehouse: { code: "asc" } }],
         skip,
         take,
       }),
-      prisma.stockLevel.count({ where }),
+      this.prisma.stockLevel.count({ where }),
     ]);
 
     return {
       items: rows.map((row) => {
-        const quantity = number(row.quantity);
-        const reserved = number(row.reserved);
+        const level = stockLevel(row);
         const minStock = number(row.product.minStock);
-        const available = availableQuantity(quantity, reserved);
         return {
           stockLevelId: row.id,
           productId: row.productId,
@@ -66,11 +79,11 @@ export class PrismaInventoryRepository implements InventoryRepository {
           unit: row.product.unit,
           warehouseId: row.warehouseId,
           warehouseName: row.warehouse.name,
-          quantity,
-          reserved,
-          available,
+          quantity: level.quantity,
+          reserved: level.reserved,
+          available: level.available,
           minStock,
-          status: inventoryStatus(available, minStock),
+          status: level.status(minStock),
           updatedAt: row.updatedAt.toISOString(),
         };
       }),
@@ -81,45 +94,64 @@ export class PrismaInventoryRepository implements InventoryRepository {
   }
 
   async findReservationByTransaction(transactionId: string): Promise<ReservationSnapshot> {
-    return prisma.$transaction(async (transaction) => {
-      const reservation = await transaction.stockReservation.findUnique({ where: { transactionId } });
-      if (!reservation) return { status: "NOT_FOUND" };
-      if (reservation.status === "COMMITTED") {
-        const movement = await transaction.stockMovement.findFirst({
-          where: {
-            productId: reservation.productId,
-            warehouseId: reservation.warehouseId,
-            referenceId: `SAGA:${reservation.id}`,
-            referenceType: "TEMPORAL_SAGA",
-          },
-          select: { id: true },
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const reservation = await transaction.stockReservation.findUnique({
+          where: { transactionId },
         });
-        if (!movement) throw new AppError("Movimento da reserva confirmada não encontrado.", 409, "RESERVATION_BALANCE_CONFLICT");
-        return { status: "COMMITTED", reservationId: reservation.id, movementId: movement.id };
-      }
-      return { status: reservation.status, reservationId: reservation.id };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+        if (!reservation) return { status: "NOT_FOUND" };
+        if (reservation.status === "COMMITTED") {
+          const movement = await transaction.stockMovement.findFirst({
+            where: {
+              productId: reservation.productId,
+              warehouseId: reservation.warehouseId,
+              referenceId: `SAGA:${reservation.id}`,
+              referenceType: "TEMPORAL_SAGA",
+            },
+            select: { id: true },
+          });
+          if (!movement)
+            throw new AppError(
+              "Movimento da reserva confirmada não encontrado.",
+              409,
+              "RESERVATION_BALANCE_CONFLICT",
+            );
+          return { status: "COMMITTED", reservationId: reservation.id, movementId: movement.id };
+        }
+        return { status: reservation.status, reservationId: reservation.id };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   async listWarehouses() {
-    const rows = await prisma.warehouse.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
-    return rows.map(({ id, code, name, address, isActive }) => ({ id, code, name, address, isActive }));
+    const rows = await this.prisma.warehouse.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    });
+    return rows.map(({ id, code, name, address, isActive }) => ({
+      id,
+      code,
+      name,
+      address,
+      isActive,
+    }));
   }
 
   async listMovements(stockLevelId: string, requestedPage: number, requestedPageSize: number) {
-    const stock = await prisma.stockLevel.findUnique({ where: { id: stockLevelId } });
+    const stock = await this.prisma.stockLevel.findUnique({ where: { id: stockLevelId } });
     if (!stock) throw new NotFoundError("Saldo de estoque não encontrado.");
     const { page, pageSize, skip, take } = pagination(requestedPage, requestedPageSize);
     const where = { productId: stock.productId, warehouseId: stock.warehouseId };
-    const [rows, total] = await prisma.$transaction([
-      prisma.stockMovement.findMany({
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.stockMovement.findMany({
         where,
         include: { product: { select: { sku: true } } },
         orderBy: { createdAt: "desc" },
         skip,
         take,
       }),
-      prisma.stockMovement.count({ where }),
+      this.prisma.stockMovement.count({ where }),
     ]);
     return {
       items: rows.map((row) => this.mapMovement(row, stockLevelId)),
@@ -129,8 +161,8 @@ export class PrismaInventoryRepository implements InventoryRepository {
     };
   }
 
-  async createMovement(input: UpdateStockDto): Promise<StockMovementRecord> {
-    return prisma.$transaction(async (transaction) => {
+  async createMovement(input: StockMovementInput): Promise<StockMovementRecord> {
+    return this.mutate(async (transaction) => {
       const stock = await transaction.stockLevel.findUnique({
         where: { id: input.stockLevelId },
         include: { product: { select: { sku: true } } },
@@ -138,14 +170,17 @@ export class PrismaInventoryRepository implements InventoryRepository {
       if (!stock) throw new NotFoundError("Saldo de estoque não encontrado.");
 
       const previousQuantity = number(stock.quantity);
-      const delta = movementDelta(input.type, input.quantity);
-      const resultingQuantity = assertResultingBalance(previousQuantity, number(stock.reserved), delta);
+      const resultingQuantity = stockLevel(stock).applyMovement(input.type, input.quantity);
       const updated = await transaction.stockLevel.updateMany({
         where: { id: stock.id, version: stock.version },
         data: { quantity: resultingQuantity, version: { increment: 1 } },
       });
       if (updated.count !== 1) {
-        throw new AppError("O saldo foi alterado por outra operação. Tente novamente.", 409, "STOCK_CONFLICT");
+        throw new AppError(
+          "O saldo foi alterado por outra operação. Tente novamente.",
+          409,
+          "STOCK_CONFLICT",
+        );
       }
 
       const movement = await transaction.stockMovement.create({
@@ -163,23 +198,44 @@ export class PrismaInventoryRepository implements InventoryRepository {
         },
         include: { product: { select: { sku: true } } },
       });
-      return this.mapMovement(movement, stock.id);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      const record = this.mapMovement(movement, stock.id);
+      return {
+        result: record,
+        events: [stockUpdatedEvent(record, input.actorId, input.correlationId)],
+      };
+    });
   }
 
-  async createReservation(input: ReserveStockDto): Promise<StockReservationRecord> {
-    return prisma.$transaction(async (transaction) => {
+  async createReservation(input: StockReservationInput): Promise<StockReservationRecord> {
+    const quantity = Quantity.positive(input.quantity);
+    return this.mutate(async (transaction) => {
       if (input.transactionId) {
-        const existing = await transaction.stockReservation.findUnique({ where: { transactionId: input.transactionId } });
+        const existing = await transaction.stockReservation.findUnique({
+          where: { transactionId: input.transactionId },
+        });
         if (existing) {
           const stock = await transaction.stockLevel.findUnique({
-            where: { productId_warehouseId: { productId: existing.productId, warehouseId: existing.warehouseId } },
+            where: {
+              productId_warehouseId: {
+                productId: existing.productId,
+                warehouseId: existing.warehouseId,
+              },
+            },
             include: { product: { select: { sku: true } } },
           });
-          if (!stock || existing.status !== "ACTIVE" || stock.id !== input.stockLevelId || number(existing.quantity) !== input.quantity) {
-            throw new AppError("A transação já possui uma reserva diferente ou encerrada.", 409, "RESERVATION_CONFLICT");
+          if (
+            !stock ||
+            existing.status !== "ACTIVE" ||
+            stock.id !== input.stockLevelId ||
+            number(existing.quantity) !== input.quantity
+          ) {
+            throw new AppError(
+              "A transação já possui uma reserva diferente ou encerrada.",
+              409,
+              "RESERVATION_CONFLICT",
+            );
           }
-          return this.mapReservation(existing, stock.id, stock.product.sku);
+          return { result: this.mapReservation(existing, stock.id, stock.product.sku), events: [] };
         }
       }
       const stock = await transaction.stockLevel.findUnique({
@@ -187,16 +243,18 @@ export class PrismaInventoryRepository implements InventoryRepository {
         include: { product: { select: { sku: true } } },
       });
       if (!stock) throw new NotFoundError("Saldo de estoque não encontrado.");
-      if (availableQuantity(number(stock.quantity), number(stock.reserved)) < input.quantity) {
-        throw new AppError("Saldo disponível insuficiente para a reserva.", 409, "INSUFFICIENT_STOCK");
-      }
+      stockLevel(stock).assertCanReserve(quantity);
 
       const updated = await transaction.stockLevel.updateMany({
         where: { id: stock.id, version: stock.version },
         data: { reserved: { increment: input.quantity }, version: { increment: 1 } },
       });
       if (updated.count !== 1) {
-        throw new AppError("O saldo foi alterado por outra operação. Tente novamente.", 409, "STOCK_CONFLICT");
+        throw new AppError(
+          "O saldo foi alterado por outra operação. Tente novamente.",
+          409,
+          "STOCK_CONFLICT",
+        );
       }
       const reservation = await transaction.stockReservation.create({
         data: {
@@ -207,102 +265,216 @@ export class PrismaInventoryRepository implements InventoryRepository {
           expiresAt: input.expiresAt,
         },
       });
-      return this.mapReservation(reservation, stock.id, stock.product.sku);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      const record = this.mapReservation(reservation, stock.id, stock.product.sku);
+      return {
+        result: record,
+        events: [
+          stockReservationEvent(
+            "Inventory.StockReserved",
+            record,
+            input.actorId,
+            input.correlationId,
+          ),
+        ],
+      };
+    });
   }
 
-  async releaseReservation(input: ReleaseStockDto): Promise<StockReservationRecord> {
-    return prisma.$transaction(async (transaction) => {
-      const reservation = await transaction.stockReservation.findUnique({ where: { id: input.reservationId } });
+  async releaseReservation(input: ReservationActionInput): Promise<StockReservationRecord> {
+    return this.mutate(async (transaction) => {
+      const reservation = await transaction.stockReservation.findUnique({
+        where: { id: input.reservationId },
+      });
       if (!reservation) throw new NotFoundError("Reserva de estoque não encontrada.");
       if (reservation.status === "RELEASED") {
         const stock = await transaction.stockLevel.findUnique({
-          where: { productId_warehouseId: { productId: reservation.productId, warehouseId: reservation.warehouseId } },
+          where: {
+            productId_warehouseId: {
+              productId: reservation.productId,
+              warehouseId: reservation.warehouseId,
+            },
+          },
           include: { product: { select: { sku: true } } },
         });
         if (!stock) throw new NotFoundError("Saldo relacionado à reserva não encontrado.");
-        return this.mapReservation(reservation, stock.id, stock.product.sku);
+        return {
+          result: this.mapReservation(reservation, stock.id, stock.product.sku),
+          events: [],
+        };
       }
       if (reservation.status !== "ACTIVE") {
         throw new AppError("A reserva não está ativa.", 409, "RESERVATION_NOT_ACTIVE");
       }
       const stock = await transaction.stockLevel.findUnique({
-        where: { productId_warehouseId: { productId: reservation.productId, warehouseId: reservation.warehouseId } },
+        where: {
+          productId_warehouseId: {
+            productId: reservation.productId,
+            warehouseId: reservation.warehouseId,
+          },
+        },
         include: { product: { select: { sku: true } } },
       });
       if (!stock) throw new NotFoundError("Saldo relacionado à reserva não encontrado.");
-      if (number(stock.reserved) < number(reservation.quantity)) {
-        throw new AppError("O saldo reservado está inconsistente.", 409, "RESERVATION_BALANCE_CONFLICT");
-      }
+      stockLevel(stock).assertCanRelease(Quantity.positive(number(reservation.quantity)));
 
       const changed = await transaction.stockReservation.updateMany({
         where: { id: reservation.id, status: "ACTIVE" },
         data: { status: "RELEASED" },
       });
       if (changed.count !== 1) {
-        throw new AppError("A reserva foi alterada por outra operação.", 409, "RESERVATION_CONFLICT");
+        throw new AppError(
+          "A reserva foi alterada por outra operação.",
+          409,
+          "RESERVATION_CONFLICT",
+        );
       }
       const updated = await transaction.stockLevel.updateMany({
         where: { id: stock.id, version: stock.version },
         data: { reserved: { decrement: reservation.quantity }, version: { increment: 1 } },
       });
       if (updated.count !== 1) {
-        throw new AppError("O saldo foi alterado por outra operação. Tente novamente.", 409, "STOCK_CONFLICT");
+        throw new AppError(
+          "O saldo foi alterado por outra operação. Tente novamente.",
+          409,
+          "STOCK_CONFLICT",
+        );
       }
-      return this.mapReservation({ ...reservation, status: "RELEASED" }, stock.id, stock.product.sku);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      const record = this.mapReservation(
+        { ...reservation, status: "RELEASED" },
+        stock.id,
+        stock.product.sku,
+      );
+      return {
+        result: record,
+        events: [
+          stockReservationEvent(
+            "Inventory.StockReleased",
+            record,
+            input.actorId,
+            input.correlationId,
+          ),
+        ],
+      };
+    });
   }
 
-  async commitReservation(input: { reservationId: string; actorId: string }): Promise<{ movement: StockMovementRecord; committed: boolean }> {
-    return prisma.$transaction(async (transaction) => {
-      const reservation = await transaction.stockReservation.findUnique({ where: { id: input.reservationId } });
+  async commitReservation(input: ReservationActionInput): Promise<StockMovementRecord> {
+    return this.mutate(async (transaction) => {
+      const reservation = await transaction.stockReservation.findUnique({
+        where: { id: input.reservationId },
+      });
       if (!reservation) throw new NotFoundError("Reserva de estoque não encontrada.");
       const stock = await transaction.stockLevel.findUnique({
-        where: { productId_warehouseId: { productId: reservation.productId, warehouseId: reservation.warehouseId } },
+        where: {
+          productId_warehouseId: {
+            productId: reservation.productId,
+            warehouseId: reservation.warehouseId,
+          },
+        },
         include: { product: { select: { sku: true } } },
       });
       if (!stock) throw new NotFoundError("Saldo relacionado à reserva não encontrado.");
       const referenceId = `SAGA:${reservation.id}`;
       if (reservation.status === "COMMITTED") {
         const existing = await transaction.stockMovement.findFirst({
-          where: { productId: reservation.productId, warehouseId: reservation.warehouseId, referenceId },
+          where: {
+            productId: reservation.productId,
+            warehouseId: reservation.warehouseId,
+            referenceId,
+          },
           include: { product: { select: { sku: true } } },
         });
-        if (!existing) throw new AppError("Movimento da reserva confirmada não encontrado.", 409, "RESERVATION_BALANCE_CONFLICT");
-        return { movement: this.mapMovement(existing, stock.id), committed: false };
+        if (!existing)
+          throw new AppError(
+            "Movimento da reserva confirmada não encontrado.",
+            409,
+            "RESERVATION_BALANCE_CONFLICT",
+          );
+        return { result: this.mapMovement(existing, stock.id), events: [] };
       }
-      if (reservation.status !== "ACTIVE") throw new AppError("A reserva não está ativa.", 409, "RESERVATION_NOT_ACTIVE");
+      if (reservation.status !== "ACTIVE")
+        throw new AppError("A reserva não está ativa.", 409, "RESERVATION_NOT_ACTIVE");
       const quantity = number(reservation.quantity);
-      if (number(stock.reserved) < quantity || number(stock.quantity) < quantity) {
-        throw new AppError("O saldo reservado está inconsistente.", 409, "RESERVATION_BALANCE_CONFLICT");
-      }
+      stockLevel(stock).assertCanCommit(Quantity.positive(quantity));
       const changed = await transaction.stockReservation.updateMany({
-        where: { id: reservation.id, status: "ACTIVE" }, data: { status: "COMMITTED" },
+        where: { id: reservation.id, status: "ACTIVE" },
+        data: { status: "COMMITTED" },
       });
-      if (changed.count !== 1) throw new AppError("A reserva foi alterada por outra operação.", 409, "RESERVATION_CONFLICT");
+      if (changed.count !== 1)
+        throw new AppError(
+          "A reserva foi alterada por outra operação.",
+          409,
+          "RESERVATION_CONFLICT",
+        );
       const updated = await transaction.stockLevel.updateMany({
         where: { id: stock.id, version: stock.version },
-        data: { quantity: { decrement: quantity }, reserved: { decrement: quantity }, version: { increment: 1 } },
+        data: {
+          quantity: { decrement: quantity },
+          reserved: { decrement: quantity },
+          version: { increment: 1 },
+        },
       });
-      if (updated.count !== 1) throw new AppError("O saldo foi alterado por outra operação.", 409, "STOCK_CONFLICT");
+      if (updated.count !== 1)
+        throw new AppError("O saldo foi alterado por outra operação.", 409, "STOCK_CONFLICT");
       const movement = await transaction.stockMovement.create({
         data: {
-          productId: stock.productId, warehouseId: stock.warehouseId, type: "OUTBOUND", quantity,
-          previousQty: stock.quantity, resultingQty: number(stock.quantity) - quantity,
-          referenceId, referenceType: "TEMPORAL_SAGA", performedBy: input.actorId,
+          productId: stock.productId,
+          warehouseId: stock.warehouseId,
+          type: "OUTBOUND",
+          quantity,
+          previousQty: stock.quantity,
+          resultingQty: number(stock.quantity) - quantity,
+          referenceId,
+          referenceType: "TEMPORAL_SAGA",
+          performedBy: input.actorId,
         },
         include: { product: { select: { sku: true } } },
       });
-      return { movement: this.mapMovement(movement, stock.id), committed: true };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      const record = this.mapMovement(movement, stock.id);
+      return {
+        result: record,
+        events: [stockUpdatedEvent(record, input.actorId, input.correlationId)],
+      };
+    });
   }
 
-  private mapMovement(row: {
-    id: string; productId: string; warehouseId: string; type: string; quantity: Prisma.Decimal;
-    previousQty: Prisma.Decimal; resultingQty: Prisma.Decimal; referenceId: string | null;
-    referenceType: string | null; notes: string | null; performedBy: string; createdAt: Date;
-    product: { sku: string };
-  }, stockLevelId: string): StockMovementRecord {
+  /**
+   * Transação serializável que grava o estado e os eventos no outbox no mesmo
+   * commit (Transactional Outbox). Conflitos de serialização viram 409 (P2034).
+   */
+  private async mutate<T>(
+    run: (transaction: Prisma.TransactionClient) => Promise<Mutation<T>>,
+  ): Promise<T> {
+    const { result, events } = await this.prisma.$transaction(
+      async (transaction) => {
+        const mutation = await run(transaction);
+        await enqueueEvents(transaction, mutation.events);
+        return mutation;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+    if (events.length > 0) this.options.onEventsCommitted?.();
+    return result;
+  }
+
+  private mapMovement(
+    row: {
+      id: string;
+      productId: string;
+      warehouseId: string;
+      type: string;
+      quantity: Prisma.Decimal;
+      previousQty: Prisma.Decimal;
+      resultingQty: Prisma.Decimal;
+      referenceId: string | null;
+      referenceType: string | null;
+      notes: string | null;
+      performedBy: string;
+      createdAt: Date;
+      product: { sku: string };
+    },
+    stockLevelId: string,
+  ): StockMovementRecord {
     return {
       id: row.id,
       stockLevelId,
@@ -321,10 +493,20 @@ export class PrismaInventoryRepository implements InventoryRepository {
     };
   }
 
-  private mapReservation(row: {
-    id: string; productId: string; warehouseId: string; quantity: Prisma.Decimal; status: string;
-    transactionId: string | null; expiresAt: Date | null; createdAt: Date;
-  }, stockLevelId: string, sku: string): StockReservationRecord {
+  private mapReservation(
+    row: {
+      id: string;
+      productId: string;
+      warehouseId: string;
+      quantity: Prisma.Decimal;
+      status: string;
+      transactionId: string | null;
+      expiresAt: Date | null;
+      createdAt: Date;
+    },
+    stockLevelId: string,
+    sku: string,
+  ): StockReservationRecord {
     return {
       id: row.id,
       stockLevelId,

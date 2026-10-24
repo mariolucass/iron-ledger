@@ -1,6 +1,15 @@
 import { z } from "zod";
+import { pageQueryShape } from "../../../../shared/utils/pagination";
 
-const statuses = ["PENDING", "PROCESSING", "COMPLETED", "COMPENSATING", "COMPENSATED", "FAILED", "CANCELLED"] as const;
+const statuses = [
+  "PENDING",
+  "PROCESSING",
+  "COMPLETED",
+  "COMPENSATING",
+  "COMPENSATED",
+  "FAILED",
+  "CANCELLED",
+] as const;
 const types = ["SALE", "PURCHASE_RECEIPT", "TRANSFER", "RETURN", "ADJUSTMENT"] as const;
 
 export const startTransactionSchema = z.object({
@@ -10,7 +19,13 @@ export const startTransactionSchema = z.object({
   failConfirmation: z.boolean().default(false),
 });
 
-export const idempotencyKeySchema = z.string().trim().min(8).max(120).regex(/^[A-Za-z0-9_\-:.]+$/).optional();
+export const idempotencyKeySchema = z
+  .string()
+  .trim()
+  .min(8)
+  .max(120)
+  .regex(/^[A-Za-z0-9_\-:.]+$/)
+  .optional();
 
 export const listTransactionsSchema = z.object({
   status: z.enum(statuses).optional(),
@@ -18,8 +33,7 @@ export const listTransactionsSchema = z.object({
   code: z.string().trim().min(1).max(40).optional(),
   from: z.string().datetime({ offset: true }).optional(),
   to: z.string().datetime({ offset: true }).optional(),
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  ...pageQueryShape,
 });
 
 export const transactionIdSchema = z.object({ id: z.string().uuid() });
@@ -40,8 +54,20 @@ export const recordStepSchema = z.object({
 
 /** Contrato `TransactionOutcome` (packages/workflow-contracts). */
 export const outcomeSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("COMPLETED"), reservationId: z.string().uuid(), movementId: z.string().uuid() }),
-  z.object({ status: z.literal("COMPENSATED"), reservationId: z.string().uuid(), reason: z.string().max(2_000) }),
-  z.object({ status: z.literal("FAILED"), reason: z.string().max(2_000), failureCode: z.string().max(120).optional() }),
+  z.object({
+    status: z.literal("COMPLETED"),
+    reservationId: z.string().uuid(),
+    movementId: z.string().uuid(),
+  }),
+  z.object({
+    status: z.literal("COMPENSATED"),
+    reservationId: z.string().uuid(),
+    reason: z.string().max(2_000),
+  }),
+  z.object({
+    status: z.literal("FAILED"),
+    reason: z.string().max(2_000),
+    failureCode: z.string().max(120).optional(),
+  }),
   z.object({ status: z.literal("CANCELLED"), reason: z.string().max(2_000) }),
 ]);

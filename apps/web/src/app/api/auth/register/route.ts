@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { forwardedHeaders, retryAfterHeaders } from "@/shared/api/forwarded-headers";
 import { apiUrl, sessionResponse, upstreamMessage } from "@/shared/auth/upstream-session";
 
 const requestSchema = z.object({
@@ -12,7 +13,10 @@ export async function POST(request: Request) {
   const input = requestSchema.safeParse(await request.json().catch(() => null));
   if (!input.success) {
     return NextResponse.json(
-      { error: "VALIDATION_ERROR", message: "Revise nome, e-mail e senha (mínimo de 8 caracteres)." },
+      {
+        error: "VALIDATION_ERROR",
+        message: "Revise nome, e-mail e senha (mínimo de 8 caracteres).",
+      },
       { status: 422 },
     );
   }
@@ -20,7 +24,7 @@ export async function POST(request: Request) {
   try {
     const upstream = await fetch(new URL("/auth/register", apiUrl()), {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...forwardedHeaders(request) },
       body: JSON.stringify(input.data),
       cache: "no-store",
       signal: AbortSignal.timeout(8_000),
@@ -34,13 +38,19 @@ export async function POST(request: Request) {
           ? body.error
           : "REGISTRATION_FAILED";
       const status = upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502;
-      return NextResponse.json({ error: code, message }, { status });
+      return NextResponse.json(
+        { error: code, message },
+        { status, headers: retryAfterHeaders(upstream) },
+      );
     }
 
     return sessionResponse(body, true, 201);
   } catch {
     return NextResponse.json(
-      { error: "API_UNAVAILABLE", message: "A API de autenticação está indisponível. Tente novamente." },
+      {
+        error: "API_UNAVAILABLE",
+        message: "A API de autenticação está indisponível. Tente novamente.",
+      },
       { status: 503 },
     );
   }
