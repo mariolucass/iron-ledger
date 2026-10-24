@@ -103,6 +103,7 @@ Consulte novamente se o estado ainda for `RUNNING`. O resultado esperado é `COM
 
 ## Limites atuais
 
+- Transações que terminam em `FAILED` geram um alerta `SAGA_FAILURE` persistido e visível em `/alerts`. Uma Saga que falha numa etapa, mas termina `COMPENSATED`, não gera esse alerta; a compensação concluiu a recuperação do estoque.
 - O worker autentica na API com o usuário local configurado para o seed. Esse é um mecanismo de desenvolvimento; uma instalação compartilhada precisa de identidade própria para serviço.
 - A publicação RabbitMQ ocorre depois da transação PostgreSQL. As etapas repetidas da Saga reutilizam a mesma reserva e o mesmo movimento, e o consumidor de auditoria deduplica IDs de evento. Ainda não há outbox transacional para garantir entrega em uma falha permanente do broker.
 - A transação é acompanhada pelo histórico do Temporal; não há uma tabela operacional de transações nem tela web conectada para esse workflow.

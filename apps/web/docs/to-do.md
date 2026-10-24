@@ -6,6 +6,8 @@ fazer as paginas vazias
 
 renovar um pouco o design de serem apenas listas 
 
+ajustar as notificações para funcionarem (primeira etapa concluída: falhas de saga aparecem no centro; faltam regras de estoque e canais externos)
+
 criar todo o workflow de categorias 
 
 focar em previsões e relatorios

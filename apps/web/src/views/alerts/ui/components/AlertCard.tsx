@@ -7,11 +7,12 @@ import { severityConfig, sourceConfig, statusConfig } from "../config";
 
 interface AlertCardProps {
   alert: SystemAlert;
+  disabled?: boolean;
   onAcknowledge: (id: string) => void;
   onResolve: (id: string) => void;
 }
 
-export function AlertCard({ alert, onAcknowledge, onResolve }: AlertCardProps) {
+export function AlertCard({ alert, disabled = false, onAcknowledge, onResolve }: AlertCardProps) {
   const [expanded, setExpanded] = useState(false);
   const severity = severityConfig[alert.severity];
   const source = sourceConfig[alert.source];
