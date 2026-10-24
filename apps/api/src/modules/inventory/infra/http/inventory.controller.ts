@@ -9,12 +9,9 @@ import type { ReserveStockUseCase } from "../../application/use-cases/reserve-st
 import type { UpdateStockUseCase } from "../../application/use-cases/update-stock.use-case";
 import { STOCK_MOVEMENT_TYPES } from "../../domain/entities/stock-movement.entity";
 import type { MutationContext } from "../../domain/repositories/inventory.repository";
+import { pageQuerySchema } from "../../../../shared/utils/pagination";
 
-const pageSchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(20),
-});
-const listSchema = pageSchema.extend({
+const listSchema = pageQuerySchema.extend({
   sku: z.string().trim().min(1).optional(),
   q: z.string().trim().min(1).max(100).optional(),
   warehouseId: z.string().uuid().optional(),
@@ -59,7 +56,7 @@ export class InventoryController {
   warehouses = handle(200, () => this.queries.warehouses());
   movements = handle(200, (request) => {
     const { stockLevelId } = movementParamsSchema.parse(request.params);
-    const { page, pageSize } = pageSchema.parse(request.query);
+    const { page, pageSize } = pageQuerySchema.parse(request.query);
     return this.queries.movements(stockLevelId, page, pageSize);
   });
   reservationByTransaction = handle(200, (request) =>

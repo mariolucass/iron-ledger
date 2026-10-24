@@ -10,6 +10,7 @@ import { inventoryModule } from "../../modules/inventory/inventory.module";
 import { platformModule } from "../../modules/platform/platform.module";
 import { transactionModule } from "../../modules/transaction/transaction.module";
 import { warehouseModule } from "../../modules/warehouse/warehouse.module";
+import { createHealthRouter } from "./health.routes";
 import type { ModuleContext, ModuleFactory, RouterDependencies } from "./module";
 import { createTestEventRouter } from "./test-event.routes";
 
@@ -31,13 +32,7 @@ export function createRouter(dependencies: RouterDependencies): Router {
   const context: ModuleContext = { ...dependencies, env, prisma, logger };
   const router = Router();
 
-  router.get("/health", (_request, response) => {
-    response.json({
-      status: "ok",
-      service: "iron-ledger-api",
-      timestamp: new Date().toISOString(),
-    });
-  });
+  router.use("/health", createHealthRouter(prisma));
   for (const { path, router: moduleRouter } of MODULES.flatMap((createModule) =>
     createModule(context),
   )) {

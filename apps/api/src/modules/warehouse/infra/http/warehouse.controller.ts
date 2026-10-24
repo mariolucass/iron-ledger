@@ -17,12 +17,9 @@ import type {
   UpdateLocationUseCase,
   UpdateWarehouseUseCase,
 } from "../../application/warehouse.use-cases";
+import { pageQuerySchema } from "../../../../shared/utils/pagination";
 
 const idSchema = z.object({ id: z.string().uuid() });
-const pageSchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(20),
-});
 const locationParamsSchema = z.object({ id: z.string().uuid(), locationId: z.string().uuid() });
 
 export class WarehouseController {
@@ -55,7 +52,7 @@ export class WarehouseController {
         ]),
       })
       .parse(request.params);
-    const query = pageSchema.parse(request.query);
+    const query = pageQuerySchema.parse(request.query);
     return this.getSection.execute(params.id, params.section, query.page, query.pageSize);
   });
   access = handle(200, (request) => {

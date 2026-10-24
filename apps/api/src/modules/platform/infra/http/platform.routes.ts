@@ -4,12 +4,9 @@ import { handle } from "../../../../infra/http/handle";
 import { jwtGuard } from "../../../identity/infra/guards/jwt.guard";
 import { requireRoles } from "../../../identity/infra/guards/rbac.guard";
 import type { PlatformUseCase } from "../../application/platform";
+import { pageQuerySchema } from "../../../../shared/utils/pagination";
 
 const id = z.string().uuid();
-const pageSchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(20),
-});
 const flag = z.object({
   key: z
     .string()
@@ -43,7 +40,7 @@ export function createPlatformRouter(service: PlatformUseCase, jwtSecret: string
       const section = z
         .enum(["outbox", "inbox", "idempotency-keys", "settings", "feature-flags"])
         .parse(request.params.section);
-      const query = pageSchema.parse(request.query);
+      const query = pageQuerySchema.parse(request.query);
       return service.list(section, query.page, query.pageSize);
     }),
   );

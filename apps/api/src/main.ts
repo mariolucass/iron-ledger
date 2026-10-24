@@ -9,6 +9,19 @@ import { startDomainEventConsumer } from "./modules/audit/infra/consumers/domain
 import { PrismaAuditRepository } from "./modules/audit/infra/repositories/prisma-audit.repository";
 import { TemporalWorkflowOrchestrator } from "./modules/transaction/infra/temporal/transaction-saga.starter";
 
+/** Abaixo do grace period padrão do `docker stop` (10 s), para o log sair antes do SIGKILL. */
+const SHUTDOWN_TIMEOUT_MS = 8_000;
+
+process.on("unhandledRejection", (reason) => {
+  logger.fatal({ err: reason }, "Promise rejeitada sem tratamento");
+  process.exit(1);
+});
+
+process.on("uncaughtException", (error) => {
+  logger.fatal({ err: error }, "Exceção não capturada");
+  process.exit(1);
+});
+
 async function bootstrap(): Promise<void> {
   const eventBus = createEventBus(env.EVENT_BUS, env.RABBITMQ_URL);
   const workflowOrchestrator = new TemporalWorkflowOrchestrator({
@@ -20,9 +33,14 @@ async function bootstrap(): Promise<void> {
   await eventBus.connect();
   await startDomainEventConsumer(eventBus, new RecordAuditUseCase(new PrismaAuditRepository()));
 
-  const outboxRelay = new OutboxRelay(prisma, eventBus, logger.child({ component: "outbox-relay" }), {
-    pollIntervalMs: env.OUTBOX_POLL_INTERVAL_MS,
-  });
+  const outboxRelay = new OutboxRelay(
+    prisma,
+    eventBus,
+    logger.child({ component: "outbox-relay" }),
+    {
+      pollIntervalMs: env.OUTBOX_POLL_INTERVAL_MS,
+    },
+  );
   if (env.OUTBOX_RELAY_ENABLED) outboxRelay.start();
 
   const server = createServer({
@@ -31,7 +49,10 @@ async function bootstrap(): Promise<void> {
     onEventsCommitted: () => outboxRelay.wake(),
     temporalHealth: () => workflowOrchestrator.health(),
   }).listen(env.PORT, "0.0.0.0", () => {
-    logger.info({ port: env.PORT, eventBus: env.EVENT_BUS, outboxRelay: env.OUTBOX_RELAY_ENABLED }, `iron-ledger API disponível em http://localhost:${env.PORT}`);
+    logger.info(
+      { port: env.PORT, eventBus: env.EVENT_BUS, outboxRelay: env.OUTBOX_RELAY_ENABLED },
+      `iron-ledger API disponível em http://localhost:${env.PORT}`,
+    );
   });
 
   let shuttingDown = false;
@@ -39,13 +60,29 @@ async function bootstrap(): Promise<void> {
     if (shuttingDown) return;
     shuttingDown = true;
     logger.info({ signal }, "Encerrando a API");
+    const forceExit = setTimeout(() => {
+      logger.fatal(
+        { signal, timeoutMs: SHUTDOWN_TIMEOUT_MS },
+        "Encerramento excedeu o prazo; saindo à força",
+      );
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS);
+    forceExit.unref();
+
     server.close(async () => {
-      await outboxRelay.stop();
-      await workflowOrchestrator.close();
-      await eventBus.close();
-      await prisma.$disconnect();
-      process.exit(0);
+      try {
+        await outboxRelay.stop();
+        await workflowOrchestrator.close();
+        await eventBus.close();
+        await prisma.$disconnect();
+        process.exit(0);
+      } catch (error) {
+        logger.error({ err: error }, "Falha ao liberar recursos no encerramento");
+        process.exit(1);
+      }
     });
+    // Conexões keep-alive ociosas impediriam o `close` de terminar.
+    server.closeIdleConnections();
   };
 
   process.on("SIGINT", () => shutdown("SIGINT"));

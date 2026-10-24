@@ -14,12 +14,9 @@ import type {
   ListProductsUseCase,
   UpdateProductUseCase,
 } from "../../application/product.use-cases";
+import { pageQuerySchema } from "../../../../shared/utils/pagination";
 
 const idSchema = z.object({ id: z.string().uuid() });
-const pageSchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).default(20),
-});
 
 export class ProductController {
   constructor(
@@ -41,7 +38,7 @@ export class ProductController {
     const params = idSchema
       .extend({ section: z.enum(["inventory", "movements", "lots", "units", "forecast"]) })
       .parse(request.params);
-    const query = pageSchema.parse(request.query);
+    const query = pageQuerySchema.parse(request.query);
     return this.getSection.execute(params.id, params.section, query.page, query.pageSize);
   });
   create = handle(201, (request) =>

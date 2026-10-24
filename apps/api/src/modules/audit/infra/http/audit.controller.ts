@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { handle } from "../../../../infra/http/handle";
 import type { QueryAuditUseCase } from "../../application/use-cases/query-audit.use-case";
+import { pageQueryShape } from "../../../../shared/utils/pagination";
 
 const querySchema = z
   .object({
@@ -16,8 +17,7 @@ const querySchema = z
     correlationId: z.string().trim().min(1).max(100).optional(),
     from: z.coerce.date().optional(),
     to: z.coerce.date().optional(),
-    page: z.coerce.number().int().positive().default(1),
-    pageSize: z.coerce.number().int().positive().max(100).default(20),
+    ...pageQueryShape,
   })
   .refine((value) => !value.from || !value.to || value.from <= value.to, {
     message: "O período inicial deve ser anterior ao período final.",
