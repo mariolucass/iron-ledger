@@ -1,11 +1,11 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { outboxEventPages } from "@/views/outbox-events";
+import { PlatformPage } from "@/views/platform/platform-data";
+import { outboxEventPages } from "@/views/platform/outbox-events";
 
 const page = outboxEventPages.list;
 
 export const metadata = createMetadata({ ...page, path: "/system/outbox" });
 
 export default function Page() {
-  return <ComingSoonPage {...page} />;
+  return <PlatformPage section="outbox" />;
 }

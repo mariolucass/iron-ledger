@@ -44,9 +44,12 @@ const productFields = {
     .refine((value) => value.length === 8, "O NCM deve ter 8 dígitos")
     .nullable(),
   standardCost: optionalNonNegative,
+  salePrice: optionalNonNegative,
+  brand: z.string().trim().min(1).max(120).nullable(),
   currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
   categoryId: z.string().uuid().nullable(),
   barcodes: z.array(barcodeSchema).max(20),
+  images: z.array(z.string().trim().url().refine((url) => url.startsWith("https://"), "Use uma URL HTTPS")).max(8),
 };
 
 const barcodesValid = (barcodes?: z.infer<typeof barcodeSchema>[]) =>
@@ -69,7 +72,7 @@ export const createProductSchema = z
   .partial({
     description: true, status: true, trackingMode: true, minStock: true, maxStock: true, reorderPoint: true,
     safetyStock: true, leadTimeDays: true, shelfLifeDays: true, weightKg: true, lengthCm: true, widthCm: true,
-    heightCm: true, ncm: true, standardCost: true, currency: true, categoryId: true, barcodes: true,
+    heightCm: true, ncm: true, standardCost: true, salePrice: true, brand: true, currency: true, categoryId: true, barcodes: true, images: true,
   })
   .refine((value) => barcodesValid(value.barcodes), { path: ["barcodes"], message: "Códigos de barras repetidos ou mais de um principal" })
   .refine(stockRangeValid, { path: ["maxStock"], message: "O estoque máximo deve ser maior ou igual ao mínimo" });
@@ -117,10 +120,14 @@ export type ProductDetail = {
   heightCm: number | null;
   ncm: string | null;
   standardCost: number | null;
+  salePrice: number | null;
+  brand: string | null;
   currency: string;
   categoryId: string | null;
   categoryName: string | null;
   barcodes: ProductBarcode[];
+  images?: string[];
+  stockSummary?: { quantity: number; reserved: number; available: number; incoming: number; warehouses: number };
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -128,7 +135,7 @@ export type ProductDetail = {
 
 export type ProductListItem = Pick<
   ProductDetail,
-  "id" | "sku" | "name" | "unit" | "status" | "isActive" | "trackingMode" | "minStock" | "standardCost" | "currency" | "categoryId" | "categoryName" | "updatedAt"
+  "id" | "sku" | "name" | "unit" | "status" | "isActive" | "trackingMode" | "minStock" | "standardCost" | "salePrice" | "brand" | "currency" | "categoryId" | "categoryName" | "updatedAt"
 > & { totalQuantity: number };
 
 export type UnitOption = { id: string; code: string; name: string; type: string; precision: number };

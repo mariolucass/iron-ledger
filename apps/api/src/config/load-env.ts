@@ -1,3 +1,3 @@
-import { loadWorkspaceEnv } from "../../../../scripts/app-env.cjs";
+import { loadWorkspaceEnv } from "../../../../scripts/lib/app-env.cjs";
 
 Object.assign(process.env, loadWorkspaceEnv("api"));

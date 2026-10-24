@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { TransactionDetailPage } from "@/views/transaction-detail";
+import { TransactionDetailPage } from "@/views/operations/transaction-detail";
 
 export const metadata = createMetadata({
   title: "Detalhes da transação",

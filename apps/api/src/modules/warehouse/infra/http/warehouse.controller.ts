@@ -8,6 +8,7 @@ import {
   updateLocationSchema,
   updateWarehouseSchema,
 } from "../../application/warehouse";
+import type { GetWarehouseSectionUseCase } from "../../application/warehouse-sections";
 import type {
   CreateLocationUseCase,
   CreateWarehouseUseCase,
@@ -32,6 +33,7 @@ export class WarehouseController {
     private readonly deactivateWarehouse: DeactivateWarehouseUseCase,
     private readonly createLocation: CreateLocationUseCase,
     private readonly updateLocation: UpdateLocationUseCase,
+    private readonly getSection: GetWarehouseSectionUseCase,
   ) {}
 
   private handle(status: number, run: (request: AuthenticatedRequest) => Promise<unknown>): Handler {
@@ -46,6 +48,19 @@ export class WarehouseController {
 
   list = this.handle(200, (request) => this.listWarehouses.execute(listWarehousesSchema.parse(request.query)));
   get = this.handle(200, (request) => this.getWarehouse.execute(idSchema.parse(request.params).id));
+  section = this.handle(200, (request) => {
+    const params = idSchema.extend({ section: z.enum(["inventory", "movements", "reservations", "transfers", "counts", "access", "settings"]) }).parse(request.params);
+    const query = z.object({ page: z.coerce.number().int().positive().default(1), pageSize: z.coerce.number().int().positive().max(100).default(20) }).parse(request.query);
+    return this.getSection.execute(params.id, params.section, query.page, query.pageSize);
+  });
+  access = this.handle(200, (request) => {
+    const { id } = idSchema.parse(request.params);
+    return this.getSection.execute(id, "access", 1, 100);
+  });
+  location = this.handle(200, (request) => {
+    const { id, locationId } = locationParamsSchema.parse(request.params);
+    return this.getSection.location(id, locationId);
+  });
   create = this.handle(201, (request) => this.createWarehouse.execute(createWarehouseSchema.parse(request.body)));
   update = this.handle(200, (request) =>
     this.updateWarehouse.execute(idSchema.parse(request.params).id, updateWarehouseSchema.parse(request.body)),

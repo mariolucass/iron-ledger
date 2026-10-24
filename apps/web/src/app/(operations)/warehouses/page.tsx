@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { WarehousesPage } from "@/views/warehouses";
+import { WarehousesPage } from "@/views/operations/warehouses";
 import { warehouseServerApi } from "@/entities/warehouse/server";
 
 export const metadata = createMetadata({

@@ -17,7 +17,7 @@ const control =
   "border border-ink/[0.08] bg-[linear-gradient(135deg,rgb(var(--ink-rgb)/5%),rgb(var(--ink-rgb)/2%))] text-[rgb(var(--ink-rgb)/70%)] shadow-[inset_0_1px_0_rgb(255_255_255/3%)] transition-[background,border-color,color,box-shadow] duration-[180ms] hover:border-ink/15 hover:bg-ink/[0.08] hover:text-foreground hover:shadow-[inset_0_1px_0_rgb(255_255_255/6%),0_2px_8px_rgb(0_0_0/10%)] aria-expanded:border-ink/15 aria-expanded:bg-ink/[0.08] aria-expanded:text-foreground aria-expanded:shadow-[inset_0_1px_0_rgb(255_255_255/6%),0_2px_8px_rgb(0_0_0/10%)] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[rgb(0_229_160/70%)] motion-reduce:transition-none";
 
 const CommandPalette = dynamic(
-  () => import("@/features/search-navigation").then((module) => module.CommandPalette),
+  () => import("@/features/platform/search-navigation").then((module) => module.CommandPalette),
   {
     ssr: false,
   },

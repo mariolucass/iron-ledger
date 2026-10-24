@@ -1,6 +1,6 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { forecastRunPages } from "@/views/forecast-runs";
+import { ComingSoonPage } from "@/views/common/coming-soon";
+import { forecastRunPages } from "@/views/intelligence/forecast-runs";
 
 const page = forecastRunPages.list;
 

@@ -12,7 +12,8 @@ const MAX_CORRELATION_LENGTH = 120;
  */
 export const requestLogger: RequestHandler = (request, response, next) => {
   const supplied = request.header(CORRELATION_HEADER)?.trim();
-  const correlationId = supplied && supplied.length <= MAX_CORRELATION_LENGTH ? supplied : randomUUID();
+  const correlationId =
+    supplied && supplied.length <= MAX_CORRELATION_LENGTH ? supplied : randomUUID();
   request.headers[CORRELATION_HEADER] = correlationId;
   response.setHeader(CORRELATION_HEADER, correlationId);
 
@@ -20,11 +21,19 @@ export const requestLogger: RequestHandler = (request, response, next) => {
   runWithContext({ correlationId, requestId: randomUUID() }, () => {
     response.on("finish", () => {
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
-      const level = response.statusCode >= 500 ? "error" : response.statusCode >= 400 ? "warn" : "info";
-      logger[level]({
-        http: { method: request.method, path: request.baseUrl + request.path, status: response.statusCode },
-        durationMs: Math.round(durationMs * 10) / 10,
-      }, "request concluída");
+      const level =
+        response.statusCode >= 500 ? "error" : response.statusCode >= 400 ? "warn" : "info";
+      logger[level](
+        {
+          http: {
+            method: request.method,
+            path: request.baseUrl + request.path,
+            status: response.statusCode,
+          },
+          durationMs: Math.round(durationMs * 10) / 10,
+        },
+        "request concluída",
+      );
     });
     next();
   });

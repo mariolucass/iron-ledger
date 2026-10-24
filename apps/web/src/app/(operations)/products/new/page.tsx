@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ProductEditorPage } from "@/views/product-editor";
+import { ProductEditorPage } from "@/views/operations/product-editor";
 
 export const metadata = createMetadata({
   title: "Novo produto",

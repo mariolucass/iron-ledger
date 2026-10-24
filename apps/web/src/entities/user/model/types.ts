@@ -108,3 +108,93 @@ export interface UpdateUserInput {
   name?: string;
   status?: UserStatus;
 }
+
+export interface UserWarehouseAccess {
+  warehouseId: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+  accessLevel: string;
+  grantedAt: string;
+  expiresAt: string | null;
+}
+export interface UserSessionInfo {
+  id: string;
+  status: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  expiresAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+export interface UserSecurityInfo {
+  mfaEnabled: boolean;
+  failedLoginAttempts: number;
+  lockedUntil: string | null;
+  passwordChangedAt: string | null;
+  externalId: string | null;
+  factors: {
+    id: string;
+    method: string;
+    label: string | null;
+    verifiedAt: string | null;
+    lastUsedAt: string | null;
+    createdAt: string;
+  }[];
+  identities: {
+    id: string;
+    provider: string;
+    providerKey: string;
+    email: string | null;
+    lastLoginAt: string | null;
+    createdAt: string;
+  }[];
+}
+export interface UserApiKeyInfo {
+  id: string;
+  name: string;
+  prefix: string;
+  status: string;
+  allowedIps: string[];
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  permissions: string[];
+}
+export interface PermissionInfo {
+  id: string;
+  resource: string;
+  action: string;
+  description: string | null;
+  grantedAt?: string;
+}
+export interface RoleDetail extends RoleSummary {
+  parentRoleId: string | null;
+  parentRoleName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface RoleMember {
+  userId: string;
+  name: string;
+  email: string;
+  status: UserStatus;
+  grantedAt: string;
+  expiresAt: string | null;
+}
+export interface InvitationInfo {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  expiresAt: string;
+  consumedAt: string | null;
+}
+export interface RoleInput {
+  name: string;
+  description: string | null;
+  parentRoleId: string | null;
+  permissionIds: string[];
+}

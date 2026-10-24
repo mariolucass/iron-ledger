@@ -1,11 +1,4 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { unitOfMeasurePages } from "@/views/units-of-measure";
-
-const page = unitOfMeasurePages.create;
-
-export const metadata = createMetadata({ ...page, path: "/products/units-of-measure/new" });
-
-export default function Page() {
-  return <ComingSoonPage {...page} />;
-}
+import { UnitCreatePage } from "@/views/operations/units-of-measure";
+export const metadata = createMetadata({ title: "Nova unidade de medida", description: "Cadastro de unidade de medida", path: "/products/units-of-measure/new" });
+export default function Page() { return <UnitCreatePage />; }

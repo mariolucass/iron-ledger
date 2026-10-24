@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { AlertsPage } from "@/views/alerts";
+import { AlertsPage } from "@/views/governance/alerts";
 
 export const metadata = createMetadata({
   title: "Alertas",

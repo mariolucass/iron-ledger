@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { NewMovementPage } from "@/views/inventory";
+import { NewMovementPage } from "@/views/operations/inventory";
 
 export const metadata = createMetadata({
   title: "Novo movimento",

@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { RegisterPage } from "@/views/register";
+import { RegisterPage } from "@/views/identity/register";
 
 export const metadata = createMetadata({
   title: "Criar conta",

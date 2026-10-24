@@ -12,6 +12,8 @@ export type {
   WarehouseQuery,
   WarehouseSummary,
   WarehouseType,
+  WarehouseInventoryRow, WarehouseMovementRow, WarehouseReservationRow, WarehouseTransferRow,
+  WarehouseCountRow, WarehouseAccessRow, WarehouseSettingRow, WarehouseLocationDetail,
   WarehousesPage,
   WarehousesResponse,
 } from "./model/types";

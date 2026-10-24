@@ -1,6 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { rolePages } from "@/views/roles";
+import { RolePage, rolePages } from "@/views/identity/roles";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -13,5 +12,5 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
-  return <ComingSoonPage {...rolePages.detail(id)} />;
+  return <RolePage id={id} section="detail" />;
 }

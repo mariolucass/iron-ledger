@@ -165,7 +165,7 @@ O BFF do Next.js mantém o token em cookie HTTP-only e é a única via de acesso
 | `logger` | Logger JSON e contexto de correlação | lógica de negócio |
 | `event-bus` | Portas `EventPublisher`/`EventSubscriber`, RabbitMQ, implementação em memória | conhecimento de eventos específicos |
 
-Os pacotes com código de runtime compilam para `dist/` (`pnpm build:packages`). `scripts/run-app.mjs` e os
+Os pacotes com código de runtime compilam para `dist/` (`pnpm build:packages`). `scripts/dev/run-app.mjs` e os
 Dockerfiles já compilam antes de iniciar as apps.
 
 Próximo passo: **OpenTelemetry** em um pacote `@iron-ledger/telemetry`, com traces HTTP, Prisma, amqplib e

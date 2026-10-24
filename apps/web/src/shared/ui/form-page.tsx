@@ -6,6 +6,7 @@ import { PageHeader, type PageHeaderProps } from "@/shared/ui/data-list";
 import { StatusMessage, type Status } from "@/shared/ui/form-primitives";
 import { Button } from "@/shared/ui/kit/button";
 import { Skeleton } from "@/shared/ui/kit/skeleton";
+import { pageWidth } from "@/shared/ui/page-width";
 import { cn } from "@/shared/ui/kit/utils";
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ export function FormPage({
   ...header
 }: FormPageProps) {
   return (
-    <div className={cn("mx-auto w-full", wide ? "max-w-[960px]" : "max-w-[720px]")}>
+    <div className={cn("w-full", wide ? pageWidth.wide : pageWidth.form)}>
       <PageHeader {...header} />
       {notice && (
         <div className="mb-6">

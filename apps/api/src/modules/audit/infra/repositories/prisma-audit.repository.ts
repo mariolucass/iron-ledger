@@ -49,6 +49,7 @@ export class PrismaAuditRepository implements AuditRepository {
       ...(input.action ? { action: input.action } : {}),
       ...(input.correlationId ? { correlationId: { contains: input.correlationId, mode: "insensitive" } } : {}),
       ...(actorFilters ? { OR: actorFilters } : {}),
+      ...(input.userActorsOnly ? { actorId: { not: null } } : {}),
       ...(input.from || input.to
         ? { occurredAt: { ...(input.from ? { gte: input.from } : {}), ...(input.to ? { lte: input.to } : {}) } }
         : {}),

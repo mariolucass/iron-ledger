@@ -45,6 +45,17 @@ export class TemporalWorkflowOrchestrator implements WorkflowOrchestrator {
     }
   }
 
+  /** Confirma que o servidor responde e conta os workers em polling na task queue. */
+  async health(): Promise<{ pollers: number }> {
+    const client = await this.getClient();
+    const { pollers } = await client.workflowService.describeTaskQueue({
+      namespace: this.options.namespace,
+      taskQueue: { name: this.options.taskQueue },
+      taskQueueType: 1, // TASK_QUEUE_TYPE_WORKFLOW
+    });
+    return { pollers: pollers?.length ?? 0 };
+  }
+
   async close(): Promise<void> {
     await this.connection?.close();
     this.connection = undefined;

@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ProductsPage } from "@/views/products";
+import { ProductsPage } from "@/views/operations/products";
 import { productServerApi } from "@/entities/product/server";
 
 export const metadata = createMetadata({

@@ -17,7 +17,9 @@ import { usePathname } from "next/navigation";
 import { ease2 } from "@/shared/lib/animation";
 import { firstNameOf, roleLabelOf, useCurrentUser } from "@/entities/user";
 import { isNavigationItemActive, navigationChildren, navigationSections } from "@/shared/config/app-navigation";
+import type { NavigationChild, NavigationRecordMatch } from "@/shared/config/app-navigation-types";
 import { UserAvatar } from "@/entities/user";
+import { useRecordNames } from "../../../model/record-names";
 import styles from "./Sidebar.module.css";
 
 const focus =
@@ -49,6 +51,7 @@ function SidebarComponent({ collapsed, mobileOpen, onNavigate, setCollapsed }: S
   const previousActiveSection = useRef(activeSection);
   const previousPathname = useRef(pathname);
   const { profile } = useCurrentUser();
+  const nameOf = useRecordNames();
   const compact = collapsed && !mobileOpen;
   const desktopWidth = collapsed ? "md:w-16 md:min-w-16" : "md:w-[268px] md:min-w-[268px]";
 
@@ -246,21 +249,17 @@ function SidebarComponent({ collapsed, mobileOpen, onNavigate, setCollapsed }: S
                             className="overflow-hidden"
                           >
                             <div className="ml-[21px] border-l border-ink/10 py-1 pl-3">
-                              {children.map((child, index) => {
-                                const selected = pathname === child.path;
-                                const startsContext = child.contextual && !children[index - 1]?.contextual;
+                              {children.filter((child) => !child.record).map((child) => (
+                                <ChildLink key={child.path} child={child} selected={pathname === child.path} onNavigate={onNavigate} />
+                              ))}
+                              {recordGroups(children).map(([record, pages]) => {
+                                const name = nameOf(record);
                                 return (
-                                  <div key={child.path}>
-                                    {startsContext && <div className="mx-2 mt-2 mb-1 border-t border-ink/[0.08] pt-2 text-[10px] font-semibold tracking-[0.08em] text-ink/40 uppercase">Neste registro</div>}
-                                    <Link
-                                      href={child.path}
-                                      onClick={onNavigate}
-                                      aria-current={selected ? "page" : undefined}
-                                      className={`relative flex min-h-9 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13.5px] font-medium tracking-[-0.01em] transition-[background,color,box-shadow] duration-150 motion-reduce:transition-none ${focus} ${selected ? "bg-primary/[0.09] text-foreground shadow-[inset_0_0_0_1px_rgb(0_229_160/12%)]" : "text-ink/65 hover:bg-ink/[0.055] hover:text-foreground"}`}
-                                    >
-                                      <span aria-hidden className={`size-1 shrink-0 rounded-full ${selected ? "bg-primary shadow-[0_0_8px_rgba(0,229,160,0.6)]" : "bg-ink/25"}`} />
-                                      <span className="truncate">{child.label}</span>
-                                    </Link>
+                                  <div key={record.path} role="group" aria-label={`${record.label}: ${name ?? record.label}`}>
+                                    <RecordHeading record={record} name={name} reducedMotion={Boolean(reducedMotion)} />
+                                    {pages.map((child) => (
+                                      <ChildLink key={child.path} child={child} selected={pathname === child.path} onNavigate={onNavigate} />
+                                    ))}
                                   </div>
                                 );
                               })}
@@ -312,6 +311,60 @@ function SidebarComponent({ collapsed, mobileOpen, onNavigate, setCollapsed }: S
         </button>
       </div>
     </aside>
+  );
+}
+
+/** Páginas de cada registro da rota atual, na ordem declarada (armazém antes da localização). */
+function recordGroups(children: NavigationChild[]) {
+  const groups = new Map<string, [NavigationRecordMatch, NavigationChild[]]>();
+  for (const child of children) {
+    if (!child.record) continue;
+    const group = groups.get(child.record.path) ?? [child.record, []];
+    group[1].push(child);
+    groups.set(child.record.path, group);
+  }
+  return [...groups.values()];
+}
+
+/** Tipo do registro em destaque discreto e o nome como título; sem nome a buscar, o tipo assume o título. */
+function RecordHeading({ record, name, reducedMotion }: { record: NavigationRecordMatch; name: string | null | undefined; reducedMotion: boolean }) {
+  return (
+    <div className="mx-2 mt-2 mb-1 border-t border-ink/[0.08] pt-2.5">
+      <span aria-hidden className="block text-[10px] font-semibold tracking-[0.08em] text-ink/40 uppercase">
+        {name === null ? "Neste registro" : record.label}
+      </span>
+      {name === undefined ? (
+        <span className="mt-1.5 mb-1 block h-3.5 w-28 animate-pulse rounded bg-ink/10 motion-reduce:animate-none">
+          <span className="sr-only">Carregando {record.label.toLocaleLowerCase("pt-BR")}</span>
+        </span>
+      ) : (
+        <motion.span
+          aria-hidden
+          key={name ?? record.label}
+          initial={reducedMotion ? false : { opacity: 0, y: 2 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: ease2 }}
+          title={name ?? record.label}
+          className="mt-0.5 block truncate text-[13.5px] font-semibold tracking-[-0.01em] text-foreground"
+        >
+          {name ?? record.label}
+        </motion.span>
+      )}
+    </div>
+  );
+}
+
+function ChildLink({ child, selected, onNavigate }: { child: NavigationChild; selected: boolean; onNavigate: () => void }) {
+  return (
+    <Link
+      href={child.path}
+      onClick={onNavigate}
+      aria-current={selected ? "page" : undefined}
+      className={`relative flex min-h-9 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13.5px] font-medium tracking-[-0.01em] transition-[background,color,box-shadow] duration-150 motion-reduce:transition-none ${focus} ${selected ? "bg-primary/[0.09] text-foreground shadow-[inset_0_0_0_1px_rgb(0_229_160/12%)]" : "text-ink/65 hover:bg-ink/[0.055] hover:text-foreground"}`}
+    >
+      <span aria-hidden className={`size-1 shrink-0 rounded-full ${selected ? "bg-primary shadow-[0_0_8px_rgba(0,229,160,0.6)]" : "bg-ink/25"}`} />
+      <span className="truncate">{child.label}</span>
+    </Link>
   );
 }
 

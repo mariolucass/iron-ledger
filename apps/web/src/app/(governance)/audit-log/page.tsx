@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { AuditLogPage } from "@/views/audit-log";
+import { AuditLogPage } from "@/views/governance/audit-log";
 
 export const metadata = createMetadata({
   title: "Log de auditoria",

@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { CurrentUserProvider } from "@/entities/user";
 import { ThemeProvider } from "@/shared/lib/use-theme";
 import { isNavigationItemActive, navigationItems, navigationShortcutItems } from "@/shared/config/app-navigation";
-import { useTrackRecentPage } from "@/features/search-navigation";
+import { useTrackRecentPage } from "@/features/platform/search-navigation";
 import type { LayoutProps } from "../model/types";
 import { AppHeader } from "../elements/header/ui/AppHeader";
 import { Sidebar } from "../elements/sidebar/ui/Sidebar";
@@ -119,7 +119,7 @@ function PersistentLayout({ children, title }: LayoutProps) {
                   initial={reducedMotion ? false : { y: 6 }}
                   animate={{ y: 0 }}
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="mx-auto w-full min-w-0 max-w-[1280px]"
+                  className="w-full min-w-0 max-w-[1280px]"
                 >
                   {children}
                 </motion.div>

@@ -1,5 +1,5 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ReportsPage } from "@/views/reports";
+import { ReportsPage } from "@/views/intelligence/reports";
 
 export const metadata = createMetadata({
   title: "Relatórios",

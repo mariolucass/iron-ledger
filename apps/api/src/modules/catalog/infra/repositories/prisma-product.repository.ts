@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { AppError } from "../../../../shared/errors/domain.error";
 import { prisma } from "../../../../infra/database/prisma.client";
@@ -13,6 +14,8 @@ import type {
   UnitOption,
   UpdateProductInput,
 } from "../../application/product";
+import type { ProductImportPlan, ProductImportRepository } from "../../application/product-import";
+import type { ProductSectionsRepository } from "../../application/product-sections";
 
 const detailInclude = {
   barcodes: { orderBy: { createdAt: "asc" } },
@@ -47,6 +50,8 @@ function toDetail(product: ProductWithRelations): ProductDetail {
     heightCm: num(product.heightCm),
     ncm: product.ncm,
     standardCost: num(product.standardCost),
+    salePrice: num(product.salePrice),
+    brand: product.brand,
     currency: product.currency,
     categoryId: primary?.categoryId ?? null,
     categoryName: primary?.category.name ?? null,
@@ -57,6 +62,10 @@ function toDetail(product: ProductWithRelations): ProductDetail {
       quantity: barcode.quantity.toNumber(),
       isPrimary: barcode.isPrimary,
     })),
+    images: typeof product.metadata === "object" && product.metadata !== null && !Array.isArray(product.metadata) &&
+      Array.isArray(product.metadata.images)
+      ? product.metadata.images.filter((url): url is string => typeof url === "string" && url.startsWith("https://"))
+      : [],
     version: product.version,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
@@ -79,14 +88,115 @@ const barcodeRows = (barcodes: BarcodeInput[]) =>
 
 /** Campos escalares comuns à criação e à atualização (ausente = não mexe). */
 function scalarFields(input: UpdateProductInput & { unit?: string }) {
-  const { categoryId: _category, barcodes: _barcodes, status, ...rest } = input;
+  const { categoryId: _category, barcodes: _barcodes, images: _images, status, ...rest } = input;
   return {
     ...rest,
     ...(status ? { status, isActive: status === "ACTIVE" } : {}),
   };
 }
 
-export class PrismaProductRepository implements ProductRepository {
+const IMPORT_CHUNK = 1_000;
+
+const chunks = <T>(items: T[]) =>
+  Array.from({ length: Math.ceil(items.length / IMPORT_CHUNK) }, (_, index) => items.slice(index * IMPORT_CHUNK, (index + 1) * IMPORT_CHUNK));
+
+/** Código derivado do path (`/vestuario/camisetas` → `VESTUARIO-CAMISETAS`), com sufixo se já usado. */
+function categoryCode(path: string, taken: Set<string>) {
+  const base = path.slice(1).replace(/\//g, "-").toUpperCase().slice(0, 58);
+  let code = base;
+  for (let suffix = 2; taken.has(code); suffix += 1) code = `${base}-${suffix}`;
+  taken.add(code);
+  return code;
+}
+
+export class PrismaProductRepository implements ProductRepository, ProductSectionsRepository, ProductImportRepository {
+  async inventory(id: string) {
+    const rows = await prisma.stockLevel.findMany({
+      where: { productId: id },
+      include: { warehouse: { select: { code: true, name: true } } },
+      orderBy: { warehouse: { name: "asc" } },
+    });
+    return rows.map((row) => ({
+      id: row.id, warehouseId: row.warehouseId, warehouseCode: row.warehouse.code,
+      warehouseName: row.warehouse.name, quantity: row.quantity.toNumber(),
+      reserved: row.reserved.toNumber(), available: row.quantity.minus(row.reserved).toNumber(),
+      incoming: row.incoming.toNumber(), updatedAt: row.updatedAt.toISOString(),
+    }));
+  }
+
+  async movements(id: string, page: number, pageSize: number) {
+    const where = { productId: id };
+    const [rows, total] = await prisma.$transaction([
+      prisma.stockMovement.findMany({
+        where, orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+        skip: (page - 1) * pageSize, take: pageSize,
+        include: { warehouse: { select: { name: true } } },
+      }),
+      prisma.stockMovement.count({ where }),
+    ]);
+    return { page, pageSize, total, items: rows.map((row) => ({
+      id: row.id, type: row.type, quantity: row.quantity.toNumber(),
+      previousQuantity: row.previousQty.toNumber(), resultingQuantity: row.resultingQty.toNumber(),
+      warehouseId: row.warehouseId, warehouseName: row.warehouse.name,
+      referenceId: row.referenceId, referenceType: row.referenceType, notes: row.notes,
+      occurredAt: row.occurredAt.toISOString(),
+    })) };
+  }
+
+  async lots(id: string, page: number, pageSize: number) {
+    const where = { productId: id };
+    const [rows, total] = await prisma.$transaction([
+      prisma.inventoryLot.findMany({
+        where, orderBy: [{ expiresAt: "asc" }, { createdAt: "desc" }],
+        skip: (page - 1) * pageSize, take: pageSize,
+        include: { locationStocks: { select: { quantity: true, reserved: true } } },
+      }),
+      prisma.inventoryLot.count({ where }),
+    ]);
+    return { page, pageSize, total, items: rows.map((row) => ({
+      id: row.id, lotNumber: row.lotNumber, serialNumber: row.serialNumber,
+      status: row.status, manufacturedAt: row.manufacturedAt?.toISOString() ?? null,
+      expiresAt: row.expiresAt?.toISOString() ?? null, receivedAt: row.receivedAt?.toISOString() ?? null,
+      supplierRef: row.supplierRef,
+      quantity: row.locationStocks.reduce((sum, stock) => sum + stock.quantity.toNumber(), 0),
+      reserved: row.locationStocks.reduce((sum, stock) => sum + stock.reserved.toNumber(), 0),
+    })) };
+  }
+
+  async units(id: string) {
+    const rows = await prisma.productUnitConversion.findMany({
+      where: { productId: id }, include: { unit: { select: { code: true, name: true, precision: true } } },
+      orderBy: { unit: { name: "asc" } },
+    });
+    return rows.map((row) => ({ unitId: row.unitId, code: row.unit.code, name: row.unit.name,
+      precision: row.unit.precision, factor: row.factor.toNumber() }));
+  }
+
+  async forecast(id: string) {
+    const rows = await prisma.$queryRaw<{ week: Date; quantity: number }[]>`
+      SELECT date_trunc('week', occurred_at)::date AS week, SUM(ABS(quantity))::float8 AS quantity
+      FROM inventory.stock_movements
+      WHERE product_id = ${id}::uuid AND type::text = 'OUTBOUND'
+        AND occurred_at >= date_trunc('week', now()) - interval '12 weeks'
+        AND occurred_at < date_trunc('week', now())
+      GROUP BY 1 ORDER BY 1
+    `;
+    const byWeek = new Map(rows.map((row) => [row.week.toISOString().slice(0, 10), row.quantity]));
+    const currentMonday = new Date();
+    currentMonday.setUTCHours(0, 0, 0, 0);
+    currentMonday.setUTCDate(currentMonday.getUTCDate() - ((currentMonday.getUTCDay() + 6) % 7));
+    const weeks = Array.from({ length: 12 }, (_, index) => {
+      const week = new Date(currentMonday);
+      week.setUTCDate(week.getUTCDate() - (12 - index) * 7);
+      const start = week.toISOString().slice(0, 10);
+      return { week: start, quantity: byWeek.get(start) ?? 0 };
+    });
+    const hasHistory = rows.length > 0;
+    return { weeks, forecastNextWeek: hasHistory
+      ? weeks.slice(-4).reduce((sum, week) => sum + week.quantity, 0) / 4 : null,
+      method: "Média das quatro semanas completas anteriores; apenas saídas de estoque." };
+  }
+
   async list(query: ListProductsQuery): Promise<Page<ProductListItem>> {
     const { page, pageSize, skip, take } = pagination(query.page, query.pageSize);
     const where: Prisma.ProductWhereInput = {
@@ -127,6 +237,8 @@ export class PrismaProductRepository implements ProductRepository {
           trackingMode: detail.trackingMode,
           minStock: detail.minStock,
           standardCost: detail.standardCost,
+          salePrice: detail.salePrice,
+          brand: detail.brand,
           currency: detail.currency,
           categoryId: detail.categoryId,
           categoryName: detail.categoryName,
@@ -139,11 +251,21 @@ export class PrismaProductRepository implements ProductRepository {
 
   async findById(id: string): Promise<ProductDetail | null> {
     const product = await prisma.product.findFirst({ where: { id, deletedAt: null }, include: detailInclude });
-    return product ? toDetail(product) : null;
+    if (!product) return null;
+    const [stock, warehouses] = await Promise.all([
+      prisma.stockLevel.aggregate({ where: { productId: id }, _sum: { quantity: true, reserved: true, incoming: true } }),
+      prisma.stockLevel.count({ where: { productId: id } }),
+    ]);
+    const quantity = stock._sum.quantity?.toNumber() ?? 0;
+    const reserved = stock._sum.reserved?.toNumber() ?? 0;
+    return {
+      ...toDetail(product),
+      stockSummary: { quantity, reserved, available: quantity - reserved, incoming: stock._sum.incoming?.toNumber() ?? 0, warehouses },
+    };
   }
 
   async create(input: CreateProductInput & { unit: string; actorId: string }): Promise<ProductDetail> {
-    const { actorId, categoryId, barcodes = [], sku, ...rest } = input;
+    const { actorId, categoryId, barcodes = [], images = [], sku, ...rest } = input;
     try {
       const data: Prisma.ProductUncheckedCreateInput = {
         ...scalarFields(rest),
@@ -153,6 +275,7 @@ export class PrismaProductRepository implements ProductRepository {
         baseUnitId: rest.baseUnitId!,
         createdBy: actorId,
         updatedBy: actorId,
+        metadata: { images },
         ...(categoryId ? { categories: { create: { categoryId, isPrimary: true } } } : {}),
         ...(barcodes.length ? { barcodes: { create: barcodeRows(barcodes) } } : {}),
       };
@@ -164,9 +287,10 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async update(id: string, input: UpdateProductInput & { unit?: string; actorId: string }): Promise<ProductDetail> {
-    const { actorId, categoryId, barcodes, ...rest } = input;
+    const { actorId, categoryId, barcodes, images, ...rest } = input;
     try {
       const updated = await prisma.$transaction(async (tx) => {
+        const currentMetadata = images === undefined ? null : (await tx.product.findUnique({ where: { id }, select: { metadata: true } }))?.metadata;
         if (categoryId !== undefined) {
           await tx.productCategory.deleteMany({ where: { productId: id } });
           if (categoryId) await tx.productCategory.create({ data: { productId: id, categoryId, isPrimary: true } });
@@ -177,13 +301,105 @@ export class PrismaProductRepository implements ProductRepository {
         }
         return tx.product.update({
           where: { id },
-          data: { ...scalarFields(rest), updatedBy: actorId, version: { increment: 1 } },
+          data: {
+            ...scalarFields(rest),
+            ...(images !== undefined ? { metadata: {
+              ...(typeof currentMetadata === "object" && currentMetadata !== null && !Array.isArray(currentMetadata) ? currentMetadata : {}),
+              images,
+            } } : {}),
+            updatedBy: actorId, version: { increment: 1 },
+          },
           include: detailInclude,
         });
       });
       return toDetail(updated);
     } catch (error) {
       return translateConflict(error);
+    }
+  }
+
+  activeUnits(): Promise<UnitOption[]> {
+    return prisma.unitOfMeasure.findMany({
+      where: { isActive: true },
+      select: { id: true, code: true, name: true, type: true, precision: true },
+    });
+  }
+
+  async existingSkus(skus: string[]): Promise<Set<string>> {
+    const found = new Set<string>();
+    for (const batch of chunks(skus)) {
+      const rows = await prisma.product.findMany({ where: { sku: { in: batch } }, select: { sku: true } });
+      for (const row of rows) found.add(row.sku);
+    }
+    return found;
+  }
+
+  async categoriesByPath(paths: string[]): Promise<Map<string, { isActive: boolean }>> {
+    const rows = paths.length
+      ? await prisma.category.findMany({ where: { path: { in: paths } }, select: { path: true, isActive: true, deletedAt: true } })
+      : [];
+    return new Map(rows.map((row) => [row.path, { isActive: row.isActive && row.deletedAt === null }]));
+  }
+
+  async applyImport(plan: ProductImportPlan, actorId: string): Promise<void> {
+    try {
+      await prisma.$transaction(async (tx) => {
+        const paths = [...new Set([
+          ...plan.categories.map((category) => category.path),
+          ...plan.creates.flatMap((row) => (row.categoryPath ? [row.categoryPath] : [])),
+          ...plan.updates.flatMap((row) => (row.categoryPath ? [row.categoryPath] : [])),
+        ])];
+        const parents = plan.categories.flatMap((category) => (category.parentPath ? [category.parentPath] : []));
+        const known = await tx.category.findMany({
+          where: { path: { in: [...paths, ...parents] } }, select: { id: true, path: true, depth: true },
+        });
+        const byPath = new Map(known.map((row) => [row.path, row]));
+
+        if (plan.categories.length) {
+          const taken = new Set((await tx.category.findMany({ select: { code: true } })).map((row) => row.code));
+          for (const category of plan.categories) {
+            if (byPath.has(category.path)) continue;
+            const parent = category.parentPath ? byPath.get(category.parentPath) : undefined;
+            const created = await tx.category.create({
+              data: {
+                code: categoryCode(category.path, taken), name: category.name,
+                slug: category.path.split("/").at(-1)!, path: category.path,
+                parentId: parent?.id ?? null, depth: parent ? parent.depth + 1 : 0,
+              },
+              select: { id: true, path: true, depth: true },
+            });
+            byPath.set(created.path, created);
+          }
+        }
+
+        const links: Prisma.ProductCategoryCreateManyInput[] = [];
+        const products: Prisma.ProductCreateManyInput[] = plan.creates.map(({ categoryPath, categoryId: _category, barcodes: _barcodes, images: _images, ...row }) => {
+          const id = randomUUID();
+          if (categoryPath) links.push({ productId: id, categoryId: byPath.get(categoryPath)!.id, isPrimary: true });
+          return { ...scalarFields(row), id, sku: row.sku, name: row.name, unit: row.unit, baseUnitId: row.baseUnitId,
+            createdBy: actorId, updatedBy: actorId, metadata: { images: [] } };
+        });
+        for (const batch of chunks(products)) await tx.product.createMany({ data: batch });
+        for (const batch of chunks(links)) await tx.productCategory.createMany({ data: batch });
+
+        // Vínculos de categoria trocados em lote: uma query por produto em vez de três.
+        const relinked: string[] = [];
+        const relinks: Prisma.ProductCategoryCreateManyInput[] = [];
+        for (const update of plan.updates) {
+          const product = await tx.product.update({
+            where: { sku: update.sku },
+            data: { ...scalarFields(update.input), updatedBy: actorId, version: { increment: 1 } },
+            select: { id: true },
+          });
+          if (update.categoryPath === undefined) continue;
+          relinked.push(product.id);
+          if (update.categoryPath) relinks.push({ productId: product.id, categoryId: byPath.get(update.categoryPath)!.id, isPrimary: true });
+        }
+        for (const batch of chunks(relinked)) await tx.productCategory.deleteMany({ where: { productId: { in: batch } } });
+        for (const batch of chunks(relinks)) await tx.productCategory.createMany({ data: batch });
+      }, { timeout: 120_000, maxWait: 10_000 });
+    } catch (error) {
+      translateConflict(error);
     }
   }
 

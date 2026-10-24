@@ -1,7 +1,23 @@
 import type { PaginatedResponse } from "@/shared/api/client";
 
-export const WAREHOUSE_TYPES = ["DISTRIBUTION_CENTER", "STORE", "FULFILLMENT_CENTER", "CROSS_DOCK", "THIRD_PARTY", "VIRTUAL"] as const;
-export const LOCATION_TYPES = ["ZONE", "AISLE", "RACK", "SHELF", "BIN", "DOCK", "STAGING", "QUARANTINE"] as const;
+export const WAREHOUSE_TYPES = [
+  "DISTRIBUTION_CENTER",
+  "STORE",
+  "FULFILLMENT_CENTER",
+  "CROSS_DOCK",
+  "THIRD_PARTY",
+  "VIRTUAL",
+] as const;
+export const LOCATION_TYPES = [
+  "ZONE",
+  "AISLE",
+  "RACK",
+  "SHELF",
+  "BIN",
+  "DOCK",
+  "STAGING",
+  "QUARANTINE",
+] as const;
 
 export type WarehouseType = (typeof WAREHOUSE_TYPES)[number];
 export type LocationType = (typeof LOCATION_TYPES)[number];
@@ -108,3 +124,91 @@ export type CreateLocationInput = Partial<LocationFlags> & {
   parentId?: string | null;
 };
 export type UpdateLocationInput = Partial<LocationFlags>;
+
+export interface WarehouseInventoryRow {
+  id: string;
+  productId: string;
+  sku: string;
+  productName: string;
+  unit: string;
+  minStock: number;
+  quantity: number;
+  reserved: number;
+  available: number;
+  incoming: number;
+}
+export interface WarehouseMovementRow {
+  id: string;
+  productId: string;
+  sku: string;
+  productName: string;
+  unit: string;
+  type: string;
+  quantity: number;
+  referenceId: string | null;
+  notes: string | null;
+  occurredAt: string;
+}
+export interface WarehouseReservationRow {
+  id: string;
+  productId: string;
+  sku: string;
+  productName: string;
+  unit: string;
+  quantity: number;
+  status: string;
+  transactionId: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+export interface WarehouseTransferRow {
+  id: string;
+  code: string;
+  status: string;
+  direction: "OUTBOUND" | "INBOUND";
+  sourceName: string;
+  destinationName: string;
+  itemCount: number;
+  requestedAt: string;
+  expectedAt: string | null;
+}
+export interface WarehouseCountRow {
+  id: string;
+  code: string;
+  type: string;
+  status: string;
+  isBlind: boolean;
+  itemCount: number;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+export interface WarehouseAccessRow {
+  userId: string;
+  name: string;
+  email: string;
+  userStatus: string;
+  accessLevel: string;
+  grantedAt: string;
+  expiresAt: string | null;
+}
+export interface WarehouseSettingRow {
+  key: string;
+  value: unknown;
+  description: string | null;
+  version: number;
+  updatedAt: string;
+}
+export interface WarehouseLocationStockRow {
+  id: string;
+  productId: string;
+  sku: string;
+  productName: string;
+  unit: string;
+  quantity: number;
+  reserved: number;
+}
+export interface WarehouseLocationDetail extends WarehouseLocation {
+  stocks: WarehouseLocationStockRow[];
+}

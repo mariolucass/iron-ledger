@@ -19,7 +19,7 @@ Slices FSD baseadas nos contratos HTTP de `apps/api`. Cada slice expõe sua API 
 - `app` compõe as leituras independentes com `Promise.all` e passa os dados serializáveis à tela. `useRemoteList` usa esses dados na primeira renderização e consulta o BFF somente quando filtros, página ou atualização mudam. O BFF em `app/api` continua responsável por mutações e consultas iniciadas no navegador.
 - `model/` descreve os contratos públicos. Datas JSON são strings ISO, quantidades são números e campos anuláveis continuam anuláveis.
 - `ui/` contém apresentação reutilizável da entidade. Formulários, navegação e casos de uso permanecem em `features`.
-- Os adaptadores de inventário e auditoria em `views/*/model` transformam os contratos em dados da tela. Paginação e filtros continuam disponíveis nos clientes das entities.
+- Os adaptadores de inventário e auditoria em `views/<domínio>/*/model` transformam os contratos em dados da tela. Paginação e filtros continuam disponíveis nos clientes das entities.
 - `withSession`, usado pelos adaptadores, preserva o redirecionamento de sessões expiradas; clientes de entities apenas propagam `ApiError`.
 
 Transações expõem workflows. Um workflow `COMPLETED` pode conter uma transação `COMPENSATED`; o indicador distingue esses resultados.

@@ -1,6 +1,6 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { locationStockPages } from "@/views/location-stock";
+import { ComingSoonPage } from "@/views/common/coming-soon";
+import { locationStockPages } from "@/views/operations/location-stock";
 
 const page = locationStockPages.list;
 

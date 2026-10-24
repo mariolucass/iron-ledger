@@ -291,7 +291,7 @@ Use trechos curtos do código, com fonte ampliada. A explicação deve ligar a l
 
 - [`temporal/saga-demo.md`](temporal/saga-demo.md): comandos completos para iniciar e consultar as duas execuções da Saga.
 - [`analytics/olist-first-step.md`](analytics/olist-first-step.md): CSVs, pipeline, metodologia e API do laboratório Olist.
-- `package.json` e `scripts/run-app.mjs`: comandos de desenvolvimento.
+- `package.json` e `scripts/dev/run-app.mjs`: comandos de desenvolvimento.
 - `apps/api/src/main.ts`: conexão inicial com PostgreSQL e RabbitMQ e início do consumidor.
 - `apps/api/src/modules/inventory/infra/repositories/prisma-inventory.repository.ts`: persistência de saldo, movimento e reserva.
 - `apps/web/src/features/(operations)/inventory/ui/InventoryPage.tsx` e `apps/web/src/features/(governance)/audit-log/ui/AuditLogPage.tsx`: telas usadas na demonstração principal.

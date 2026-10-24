@@ -5,7 +5,7 @@ import {
   type ForecastAccuracyDetail,
   type ForecastAccuracyResponse,
 } from "@/entities/analytics";
-import { ForecastingPage } from "@/views/forecasting";
+import { ForecastingPage } from "@/views/intelligence/forecasting";
 
 export const metadata = createMetadata({
   title: "Previsões com IA",

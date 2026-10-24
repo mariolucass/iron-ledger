@@ -1,6 +1,6 @@
 import { createMetadata } from "@/shared/config/metadata";
-import { ComingSoonPage } from "@/views/coming-soon";
-import { stockCountPages } from "@/views/stock-counts";
+import { ComingSoonPage } from "@/views/common/coming-soon";
+import { stockCountPages } from "@/views/operations/stock-counts";
 
 interface PageProps {
   params: Promise<{ id: string }>;

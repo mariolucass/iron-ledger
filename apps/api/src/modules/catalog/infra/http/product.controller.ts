@@ -2,6 +2,7 @@ import type { NextFunction, Response } from "express";
 import { z } from "zod";
 import type { AuthenticatedRequest } from "../../../identity/infra/guards/jwt.guard";
 import { createProductSchema, listProductsSchema, updateProductSchema } from "../../application/product";
+import { GetProductSectionUseCase } from "../../application/product-sections";
 import type {
   ArchiveProductUseCase,
   CreateProductUseCase,
@@ -23,6 +24,7 @@ export class ProductController {
     private readonly createProduct: CreateProductUseCase,
     private readonly updateProduct: UpdateProductUseCase,
     private readonly archiveProduct: ArchiveProductUseCase,
+    private readonly getSection: GetProductSectionUseCase,
   ) {}
 
   private handle(status: number, run: (request: AuthenticatedRequest) => Promise<unknown>): Handler {
@@ -38,6 +40,11 @@ export class ProductController {
   list = this.handle(200, (request) => this.listProducts.execute(listProductsSchema.parse(request.query)));
   lookups = this.handle(200, () => this.getLookups.execute());
   get = this.handle(200, (request) => this.getProduct.execute(idSchema.parse(request.params).id));
+  section = this.handle(200, (request) => {
+    const params = idSchema.extend({ section: z.enum(["inventory", "movements", "lots", "units", "forecast"]) }).parse(request.params);
+    const query = z.object({ page: z.coerce.number().int().positive().default(1), pageSize: z.coerce.number().int().positive().max(100).default(20) }).parse(request.query);
+    return this.getSection.execute(params.id, params.section, query.page, query.pageSize);
+  });
   create = this.handle(201, (request) =>
     this.createProduct.execute(createProductSchema.parse(request.body), request.auth!.userId),
   );
