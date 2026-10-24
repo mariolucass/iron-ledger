@@ -37,6 +37,7 @@
     "db:test:integrity": "node scripts/test-schema-integrity.mjs",
     "db:validate": "pnpm --filter @iron-ledger/api run prisma:validate",
     "db:migrate": "pnpm --filter @iron-ledger/api run prisma:migrate",
+    "db:dev": "pnpm --filter @iron-ledger/api run prisma:migrate",
     "db:deploy": "pnpm --filter @iron-ledger/api run prisma:deploy",
     "db:seed": "pnpm --filter @iron-ledger/api run prisma:seed",
     "db:studio": "pnpm --filter @iron-ledger/api run prisma:studio",

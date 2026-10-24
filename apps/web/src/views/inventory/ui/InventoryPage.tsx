@@ -3,11 +3,9 @@
 import { AnimatePresence } from "framer-motion";
 import { ExternalLink, Package, Plus } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { InventoryStatusBadge, type InventoryStatus } from "@/entities/inventory";
-import { warehouseApi } from "@/entities/warehouse";
 import { MovementDialog } from "@/features/record-stock-movement";
-import { withSession } from "@/shared/auth/with-session";
 import { useDebounced } from "@/shared/lib/use-debounced";
 import { useRemoteList } from "@/shared/lib/use-remote-list";
 import {
@@ -35,10 +33,10 @@ const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 4 });
 const availableClass: Record<InventoryStatus, string> = { OK: "text-foreground", LOW: "text-warning", CRITICAL: "text-destructive" };
 
 const columns: Column<InventoryItem>[] = [
-  { id: "sku", header: "SKU", className: "font-mono text-[13px] text-white/60", cell: (row) => row.sku },
+  { id: "sku", header: "SKU", className: "font-mono text-[13px] text-ink/60", cell: (row) => row.sku },
   { id: "product", header: "Produto", className: "font-medium text-foreground", cell: (row) => row.product },
-  { id: "warehouse", header: "Depósito", hideBelow: "md", className: "text-white/60", cell: (row) => row.warehouse },
-  { id: "quantity", header: "Saldo total", align: "right", hideBelow: "lg", className: "text-white/70", cell: (row) => `${number.format(row.quantity)} ${row.unit ?? "un"}` },
+  { id: "warehouse", header: "Depósito", hideBelow: "md", className: "text-ink/60", cell: (row) => row.warehouse },
+  { id: "quantity", header: "Saldo total", align: "right", hideBelow: "lg", className: "text-ink/70", cell: (row) => `${number.format(row.quantity)} ${row.unit ?? "un"}` },
   {
     id: "available",
     header: "Disponível",
@@ -46,17 +44,20 @@ const columns: Column<InventoryItem>[] = [
     className: "font-semibold",
     cell: (row) => <span className={availableClass[row.status]}>{number.format(row.available)}</span>,
   },
-  { id: "reserved", header: "Reservado", align: "right", hideBelow: "lg", className: "text-white/60", cell: (row) => number.format(row.reserved) },
-  { id: "min", header: "Mínimo", align: "right", hideBelow: "xl", className: "text-white/60", cell: (row) => number.format(row.min) },
+  { id: "reserved", header: "Reservado", align: "right", hideBelow: "lg", className: "text-ink/60", cell: (row) => number.format(row.reserved) },
+  { id: "min", header: "Mínimo", align: "right", hideBelow: "xl", className: "text-ink/60", cell: (row) => number.format(row.min) },
   { id: "status", header: "Status", cell: (row) => <InventoryStatusBadge status={row.status} /> },
-  { id: "last", header: "Últ. movimento", hideBelow: "xl", className: "whitespace-nowrap text-[13px] text-white/60", cell: (row) => row.lastMovement },
+  { id: "last", header: "Últ. movimento", hideBelow: "xl", className: "whitespace-nowrap text-[13px] text-ink/60", cell: (row) => row.lastMovement },
 ];
 
-export function InventoryPage() {
+export function InventoryPage({ initial, initialWarehouses }: {
+  initial: { items: InventoryItem[]; total: number };
+  initialWarehouses: { value: string; label: string }[];
+}) {
   const [search, setSearch] = useState("");
   const [warehouse, setWarehouse] = useState("");
   const [page, setPage] = useState(1);
-  const [warehouses, setWarehouses] = useState<{ value: string; label: string }[]>([]);
+  const [warehouses] = useState<{ value: string; label: string }[]>(initialWarehouses);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [movements, setMovements] = useState<Record<string, Movement[]>>({});
   const [loadingMovements, setLoadingMovements] = useState<string | null>(null);
@@ -66,15 +67,9 @@ export function InventoryPage() {
   const [notice, setNotice] = useState<Status>(null);
   const q = useDebounced(search.trim());
 
-  useEffect(() => {
-    withSession(warehouseApi.list())
-      .then((body) => setWarehouses(body.items.map(({ id, name }) => ({ value: id, label: name }))))
-      .catch(() => undefined);
-  }, []);
-
   const { items, total, loading, error, refresh } = useRemoteList(
     () => fetchInventoryPage({ q: q || undefined, warehouseId: warehouse || undefined, page }),
-    [q, warehouse, page],
+    [q, warehouse, page], initial,
   );
 
   const toggle = async (row: InventoryItem) => {

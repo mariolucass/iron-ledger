@@ -29,7 +29,7 @@ test("slices only depend on lower layers and external slice imports use public A
       if (sameSlice) continue;
       assert.ok(layers.indexOf(targetLayer) > layers.indexOf(layer), `${relative(sourceRoot, file)} -> ${specifier}: invalid layer dependency`);
       if (targetLayer !== "shared" && targetLayer !== "app") {
-        assert.ok(parts.length === 2 || (targetLayer === "entities" && parts.length === 3 && parts[2] === "testing"), `${specifier}: bypasses public API`);
+        assert.ok(parts.length === 2 || (parts.length === 3 && ["entities", "views"].includes(targetLayer) && ["testing", "server"].includes(parts[2])), `${specifier}: bypasses public API`);
       }
     }
   }

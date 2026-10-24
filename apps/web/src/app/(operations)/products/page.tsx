@@ -1,5 +1,6 @@
 import { createMetadata } from "@/shared/config/metadata";
 import { ProductsPage } from "@/views/products";
+import { productServerApi } from "@/entities/product/server";
 
 export const metadata = createMetadata({
   title: "Produtos",
@@ -7,6 +8,10 @@ export const metadata = createMetadata({
   path: "/products",
 });
 
-export default function Page() {
-  return <ProductsPage />;
+export default async function Page() {
+  const [initial, lookups] = await Promise.all([
+    productServerApi.list({ page: 1, pageSize: 20 }),
+    productServerApi.lookups(),
+  ]);
+  return <ProductsPage initial={initial} initialCategories={lookups.categories} initialUnits={lookups.units} />;
 }

@@ -30,8 +30,8 @@ export function InventoryDrawer({ item, movements, onClose }: { item: InventoryI
     >
       <dl className="m-0 grid grid-cols-2 gap-3">
         {facts.map(({ label, value, className }) => (
-          <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <dt className="mb-1.5 text-[13px] text-white/55">{label}</dt>
+          <div key={label} className="rounded-2xl border border-ink/10 bg-ink/[0.03] p-4">
+            <dt className="mb-1.5 text-[13px] text-ink/55">{label}</dt>
             <dd className={`m-0 text-[17px] font-semibold tracking-[-0.01em] ${className ?? "text-foreground"}`}>{value}</dd>
           </div>
         ))}

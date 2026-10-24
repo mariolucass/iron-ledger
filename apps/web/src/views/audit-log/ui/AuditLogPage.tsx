@@ -31,15 +31,15 @@ const actionOptions = [
 
 const columns: Column<AuditEntry>[] = [
   { id: "time", header: "Data e hora", className: "whitespace-nowrap font-mono text-[13px]", cell: (entry) => entry.ts },
-  { id: "user", header: "Usuário", className: "text-white/70", cell: (entry) => entry.user },
+  { id: "user", header: "Usuário", className: "text-ink/70", cell: (entry) => entry.user },
   { id: "action", header: "Ação", cell: (entry) => <AuditActionBadge action={entry.action} /> },
   {
     id: "resource",
     header: "Recurso",
     cell: (entry) => (
       <span className="grid">
-        <span className="text-[13.5px] text-white/70">{resourceLabels[entry.resource] ?? entry.resource}</span>
-        <span className="font-mono text-[12.5px] text-white/55">{entry.resourceId}</span>
+        <span className="text-[13.5px] text-ink/70">{resourceLabels[entry.resource] ?? entry.resource}</span>
+        <span className="font-mono text-[12.5px] text-ink/55">{entry.resourceId}</span>
       </span>
     ),
   },
@@ -47,7 +47,7 @@ const columns: Column<AuditEntry>[] = [
     id: "corr",
     header: "Correlação",
     hideBelow: "lg",
-    className: "max-w-[200px] font-mono text-[12.5px] text-white/55",
+    className: "max-w-[200px] font-mono text-[12.5px] text-ink/55",
     cell: (entry) => <span className="block truncate" title={entry.corrId}>{entry.corrId}</span>,
   },
 ];
@@ -86,10 +86,10 @@ export function AuditLogPage() {
         <SelectField label="Filtrar por recurso" value={resource} onChange={reset(setResource)} options={resourceOptions} />
         <SelectField label="Filtrar por ação" value={action} onChange={reset(setAction)} options={actionOptions} />
       </FilterBar>
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={reset(setFrom)} className="h-11" />
-        <span aria-hidden className="text-white/45">–</span>
-        <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={reset(setTo)} className="h-11" />
+      <div className="mb-5 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+        <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={reset(setFrom)} className="h-11 w-full sm:w-[150px]" />
+        <span aria-hidden className="text-ink/45 max-sm:hidden">–</span>
+        <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={reset(setTo)} className="h-11 w-full sm:w-[150px]" />
       </div>
 
       {error && <ListError message={error} onRetry={() => void refresh()} />}

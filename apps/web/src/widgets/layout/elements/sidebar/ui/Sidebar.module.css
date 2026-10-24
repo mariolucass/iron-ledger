@@ -1,0 +1,17 @@
+.drawer {
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.drawer[data-mobile-open="true"] {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+@media (min-width: 768px) {
+  .drawer,
+  .drawer[data-mobile-open="true"] {
+    transform: none;
+    pointer-events: auto;
+  }
+}

@@ -36,7 +36,10 @@ export function useProductForm({ product, onSaved }: Options) {
         form.reset(toFormValues(saved));
         onSaved(saved, "updated");
       } else {
-        onSaved(await withSession(productApi.create({ ...input, sku: values.sku.trim().toUpperCase() })), "created");
+        onSaved(
+          await withSession(productApi.create({ ...input, sku: values.sku.trim().toUpperCase() })),
+          "created",
+        );
       }
     } catch (reason) {
       if (reason instanceof ApiError && reason.code === "SKU_ALREADY_EXISTS") {
@@ -44,7 +47,10 @@ export function useProductForm({ product, onSaved }: Options) {
         form.setFocus("sku");
         return;
       }
-      setStatus({ type: "error", message: reason instanceof Error ? reason.message : "Não foi possível salvar o produto." });
+      setStatus({
+        type: "error",
+        message: reason instanceof Error ? reason.message : "Não foi possível salvar o produto.",
+      });
     }
   });
 

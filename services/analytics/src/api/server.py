@@ -5,6 +5,7 @@ from contextlib import closing
 from fastapi import FastAPI, HTTPException, Query
 
 from src.config import database_path
+from src.forecasting import forecast_accuracy, product_forecast
 from src.metrics import CLASSIFICATIONS, SEVERITIES, metric_catalog
 from src.repository import (
     count_inflection_points,
@@ -88,6 +89,31 @@ def inflection_point(point_id: str) -> dict[str, object]:
         item = get_inflection_point(connection, point_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Ponto de inflexao nao encontrado")
+    return item
+
+
+@app.get("/analytics/forecast-accuracy")
+def forecast_accuracy_by_product(
+    category: str | None = None,
+    search: str | None = Query(default=None, max_length=80),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> dict[str, object]:
+    """Precisao da previsao de demanda semanal por produto (backtest)."""
+    with closing(connect(database_path())) as connection:
+        return forecast_accuracy(
+            connection, category=category, search=search, limit=limit
+        )
+
+
+@app.get("/analytics/forecast-accuracy/{product_id}")
+def forecast_accuracy_detail(product_id: str) -> dict[str, object]:
+    with closing(connect(database_path())) as connection:
+        item = product_forecast(connection, product_id)
+    if item is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Produto sem historico suficiente para o backtest",
+        )
     return item
 
 

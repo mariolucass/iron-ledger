@@ -1,8 +1,7 @@
 "use client";
 
 import { Plus, Save, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useFieldArray, type UseFormRegisterReturn } from "react-hook-form";
+import { useFieldArray, useFormContext, type FieldPathByValue } from "react-hook-form";
 import {
   BARCODE_TYPES,
   PRODUCT_STATUSES,
@@ -13,24 +12,88 @@ import {
   type ProductLookups,
 } from "@/entities/product";
 import { Button } from "@/shared/ui/kit/button";
-import { Field, StatusMessage, inputClass } from "@/shared/ui/form-primitives";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormFieldRow,
+  FormItem,
+  FormMessage,
+} from "@/shared/ui/kit/form";
+import { inputClass, textareaClass } from "@/shared/ui/form-primitives";
+import { SelectInput, type SelectOption } from "@/shared/ui/kit/select";
+import { FormActions, FormSection, fullWidth } from "@/shared/ui/form-page";
+import type { ProductFormValues } from "../model/product-schema";
 import { useProductForm } from "../model/use-product-form";
 
-function Section({
-  title,
+type StringField = FieldPathByValue<ProductFormValues, string>;
+
+const barcodeTypeOptions = BARCODE_TYPES.map((type) => ({
+  value: type,
+  label: type.replace("_", " "),
+}));
+
+function ProductField({
+  name,
+  label,
   description,
-  children,
+  as = "input",
+  options,
+  className = "",
+  inputMode,
+  autoComplete,
+  disabled,
+  maxLength,
+  placeholder,
+  spellCheck,
 }: {
-  title: string;
+  name: StringField;
+  label: string;
   description?: string;
-  children: ReactNode;
+  as?: "input" | "textarea";
+  /** Com opções, o campo vira um `SelectInput`. */
+  options?: readonly SelectOption[];
+  className?: string;
+  inputMode?: "decimal" | "numeric";
+  autoComplete?: string;
+  disabled?: boolean;
+  maxLength?: number;
+  placeholder?: string;
+  spellCheck?: boolean;
 }) {
+  const { control } = useFormContext<ProductFormValues>();
   return (
-    <section className="rounded-xl border border-border bg-card p-6">
-      <h2 className="m-0 text-base font-bold text-foreground">{title}</h2>
-      {description && <p className="mt-1 mb-0 text-[13px] text-muted-foreground">{description}</p>}
-      <div className="mt-5 grid gap-5 md:grid-cols-2">{children}</div>
-    </section>
+    <FormFieldRow control={control} name={name} label={label} description={description}>
+      {(field) =>
+        options ? (
+          <SelectInput
+            {...field}
+            value={String(field.value ?? "")}
+            options={options}
+            disabled={disabled}
+          />
+        ) : as === "textarea" ? (
+          <textarea
+            {...field}
+            value={String(field.value ?? "")}
+            className={`${textareaClass} ${className}`}
+          />
+        ) : (
+          <input
+            {...field}
+            value={String(field.value ?? "")}
+            className={`${inputClass} ${className}`}
+            inputMode={inputMode}
+            autoComplete={autoComplete}
+            disabled={disabled}
+            readOnly={disabled}
+            maxLength={maxLength}
+            placeholder={placeholder}
+            spellCheck={spellCheck}
+          />
+        )
+      }
+    </FormFieldRow>
   );
 }
 
@@ -46,271 +109,243 @@ export function ProductForm({
   onCancel: () => void;
 }) {
   const { form, submit, status, isEditing } = useProductForm({ product, onSaved });
-  const {
-    register,
-    control,
-    formState: { errors, isSubmitting, isDirty },
-  } = form;
-  const barcodes = useFieldArray({ control, name: "barcodes" });
-
-  const input = (name: UseFormRegisterReturn) => ({ ...name, className: inputClass });
-  const number = (name: Parameters<typeof register>[0], extra: object = {}) => ({
-    ...register(name),
-    className: inputClass,
-    inputMode: "decimal" as const,
-    autoComplete: "off",
-    ...extra,
-  });
+  const { isSubmitting, isDirty, errors } = form.formState;
+  const barcodes = useFieldArray({ control: form.control, name: "barcodes" });
 
   return (
-    <form onSubmit={submit} noValidate className="grid max-w-[960px] gap-6">
-      <Section title="Identificação">
-        <Field
-          label="SKU"
-          error={errors.sku?.message}
-          hint={
-            isEditing
-              ? "O SKU não pode ser alterado."
-              : "Código único do produto; será salvo em maiúsculas."
+    <Form {...form}>
+      <form onSubmit={submit} noValidate className="grid gap-9">
+        <FormSection title="Identificação">
+          <ProductField
+            name="sku"
+            label="SKU"
+            description={
+              isEditing
+                ? "O SKU não pode ser alterado."
+                : "Código único do produto; será salvo em maiúsculas."
+            }
+            className="font-mono uppercase"
+            disabled={isEditing}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <ProductField name="name" label="Nome" autoComplete="off" />
+          <div className={fullWidth}>
+            <ProductField name="description" label="Descrição" as="textarea" />
+          </div>
+          <ProductField
+            name="baseUnitId"
+            label="Unidade de medida"
+            options={lookups.units.map((unit) => ({
+              value: unit.id,
+              label: `${unit.name} (${unit.code})`,
+            }))}
+          />
+          <ProductField
+            name="categoryId"
+            label="Categoria"
+            options={[
+              { value: "", label: "Sem categoria" },
+              ...lookups.categories.map((category) => ({
+                value: category.id,
+                label: category.name,
+                depth: category.depth,
+              })),
+            ]}
+          />
+          <ProductField
+            name="status"
+            label="Status"
+            options={PRODUCT_STATUSES.map((value) => ({ value, label: productStatusLabel[value] }))}
+          />
+          <ProductField
+            name="trackingMode"
+            label="Rastreabilidade"
+            options={TRACKING_MODES.map((value) => ({ value, label: trackingModeLabel[value] }))}
+          />
+        </FormSection>
+
+        <FormSection
+          title="Política de reposição"
+          description="Base para os alertas de estoque e a previsão de demanda."
+        >
+          <ProductField
+            name="minStock"
+            label="Estoque mínimo"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <ProductField
+            name="maxStock"
+            label="Estoque máximo"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <ProductField
+            name="reorderPoint"
+            label="Ponto de reposição"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <ProductField
+            name="safetyStock"
+            label="Estoque de segurança"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <ProductField
+            name="leadTimeDays"
+            label="Prazo de entrega (dias)"
+            inputMode="numeric"
+            autoComplete="off"
+          />
+          <ProductField
+            name="shelfLifeDays"
+            label="Validade (dias)"
+            inputMode="numeric"
+            autoComplete="off"
+          />
+        </FormSection>
+
+        <FormSection title="Logística e fiscal">
+          <ProductField name="weightKg" label="Peso (kg)" inputMode="decimal" autoComplete="off" />
+          <ProductField
+            name="ncm"
+            label="NCM"
+            description="8 dígitos, com ou sem máscara."
+            inputMode="numeric"
+            placeholder="0000.00.00"
+            autoComplete="off"
+          />
+          <ProductField
+            name="lengthCm"
+            label="Comprimento (cm)"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <ProductField
+            name="widthCm"
+            label="Largura (cm)"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <ProductField
+            name="heightCm"
+            label="Altura (cm)"
+            inputMode="decimal"
+            autoComplete="off"
+          />
+          <div className="grid grid-cols-[1fr_96px] gap-3">
+            <ProductField
+              name="standardCost"
+              label="Custo padrão"
+              inputMode="decimal"
+              autoComplete="off"
+            />
+            <ProductField name="currency" label="Moeda" className="uppercase" maxLength={3} />
+          </div>
+        </FormSection>
+
+        <FormSection
+          title="Códigos de barras"
+          description="A quantidade é a de unidades base que o código representa (ex.: caixa com 12)."
+          flush
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                barcodes.append({
+                  code: "",
+                  type: "EAN_13",
+                  quantity: "1",
+                  isPrimary: barcodes.fields.length === 0,
+                })
+              }
+            >
+              <Plus /> Adicionar
+            </Button>
           }
         >
-          {(props) => (
-            <input
-              {...props}
-              {...input(register("sku"))}
-              className={`${inputClass} font-mono uppercase`}
-              readOnly={isEditing}
-              disabled={isEditing}
-              autoComplete="off"
-              spellCheck={false}
-            />
-          )}
-        </Field>
-        <Field label="Nome" error={errors.name?.message}>
-          {(props) => <input {...props} {...input(register("name"))} autoComplete="off" />}
-        </Field>
-        <div className="md:col-span-2">
-          <Field label="Descrição" error={errors.description?.message}>
-            {(props) => (
-              <textarea
-                {...props}
-                {...register("description")}
-                className={`${inputClass} min-h-24 py-3`}
-              />
-            )}
-          </Field>
-        </div>
-        <Field label="Unidade de medida" error={errors.baseUnitId?.message}>
-          {(props) => (
-            <select {...props} {...input(register("baseUnitId"))}>
-              <option value="">Selecione…</option>
-              {lookups.units.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.name} ({unit.code})
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field label="Categoria" error={errors.categoryId?.message}>
-          {(props) => (
-            <select {...props} {...input(register("categoryId"))}>
-              <option value="">Sem categoria</option>
-              {lookups.categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {"— ".repeat(category.depth)}
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field label="Status" error={errors.status?.message}>
-          {(props) => (
-            <select {...props} {...input(register("status"))}>
-              {PRODUCT_STATUSES.map((value) => (
-                <option key={value} value={value}>
-                  {productStatusLabel[value]}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field label="Rastreabilidade" error={errors.trackingMode?.message}>
-          {(props) => (
-            <select {...props} {...input(register("trackingMode"))}>
-              {TRACKING_MODES.map((value) => (
-                <option key={value} value={value}>
-                  {trackingModeLabel[value]}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-      </Section>
-
-      <Section
-        title="Política de reposição"
-        description="Base para os alertas de estoque e a previsão de demanda."
-      >
-        <Field label="Estoque mínimo" error={errors.minStock?.message}>
-          {(props) => <input {...props} {...number("minStock")} />}
-        </Field>
-        <Field label="Estoque máximo" error={errors.maxStock?.message}>
-          {(props) => <input {...props} {...number("maxStock")} />}
-        </Field>
-        <Field label="Ponto de reposição" error={errors.reorderPoint?.message}>
-          {(props) => <input {...props} {...number("reorderPoint")} />}
-        </Field>
-        <Field label="Estoque de segurança" error={errors.safetyStock?.message}>
-          {(props) => <input {...props} {...number("safetyStock")} />}
-        </Field>
-        <Field label="Prazo de entrega (dias)" error={errors.leadTimeDays?.message}>
-          {(props) => <input {...props} {...number("leadTimeDays", { inputMode: "numeric" })} />}
-        </Field>
-        <Field label="Validade (dias)" error={errors.shelfLifeDays?.message}>
-          {(props) => <input {...props} {...number("shelfLifeDays", { inputMode: "numeric" })} />}
-        </Field>
-      </Section>
-
-      <Section title="Logística e fiscal">
-        <Field label="Peso (kg)" error={errors.weightKg?.message}>
-          {(props) => <input {...props} {...number("weightKg")} />}
-        </Field>
-        <Field label="NCM" error={errors.ncm?.message} hint="8 dígitos, com ou sem máscara.">
-          {(props) => (
-            <input
-              {...props}
-              {...number("ncm", { inputMode: "numeric", placeholder: "0000.00.00" })}
-            />
-          )}
-        </Field>
-        <Field label="Comprimento (cm)" error={errors.lengthCm?.message}>
-          {(props) => <input {...props} {...number("lengthCm")} />}
-        </Field>
-        <Field label="Largura (cm)" error={errors.widthCm?.message}>
-          {(props) => <input {...props} {...number("widthCm")} />}
-        </Field>
-        <Field label="Altura (cm)" error={errors.heightCm?.message}>
-          {(props) => <input {...props} {...number("heightCm")} />}
-        </Field>
-        <div className="grid grid-cols-[1fr_96px] gap-3">
-          <Field label="Custo padrão" error={errors.standardCost?.message}>
-            {(props) => <input {...props} {...number("standardCost")} />}
-          </Field>
-          <Field label="Moeda" error={errors.currency?.message}>
-            {(props) => (
-              <input
-                {...props}
-                {...input(register("currency"))}
-                className={`${inputClass} uppercase`}
-                maxLength={3}
-              />
-            )}
-          </Field>
-        </div>
-      </Section>
-
-      <section className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="m-0 text-base font-bold text-foreground">Códigos de barras</h2>
-            <p className="mt-1 mb-0 text-[13px] text-muted-foreground">
-              A quantidade é a de unidades base que o código representa (ex.: caixa com 12).
+          {barcodes.fields.length === 0 ? (
+            <p className="m-0 px-5 py-8 text-center text-[13px] text-muted-foreground">
+              Nenhum código cadastrado.
             </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              barcodes.append({
-                code: "",
-                type: "EAN_13",
-                quantity: "1",
-                isPrimary: barcodes.fields.length === 0,
-              })
-            }
-          >
-            <Plus /> Adicionar
-          </Button>
-        </div>
-
-        {barcodes.fields.length === 0 ? (
-          <p className="mt-5 mb-0 text-[13px] text-muted-foreground">Nenhum código cadastrado.</p>
-        ) : (
-          <ul className="m-0 mt-5 grid list-none gap-4 p-0">
-            {barcodes.fields.map((field, index) => {
-              const rowErrors = errors.barcodes?.[index];
-              return (
-                <li
-                  key={field.id}
-                  className="grid gap-4 rounded-lg border border-border bg-background p-4 md:grid-cols-[1.4fr_1fr_110px_auto_auto] md:items-start"
+          ) : (
+            barcodes.fields.map((barcode, index) => (
+              <div
+                key={barcode.id}
+                className="grid gap-4 px-5 py-4 md:grid-cols-[1.4fr_1fr_96px_auto_auto] md:items-start md:px-6"
+              >
+                <ProductField
+                  name={`barcodes.${index}.code`}
+                  label="Código"
+                  className="font-mono"
+                  spellCheck={false}
+                />
+                <ProductField
+                  name={`barcodes.${index}.type`}
+                  label="Tipo"
+                  options={barcodeTypeOptions}
+                />
+                <ProductField
+                  name={`barcodes.${index}.quantity`}
+                  label="Qtd."
+                  inputMode="decimal"
+                  autoComplete="off"
+                />
+                <FormField
+                  control={form.control}
+                  name={`barcodes.${index}.isPrimary`}
+                  render={({ field }) => (
+                    <FormItem className="md:pt-[21px]">
+                      <FormControl>
+                        <label className="flex h-10 cursor-pointer items-center gap-2 text-[13px] font-normal text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="size-4 accent-[var(--primary)]"
+                          />
+                          Principal
+                        </label>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive md:mt-[21px]"
+                  aria-label={`Remover código ${index + 1}`}
+                  onClick={() => barcodes.remove(index)}
                 >
-                  <Field label="Código" error={rowErrors?.code?.message}>
-                    {(props) => (
-                      <input
-                        {...props}
-                        {...input(register(`barcodes.${index}.code`))}
-                        className={`${inputClass} font-mono`}
-                        spellCheck={false}
-                      />
-                    )}
-                  </Field>
-                  <Field label="Tipo">
-                    {(props) => (
-                      <select {...props} {...input(register(`barcodes.${index}.type`))}>
-                        {BARCODE_TYPES.map((type) => (
-                          <option key={type} value={type}>
-                            {type.replace("_", " ")}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </Field>
-                  <Field label="Qtd." error={rowErrors?.quantity?.message}>
-                    {(props) => <input {...props} {...number(`barcodes.${index}.quantity`)} />}
-                  </Field>
-                  <label className="flex h-11 cursor-pointer items-center gap-2 self-end text-[13px] text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-[var(--primary)]"
-                      {...register(`barcodes.${index}.isPrimary`)}
-                    />{" "}
-                    Principal
-                  </label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="self-end text-destructive"
-                    aria-label={`Remover código ${index + 1}`}
-                    onClick={() => barcodes.remove(index)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {typeof errors.barcodes?.message === "string" && (
-          <p className="mt-3 mb-0 text-[13px] text-destructive" role="alert">
-            {errors.barcodes.message}
-          </p>
-        )}
-      </section>
+                  <Trash2 />
+                </Button>
+              </div>
+            ))
+          )}
+          {typeof errors.barcodes?.message === "string" && (
+            <p className="m-0 px-5 py-3 text-[12.5px] text-destructive md:px-6" role="alert">
+              {errors.barcodes.message}
+            </p>
+          )}
+        </FormSection>
 
-      <StatusMessage status={status} />
-
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="ghost" size="lg" onClick={onCancel} disabled={isSubmitting}>
-          {isEditing ? "Voltar" : "Cancelar"}
-        </Button>
-        <Button type="submit" size="lg" disabled={isSubmitting || (isEditing && !isDirty)}>
-          <Save />{" "}
-          {isSubmitting ? "Salvando…" : isEditing ? "Guardar alterações" : "Cadastrar produto"}
-        </Button>
-      </div>
-    </form>
+        <FormActions
+          status={status}
+          onCancel={onCancel}
+          cancelLabel={isEditing ? "Voltar" : "Cancelar"}
+          submitting={isSubmitting}
+          disabled={isEditing && !isDirty}
+          dirty={isEditing ? isDirty : undefined}
+          icon={<Save />}
+          submitLabel={isEditing ? "Guardar alterações" : "Cadastrar produto"}
+        />
+      </form>
+    </Form>
   );
 }

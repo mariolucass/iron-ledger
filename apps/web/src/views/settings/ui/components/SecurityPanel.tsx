@@ -7,16 +7,34 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { ChangePasswordInput, PreferencesPatch, Profile } from "@/entities/user";
 import { Button } from "@/shared/ui/kit/button";
-import { Field, Panel, StatusMessage, SubHeading, Switch, inputClass, type Status } from "@/shared/ui/form-primitives";
+import { Form, FormFieldRow } from "@/shared/ui/kit/form";
+import {
+  Field,
+  Panel,
+  StatusMessage,
+  SubHeading,
+  Switch,
+  inputClass,
+  type Status,
+} from "@/shared/ui/form-primitives";
 
 const passwordSchema = z
   .object({
     currentPassword: z.string().min(1, "Informe a senha atual."),
-    newPassword: z.string().min(8, "A senha deve ter no mínimo 8 caracteres.").max(72, "A senha deve ter no máximo 72 caracteres."),
+    newPassword: z
+      .string()
+      .min(8, "A senha deve ter no mínimo 8 caracteres.")
+      .max(72, "A senha deve ter no máximo 72 caracteres."),
     confirmPassword: z.string().min(1, "Confirme a nova senha."),
   })
-  .refine((v) => v.newPassword === v.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." })
-  .refine((v) => v.newPassword !== v.currentPassword, { path: ["newPassword"], message: "A nova senha deve ser diferente da atual." });
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "As senhas não coincidem.",
+  })
+  .refine((v) => v.newPassword !== v.currentPassword, {
+    path: ["newPassword"],
+    message: "A nova senha deve ser diferente da atual.",
+  });
 
 type PasswordValues = z.infer<typeof passwordSchema>;
 
@@ -25,20 +43,24 @@ const IPV6 = /^[0-9a-f:.]+$/i;
 const isIp = (value: string) => IPV4.test(value) || (value.includes(":") && IPV6.test(value));
 
 function parseIps(text: string): string[] {
-  return text.split(/[\s,]+/).map((ip) => ip.trim()).filter(Boolean);
+  return text
+    .split(/[\s,]+/)
+    .map((ip) => ip.trim())
+    .filter(Boolean);
 }
 
 function PasswordForm({ onSubmit }: { onSubmit: (input: ChangePasswordInput) => Promise<void> }) {
   const [status, setStatus] = useState<Status>(null);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<PasswordValues>({
+  const form = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   });
+  const {
+    handleSubmit,
+    reset,
+    control,
+    formState: { isSubmitting },
+  } = form;
 
   const submit = handleSubmit(async ({ currentPassword, newPassword }) => {
     setStatus(null);
@@ -47,30 +69,60 @@ function PasswordForm({ onSubmit }: { onSubmit: (input: ChangePasswordInput) => 
       reset();
       setStatus({ type: "success", message: "Senha alterada com sucesso." });
     } catch (reason) {
-      setStatus({ type: "error", message: reason instanceof Error ? reason.message : "Não foi possível alterar a senha." });
+      setStatus({
+        type: "error",
+        message: reason instanceof Error ? reason.message : "Não foi possível alterar a senha.",
+      });
     }
   });
 
   return (
-    <form onSubmit={submit} noValidate className="grid gap-5 rounded-lg border border-border bg-background p-5">
-      <Field label="Senha atual" error={errors.currentPassword?.message}>
-        {(props) => <input {...props} {...register("currentPassword")} className={inputClass} type="password" autoComplete="current-password" />}
-      </Field>
-      <div className="grid gap-5 md:grid-cols-2">
-        <Field label="Nova senha" error={errors.newPassword?.message}>
-          {(props) => <input {...props} {...register("newPassword")} className={inputClass} type="password" autoComplete="new-password" />}
-        </Field>
-        <Field label="Confirmar nova senha" error={errors.confirmPassword?.message}>
-          {(props) => <input {...props} {...register("confirmPassword")} className={inputClass} type="password" autoComplete="new-password" />}
-        </Field>
-      </div>
-      <StatusMessage status={status} />
-      <div className="flex justify-end">
-        <Button type="submit" size="lg" disabled={isSubmitting}>
-          <KeyRound /> {isSubmitting ? "Alterando…" : "Alterar senha"}
-        </Button>
-      </div>
-    </form>
+    <Form {...form}>
+      <form
+        onSubmit={submit}
+        noValidate
+        className="grid gap-5 rounded-lg border border-border bg-background p-5"
+      >
+        <FormFieldRow control={control} name="currentPassword" label="Senha atual">
+          {(field) => (
+            <input
+              {...field}
+              className={inputClass}
+              type="password"
+              autoComplete="current-password"
+            />
+          )}
+        </FormFieldRow>
+        <div className="grid gap-5 md:grid-cols-2">
+          <FormFieldRow control={control} name="newPassword" label="Nova senha">
+            {(field) => (
+              <input
+                {...field}
+                className={inputClass}
+                type="password"
+                autoComplete="new-password"
+              />
+            )}
+          </FormFieldRow>
+          <FormFieldRow control={control} name="confirmPassword" label="Confirmar nova senha">
+            {(field) => (
+              <input
+                {...field}
+                className={inputClass}
+                type="password"
+                autoComplete="new-password"
+              />
+            )}
+          </FormFieldRow>
+        </div>
+        <StatusMessage status={status} />
+        <div className="flex justify-end">
+          <Button type="submit" size="lg" disabled={isSubmitting}>
+            <KeyRound /> {isSubmitting ? "Alterando…" : "Alterar senha"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }
 
@@ -92,7 +144,10 @@ function IpRestriction({
       await onSave(patch);
       return true;
     } catch (reason) {
-      setStatus({ type: "error", message: reason instanceof Error ? reason.message : "Não foi possível salvar." });
+      setStatus({
+        type: "error",
+        message: reason instanceof Error ? reason.message : "Não foi possível salvar.",
+      });
       return false;
     }
   };

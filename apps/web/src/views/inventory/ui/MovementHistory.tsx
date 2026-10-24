@@ -9,7 +9,7 @@ export function MovementBadge({ type }: { type: Movement["type"] }) {
 
 const qtyClass = (qty: string) => (qty.startsWith("+") ? "text-primary" : "text-destructive");
 
-const empty = "m-0 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center text-[14px] text-white/55";
+const empty = "m-0 rounded-2xl border border-ink/10 bg-ink/[0.03] p-4 text-center text-[14px] text-ink/55";
 
 /** Movimentos em tabela compacta (linha expandida do estoque). */
 export function MovementTable({ movements, loading }: { movements: Movement[] | undefined; loading: boolean }) {
@@ -21,7 +21,7 @@ export function MovementTable({ movements, loading }: { movements: Movement[] | 
     <div className="overflow-x-auto">
       <table className="w-full min-w-[520px] border-collapse text-left text-[13.5px]">
         <thead>
-          <tr className="border-b border-white/[0.08] text-[12.5px] text-white/55">
+          <tr className="border-b border-ink/[0.08] text-[12.5px] text-ink/55">
             {["Tipo", "Quantidade", "Referência", "Por", "Data e hora"].map((header) => (
               <th key={header} scope="col" className="px-3 py-2 font-medium">{header}</th>
             ))}
@@ -29,12 +29,12 @@ export function MovementTable({ movements, loading }: { movements: Movement[] | 
         </thead>
         <tbody>
           {movements.map((movement, index) => (
-            <tr key={index} className="border-b border-white/[0.05] last:border-0">
+            <tr key={index} className="border-b border-ink/[0.05] last:border-0">
               <td className="px-3 py-2.5"><MovementBadge type={movement.type} /></td>
               <td className={`px-3 py-2.5 font-mono font-semibold tabular-nums ${qtyClass(movement.qty)}`}>{movement.qty}</td>
-              <td className="px-3 py-2.5 font-mono text-[12.5px] text-white/60">{movement.ref}</td>
-              <td className="px-3 py-2.5 text-white/60">{movement.by}</td>
-              <td className="px-3 py-2.5 whitespace-nowrap text-white/60">{movement.ts}</td>
+              <td className="px-3 py-2.5 font-mono text-[12.5px] text-ink/60">{movement.ref}</td>
+              <td className="px-3 py-2.5 text-ink/60">{movement.by}</td>
+              <td className="px-3 py-2.5 whitespace-nowrap text-ink/60">{movement.ts}</td>
             </tr>
           ))}
         </tbody>
@@ -49,13 +49,13 @@ export function MovementCards({ movements }: { movements: Movement[] }) {
   return (
     <ul className="m-0 grid list-none gap-2.5 p-0">
       {movements.map((movement, index) => (
-        <li key={index} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+        <li key={index} className="rounded-2xl border border-ink/10 bg-ink/[0.03] px-4 py-3">
           <div className="mb-2 flex items-center justify-between gap-3">
             <MovementBadge type={movement.type} />
             <span className={`font-mono text-[15px] font-semibold tabular-nums ${qtyClass(movement.qty)}`}>{movement.qty}</span>
           </div>
-          <div className="mb-1 font-mono text-[12.5px] text-white/55">Ref: {movement.ref}</div>
-          <div className="text-[13px] text-white/55">Por {movement.by} · {movement.ts}</div>
+          <div className="mb-1 font-mono text-[12.5px] text-ink/55">Ref: {movement.ref}</div>
+          <div className="text-[13px] text-ink/55">Por {movement.by} · {movement.ts}</div>
         </li>
       ))}
     </ul>

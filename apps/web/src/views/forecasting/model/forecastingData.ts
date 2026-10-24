@@ -63,9 +63,7 @@ export const generateData = (period: Period) => {
 
     const qty = Math.max(
       0,
-      config.baseQty +
-        generateTrend(i, config.slope, config.noise) +
-        weekendBump,
+      config.baseQty + generateTrend(i, config.slope, config.noise) + weekendBump,
     );
 
     data.push({
@@ -158,8 +156,7 @@ export const stockAlertsForecasting = [
     sku: "SKU-4821-A",
     warehouse: "Loja Centro",
     severity: "CRITICAL",
-    message:
-      "Previsão de ruptura em poucas horas com 84% de confiança. Quantidade atual: 2 un.",
+    message: "Previsão de ruptura em poucas horas com 84% de confiança. Quantidade atual: 2 un.",
     recommendedOrder: 120,
     createdAt: "2026-06-09 13:50",
     resolved: false,
@@ -170,8 +167,7 @@ export const stockAlertsForecasting = [
     sku: "SKU-3910-B",
     warehouse: "Estoque Sul",
     severity: "HIGH",
-    message:
-      "Estoque atual (8 un) abaixo do mínimo (15 un). Demanda crescente detectada.",
+    message: "Estoque atual (8 un) abaixo do mínimo (15 un). Demanda crescente detectada.",
     recommendedOrder: 80,
     createdAt: "2026-06-09 07:48",
     resolved: false,
@@ -182,8 +178,7 @@ export const stockAlertsForecasting = [
     sku: "SKU-2201-C",
     warehouse: "Loja Centro",
     severity: "MEDIUM",
-    message:
-      "Queda de 38% no estoque nos últimos 14 dias. Previsão de mínimo em 11 dias.",
+    message: "Queda de 38% no estoque nos últimos 14 dias. Previsão de mínimo em 11 dias.",
     recommendedOrder: 40,
     createdAt: "2026-06-08 09:10",
     resolved: false,
@@ -205,8 +200,7 @@ export const stockAlertsForecasting = [
     sku: "SKU-7832-F",
     warehouse: "Loja Centro",
     severity: "MEDIUM",
-    message:
-      "Fornecedor com lead time de 21 dias. Reposição urgente recomendada.",
+    message: "Fornecedor com lead time de 21 dias. Reposição urgente recomendada.",
     recommendedOrder: 15,
     createdAt: "2026-06-06 11:20",
     resolved: false,
