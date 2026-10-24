@@ -2,6 +2,7 @@ import type { ErrorRequestHandler } from "express";
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { AppError } from "../../../shared/errors/domain.error";
+import { logger } from "../../logger";
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   if (error instanceof ZodError) {
@@ -20,21 +21,17 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2034") {
-      response
-        .status(409)
-        .json({
-          error: "CONCURRENT_OPERATION",
-          message: "A operação conflitou com outra atualização. Tente novamente.",
-        });
+      response.status(409).json({
+        error: "CONCURRENT_OPERATION",
+        message: "A operação conflitou com outra atualização. Tente novamente.",
+      });
       return;
     }
     if (error.code === "P2003") {
-      response
-        .status(409)
-        .json({
-          error: "REFERENCE_CONFLICT",
-          message: "Um dos registros relacionados não está disponível.",
-        });
+      response.status(409).json({
+        error: "REFERENCE_CONFLICT",
+        message: "Um dos registros relacionados não está disponível.",
+      });
       return;
     }
     if (error.code === "P2025") {
@@ -43,6 +40,6 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     }
   }
 
-  console.error(error);
+  logger.error({ err: error }, "Erro não tratado na request");
   response.status(500).json({ error: "INTERNAL_ERROR", message: "Erro interno do servidor" });
 };

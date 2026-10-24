@@ -1,14 +1,13 @@
-import type { EventPublisher } from "../../../../infra/messaging/rabbitmq.client";
-import { stockUpdatedEvent } from "../../domain/events/stock-updated.event";
-import type { InventoryRepository } from "../../domain/repositories/inventory.repository";
-import type { UpdateStockDto } from "../dtos/update-stock.dto";
+import type {
+  InventoryRepository,
+  StockMovementInput,
+} from "../../domain/repositories/inventory.repository";
 
+/** Movimentação manual; o evento `Inventory.StockUpdated` vai para o outbox no mesmo commit. */
 export class UpdateStockUseCase {
-  constructor(private readonly inventory: InventoryRepository, private readonly events: EventPublisher) {}
+  constructor(private readonly inventory: InventoryRepository) {}
 
-  async execute(input: UpdateStockDto) {
-    const movement = await this.inventory.createMovement(input);
-    await this.events.publish(stockUpdatedEvent(input, movement));
-    return movement;
+  execute(input: StockMovementInput) {
+    return this.inventory.createMovement(input);
   }
 }

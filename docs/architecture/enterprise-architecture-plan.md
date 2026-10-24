@@ -13,7 +13,7 @@ arquitetura definida deve copiar esse desenho, não reinventá-lo.
 
 | Peça | Situação | Arquitetura recomendada |
 | --- | --- | --- |
-| `apps/api` | Contextos `transaction`, `inventory`, `audit` e `identity` funcionais; `shared/domain`, Redis, Kafka e OTel vazios | **Monólito modular** com DDD tático + hexagonal + CQRS leve por bounded context |
+| `apps/api` | Contextos `transaction`, `inventory`, `audit` e `identity` funcionais; Redis, Kafka e OTel ainda não adotados | **Monólito modular** com DDD tático + hexagonal + CQRS leve por bounded context |
 | `apps/temporal-worker` | Hexagonal, com testes de replay | **Worker por domínio**, com portas HTTP para a API e versionamento por `patched()` |
 | `apps/web` | FSD; inventário, auditoria e transações ligados à API; alertas, previsão, relatórios, usuários e configurações ainda simulados | **FSD + BFF** no Next.js, com estado de servidor em TanStack Query |
 | `packages/*` | `shared-types`, `logger` e `event-bus` implementados e compilados para `dist/` | **Kernel compartilhado** sem regra de negócio, apenas contratos e infraestrutura |
@@ -101,14 +101,14 @@ Regras:
 4. **CQRS leve:** a porta de escrita trabalha com o agregado e a porta de leitura devolve DTOs prontos.
    Read models dedicados (views materializadas) só quando a consulta provar necessidade.
 5. **Concorrência otimista** (`version`) em todo agregado mutável, com retry curto no caso de uso.
-6. **Composition root** único em `infra/http/router.ts` + `main.ts`. Avaliar um container de DI leve
-   (ex.: `awilix`) quando o arquivo passar de cerca de 200 linhas.
+6. **Composition root** em `main.ts` + `infra/http/router.ts`, com cada módulo compondo as próprias
+   dependências em `modules/<módulo>/<módulo>.module.ts`. Avaliar um container de DI leve (ex.: `awilix`)
+   se essa composição manual deixar de ser legível.
 
 Pendências por contexto:
 
 | Contexto | Pendência | Prioridade |
 | --- | --- | --- |
-| `inventory` | Migrar `UpdateStock/Reserve/Release/Commit` da publicação pós-commit para o outbox (mesma TX do saldo) | **Alta** |
 | `inventory` | Expiração de reservas (`expiresAt`) com job agendado (Temporal Schedule) e evento `StockReservationExpired` | Média |
 | `inventory` | Lotes, endereçamento, transferências e contagens (tabelas já existem) | Média |
 | `identity` | RBAC por permissão (`identity.permissions`), papel `SERVICE` e usuário dedicado do worker, refresh token rotativo, lockout | **Alta** |
@@ -116,7 +116,6 @@ Pendências por contexto:
 | `catalog` / `warehouse` | CRUD com eventos (`Catalog.ProductCreated`…) para alimentar analytics | Média |
 | `transaction` | Reconciliação periódica: transações em `PROCESSING` cujo workflow terminou sem reportar desfecho | Alta |
 | `platform` | Inbox (`platform.inbox_messages`) nos consumidores, idempotência HTTP genérica (`platform.idempotency_keys`), configurações e feature flags | Média |
-| `shared/domain` | Arquivos vazios (`entity`, `aggregate-root`, `value-object`, `domain-event`): implementar a partir do padrão de `Transaction` ou remover | Baixa |
 
 ### 3.2 temporal-worker — worker hexagonal por domínio
 
@@ -170,7 +169,7 @@ Dockerfiles já compilam antes de iniciar as apps.
 
 Próximo passo: **OpenTelemetry** em um pacote `@iron-ledger/telemetry`, com traces HTTP, Prisma, amqplib e
 interceptors do Temporal, e com `traceparent` no envelope de evento. O arquivo
-`apps/api/src/infra/telemetry/otel.setup.ts` está vazio.
+O placeholder vazio `apps/api/src/infra/telemetry/otel.setup.ts` foi removido; o setup entra junto com o pacote.
 
 ### 3.5 services/analytics — serviço isolado orientado a eventos (ADR-004)
 

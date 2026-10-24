@@ -62,7 +62,7 @@ Subir só o site não sobe a API. Uma página pode abrir normalmente e, ainda as
 
 A inicialização da API começa em `apps/api/src/main.ts`. Ela valida as variáveis de ambiente, conecta ao PostgreSQL e ao RabbitMQ, inicia o consumidor de auditoria e então abre o servidor HTTP. Portanto, no estado atual, o RabbitMQ é uma dependência de inicialização da API, mesmo que a regra de cadastro de usuário não precise publicar eventos.
 
-As rotas são montadas em `apps/api/src/infra/http/router.ts`. O fluxo típico é:
+Cada módulo compõe suas dependências e rotas em `apps/api/src/modules/<módulo>/<módulo>.module.ts`; `apps/api/src/infra/http/router.ts` apenas os monta. O fluxo típico é:
 
 ```text
 rota HTTP → controller → caso de uso → interface de repositório → Prisma/PostgreSQL
@@ -94,7 +94,7 @@ Tem operações para consultar, criar e atualizar armazéns e locais, além de d
 
 ### Inventory: saldo, movimentos e reservas
 
-Cuida de leitura de saldo e dos comandos de movimentar, reservar, liberar e confirmar estoque. A API publica eventos de domínio após operações. As regras de quantidade e invariantes estão em casos de uso, serviços e objetos de valor.
+Cuida de leitura de saldo e dos comandos de movimentar, reservar, liberar e confirmar estoque. Cada comando grava o saldo e o evento de domínio no outbox na mesma transação; o relay do outbox publica no RabbitMQ. As invariantes de saldo estão na entidade `StockLevel` e no objeto de valor `Quantity`. Movimentar exige o papel `WAREHOUSE_MANAGER`; reservar, liberar e confirmar aceitam também `SERVICE` (worker da Saga); `ADMIN` passa em tudo.
 
 O banco tem um esquema amplo para lotes, contagens e transferências, mas a existência dessas tabelas não garante que cada operação esteja exposta e completa. As rotas atuais concentram-se em saldos, movimentos e reservas.
 

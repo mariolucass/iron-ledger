@@ -7,7 +7,7 @@ import type {
   TransactionFailed,
   TransactionStarted,
 } from "@iron-ledger/shared-types";
-import { EVENT_PRODUCER } from "../../../../infra/messaging/rabbitmq.client";
+import { EVENT_PRODUCER } from "../../../../shared/domain/domain-event";
 import type { TransactionSnapshot } from "../entities/transaction.entity";
 
 const AGGREGATE_TYPE = "Transaction";
@@ -36,13 +36,21 @@ function payload(transaction: TransactionSnapshot, action: "CREATE" | "UPDATE") 
   };
 }
 
-export function transactionStarted(transaction: TransactionSnapshot, now: Date): TransactionStarted {
+export function transactionStarted(
+  transaction: TransactionSnapshot,
+  now: Date,
+): TransactionStarted {
   return createEvent({
     ...base(transaction, now, transaction.initiatedBy),
     eventName: "Transaction.TransactionStarted",
     payload: {
       ...payload(transaction, "CREATE"),
-      items: transaction.items.map(({ productId, warehouseId, sku, quantity }) => ({ productId, warehouseId, sku, quantity })),
+      items: transaction.items.map(({ productId, warehouseId, sku, quantity }) => ({
+        productId,
+        warehouseId,
+        sku,
+        quantity,
+      })),
     },
   });
 }

@@ -379,7 +379,7 @@ mudar, marque o ADR anterior como substituído e crie outro.
 2. Este documento: mapa físico e regras de organização.
 3. [`bounded-contexts.md`](./bounded-contexts.md): mapa de negócio e limites.
 4. [`event-flow.md`](./event-flow.md): comunicação e consistência.
-5. `apps/api/src/main.ts` e `infra/http/router.ts`: caminho executável atual.
+5. `apps/api/src/main.ts`, `infra/http/router.ts` e os `modules/*/<módulo>.module.ts`: caminho executável atual.
 6. `apps/api/prisma/schema.prisma`: modelo persistido atual.
 7. `services/analytics/src/pipeline.py`: segundo processo já funcional.
 8. ADRs e fluxos específicos quando forem preenchidos; até lá, use estes três

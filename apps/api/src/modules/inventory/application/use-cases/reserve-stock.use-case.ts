@@ -1,14 +1,13 @@
-import type { EventPublisher } from "../../../../infra/messaging/rabbitmq.client";
-import { stockReservationEvent } from "../../domain/events/stock-reserved.event";
-import type { InventoryRepository } from "../../domain/repositories/inventory.repository";
-import type { ReserveStockDto } from "../dtos/reserve-stock.dto";
+import type {
+  InventoryRepository,
+  StockReservationInput,
+} from "../../domain/repositories/inventory.repository";
 
+/** Idempotente por `transactionId`: a mesma reserva é devolvida sem novo evento. */
 export class ReserveStockUseCase {
-  constructor(private readonly inventory: InventoryRepository, private readonly events: EventPublisher) {}
+  constructor(private readonly inventory: InventoryRepository) {}
 
-  async execute(input: ReserveStockDto) {
-    const reservation = await this.inventory.createReservation(input);
-    await this.events.publish(stockReservationEvent("Inventory.StockReserved", reservation, input.actorId, input.correlationId));
-    return reservation;
+  execute(input: StockReservationInput) {
+    return this.inventory.createReservation(input);
   }
 }

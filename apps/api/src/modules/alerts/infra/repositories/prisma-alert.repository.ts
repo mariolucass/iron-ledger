@@ -2,11 +2,14 @@ import { randomUUID } from "node:crypto";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { AppError } from "../../../../shared/errors/domain.error";
 import { NotFoundError } from "../../../../shared/errors/not-found.error";
-
-export type AlertStatusInput = "ACKNOWLEDGED" | "RESOLVED";
+import type {
+  AlertList,
+  AlertRepository,
+  AlertStatusInput,
+} from "../../domain/repositories/alert.repository";
 
 /** Persistência dos alertas operacionais armazenados no schema analytics. */
-export class PrismaAlertRepository {
+export class PrismaAlertRepository implements AlertRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async createSagaFailure(
@@ -59,12 +62,19 @@ export class PrismaAlertRepository {
     `;
   }
 
-  async list() {
-    const [items, statusGroups, criticalCount] = await this.prisma.$transaction([
-      this.prisma.alert.findMany({ orderBy: [{ triggeredAt: "desc" }, { id: "desc" }] }),
-      this.prisma.alert.groupBy({ by: ["status"], _count: { _all: true } }),
-      this.prisma.alert.count({ where: { severity: "CRITICAL", status: { in: ["OPEN", "ACKNOWLEDGED"] } } }),
-    ]);
+  async list(): Promise<AlertList> {
+    // Interativa (e não em lote): o `groupBy` perde a tipagem dentro do array do `$transaction`.
+    const { items, statusGroups, criticalCount } = await this.prisma.$transaction(
+      async (transaction) => ({
+        items: await transaction.alert.findMany({
+          orderBy: [{ triggeredAt: "desc" }, { id: "desc" }],
+        }),
+        statusGroups: await transaction.alert.groupBy({ by: ["status"], _count: { _all: true } }),
+        criticalCount: await transaction.alert.count({
+          where: { severity: "CRITICAL", status: { in: ["OPEN", "ACKNOWLEDGED"] } },
+        }),
+      }),
+    );
 
     const counts = new Map<string, number>();
     for (const group of statusGroups) counts.set(group.status, group._count._all);
@@ -86,8 +96,15 @@ export class PrismaAlertRepository {
 
     if (status === "ACKNOWLEDGED" && current.status === "ACKNOWLEDGED") return current;
     if (status === "RESOLVED" && current.status === "RESOLVED") return current;
-    if (current.status !== "OPEN" && !(status === "RESOLVED" && current.status === "ACKNOWLEDGED")) {
-      throw new AppError("O alerta já não pode mudar para esse estado.", 409, "ALERT_STATUS_CONFLICT");
+    if (
+      current.status !== "OPEN" &&
+      !(status === "RESOLVED" && current.status === "ACKNOWLEDGED")
+    ) {
+      throw new AppError(
+        "O alerta já não pode mudar para esse estado.",
+        409,
+        "ALERT_STATUS_CONFLICT",
+      );
     }
 
     const updated = await this.prisma.alert.updateMany({
@@ -95,14 +112,19 @@ export class PrismaAlertRepository {
         id,
         status: status === "ACKNOWLEDGED" ? "OPEN" : { in: ["OPEN", "ACKNOWLEDGED"] },
       },
-      data: status === "ACKNOWLEDGED"
-        ? { status, acknowledgedAt: new Date(), acknowledgedBy: actorId }
-        : { status, resolvedAt: new Date(), resolvedBy: actorId },
+      data:
+        status === "ACKNOWLEDGED"
+          ? { status, acknowledgedAt: new Date(), acknowledgedBy: actorId }
+          : { status, resolvedAt: new Date(), resolvedBy: actorId },
     });
     if (updated.count !== 1) {
       const latest = await this.prisma.alert.findUnique({ where: { id } });
       if (latest?.status === status) return latest;
-      throw new AppError("O alerta foi atualizado por outra operação.", 409, "ALERT_STATUS_CONFLICT");
+      throw new AppError(
+        "O alerta foi atualizado por outra operação.",
+        409,
+        "ALERT_STATUS_CONFLICT",
+      );
     }
 
     const result = await this.prisma.alert.findUnique({ where: { id } });

@@ -4,11 +4,12 @@ Escopo: `apps/api/**`. Antes de alterar código, confira o estado atual dos arqu
 
 ## Organização do serviço
 
-- API Express/TypeScript, monólito modular. `src/main.ts` compõe dependências; `src/infra/http/router.ts` monta as rotas. Módulos em `src/modules/{identity,catalog,warehouse,inventory,transaction,audit}`.
+- API Express/TypeScript, monólito modular. `src/main.ts` cria as dependências de processo; cada módulo compõe casos de uso e rotas em `src/modules/<módulo>/<módulo>.module.ts`, e `src/infra/http/router.ts` só os monta. Módulos em `src/modules/{identity,catalog,warehouse,inventory,transaction,audit,alerts,platform}`.
+- Handlers HTTP usam `handle(status, run)` de `src/infra/http/handle.ts` em vez de `try/catch` com `next(error)`. Papéis vêm do `requireRoles` em `identity/infra/guards/rbac.guard.ts` (`ADMIN` passa em tudo; `SERVICE_ROLE` é o worker).
 - Em cada módulo, ponha invariantes em `domain`, casos de uso em `application` e HTTP/Prisma/consumidores em `infra`. Controllers não consultam Prisma diretamente; domínio não depende de Express, Prisma, RabbitMQ ou Temporal.
-- `src/shared` guarda apenas primitivas comuns. Contratos entre processos pertencem ao pacote compartilhado, mediante escopo autorizado pelo usuário.
+- `src/shared` guarda apenas primitivas comuns (`AggregateRoot`, `ValueObject`, `EVENT_PRODUCER`, erros, paginação). Contratos entre processos pertencem ao pacote compartilhado, mediante escopo autorizado pelo usuário.
 - O schema Prisma multifile está em `prisma/schema/`; migrations em `prisma/migrations/` e seed em `prisma/seeds/`. Preserve as regras SQL que Prisma não expressa, especialmente integridade e auditoria append-only. Não edite migrations já aplicadas; crie uma nova quando necessário. Não use `db push` como substituto de migration.
-- Mutações de estoque e outbox precisam manter atomicidade, correlação e idempotência. Auditoria é imutável. Antes de mudar esses fluxos, leia os casos de uso, repositórios e consumidores correspondentes.
+- Mutações de estoque e outbox precisam manter atomicidade, correlação e idempotência. Eventos de domínio vão sempre para o outbox (`enqueueEvents`) na transação do estado; não publique direto no broker após o commit. Auditoria é imutável. Antes de mudar esses fluxos, leia os casos de uso, repositórios e consumidores correspondentes.
 
 ## Ambiente e comandos
 

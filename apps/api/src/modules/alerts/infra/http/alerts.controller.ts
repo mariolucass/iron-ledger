@@ -1,12 +1,16 @@
-import type { NextFunction, Response } from "express";
 import { z } from "zod";
-import type { AuthenticatedRequest } from "../../../identity/infra/guards/jwt.guard";
-import type { PrismaAlertRepository } from "../repositories/prisma-alert.repository";
+import { handle } from "../../../../infra/http/handle";
+import type {
+  ListAlertsUseCase,
+  ResolveAllAlertsUseCase,
+  UpdateAlertStatusUseCase,
+} from "../../application/use-cases/alert.use-cases";
+import type { AlertRecord } from "../../domain/repositories/alert.repository";
 
 const idSchema = z.string().uuid();
 const statusSchema = z.object({ status: z.enum(["ACKNOWLEDGED", "RESOLVED"]) });
 
-function toAlertDto(alert: Awaited<ReturnType<PrismaAlertRepository["updateStatus"]>>) {
+function toAlertDto(alert: AlertRecord) {
   return {
     id: alert.id,
     type: alert.type,
@@ -26,28 +30,22 @@ function toAlertDto(alert: Awaited<ReturnType<PrismaAlertRepository["updateStatu
 }
 
 export class AlertsController {
-  constructor(private readonly alerts: PrismaAlertRepository) {}
+  constructor(
+    private readonly listAlerts: ListAlertsUseCase,
+    private readonly updateAlertStatus: UpdateAlertStatusUseCase,
+    private readonly resolveAllAlerts: ResolveAllAlertsUseCase,
+  ) {}
 
-  list = async (_request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const result = await this.alerts.list();
-      response.json({ ...result, items: result.items.map(toAlertDto) });
-    } catch (error) { next(error); }
-  };
+  list = handle(200, async () => {
+    const result = await this.listAlerts.execute();
+    return { ...result, items: result.items.map(toAlertDto) };
+  });
 
-  update = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const id = idSchema.parse(request.params.id);
-      const { status } = statusSchema.parse(request.body);
-      const alert = await this.alerts.updateStatus(id, status, request.auth!.userId);
-      response.json(toAlertDto(alert));
-    } catch (error) { next(error); }
-  };
+  update = handle(200, async (request) => {
+    const id = idSchema.parse(request.params.id);
+    const { status } = statusSchema.parse(request.body);
+    return toAlertDto(await this.updateAlertStatus.execute(id, status, request.auth!.userId));
+  });
 
-  resolveAll = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const updatedCount = await this.alerts.resolveAll(request.auth!.userId);
-      response.json({ updatedCount });
-    } catch (error) { next(error); }
-  };
+  resolveAll = handle(200, (request) => this.resolveAllAlerts.execute(request.auth!.userId));
 }

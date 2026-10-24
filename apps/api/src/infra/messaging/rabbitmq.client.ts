@@ -7,8 +7,7 @@ type ConnectableEventBus = EventBus & { connect(): Promise<void> };
 
 export type { DomainEvent, EventBus, EventPublisher } from "@iron-ledger/event-bus";
 
-/** Nome do produtor gravado no envelope dos eventos emitidos pela API. */
-export const EVENT_PRODUCER = "api";
+export { EVENT_PRODUCER } from "../../shared/domain/domain-event";
 
 export function createRabbitMqEventBus(url: string): RabbitMqEventBus {
   return new RabbitMqEventBus({

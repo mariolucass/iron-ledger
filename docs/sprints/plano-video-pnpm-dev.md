@@ -281,7 +281,7 @@ Nesse corte curto, não tente mostrar Temporal e analytics em detalhe: cada um e
 
 Após a cena 7, mostre por cerca de 1 minuto cada:
 
-- Em `apps/api/src/modules/inventory/domain/services/inventory-domain.service.ts`, a regra que calcula disponível e impede uma baixa abaixo do reservado.
+- Em `apps/api/src/modules/inventory/domain/entities/stock-level.entity.ts`, a regra que calcula disponível e impede uma baixa abaixo do reservado.
 - Em `apps/temporal-worker/src/workflows/transaction-saga.workflow.ts`, a sequência de reserva, confirmação e compensação. Relacione cada chamada às atividades vistas na Temporal UI.
 - No relatório de qualidade do analytics, uma limitação concreta dos dados Olist e por que os sinais não provam causalidade.
 

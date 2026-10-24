@@ -1,24 +1,31 @@
-import { randomUUID } from "node:crypto";
-import type { NextFunction, Response } from "express";
 import { z } from "zod";
+import { handle } from "../../../../infra/http/handle";
+import { CORRELATION_HEADER } from "../../../../infra/http/middlewares/request-logger.middleware";
 import type { AuthenticatedRequest } from "../../../identity/infra/guards/jwt.guard";
-import type { ReleaseStockUseCase } from "../../application/use-cases/release-stock.use-case";
 import type { CommitReservationUseCase } from "../../application/use-cases/commit-reservation.use-case";
+import type { QueryInventoryUseCase } from "../../application/use-cases/query-inventory.use-case";
+import type { ReleaseStockUseCase } from "../../application/use-cases/release-stock.use-case";
 import type { ReserveStockUseCase } from "../../application/use-cases/reserve-stock.use-case";
 import type { UpdateStockUseCase } from "../../application/use-cases/update-stock.use-case";
-import type { InventoryRepository } from "../../domain/repositories/inventory.repository";
+import { STOCK_MOVEMENT_TYPES } from "../../domain/entities/stock-movement.entity";
+import type { MutationContext } from "../../domain/repositories/inventory.repository";
 
-const listSchema = z.object({
-  sku: z.string().trim().min(1).optional(),
-  q: z.string().trim().min(1).max(100).optional(),
-  warehouseId: z.string().uuid().optional(),
+const pageSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20),
 });
+const listSchema = pageSchema.extend({
+  sku: z.string().trim().min(1).optional(),
+  q: z.string().trim().min(1).max(100).optional(),
+  warehouseId: z.string().uuid().optional(),
+});
 const movementSchema = z.object({
   stockLevelId: z.string().uuid(),
-  type: z.enum(["INBOUND", "OUTBOUND", "ADJUSTMENT", "RETURN"]),
-  quantity: z.number().finite().refine((value) => value !== 0, "A quantidade deve ser diferente de zero."),
+  type: z.enum(STOCK_MOVEMENT_TYPES),
+  quantity: z
+    .number()
+    .finite()
+    .refine((value) => value !== 0, "A quantidade deve ser diferente de zero."),
   referenceId: z.string().trim().max(120).optional(),
   referenceType: z.string().trim().max(80).optional(),
   notes: z.string().trim().max(500).optional(),
@@ -31,81 +38,57 @@ const reservationSchema = z.object({
 });
 const idSchema = z.object({ id: z.string().uuid() });
 const movementParamsSchema = z.object({ stockLevelId: z.string().uuid() });
+const transactionParamsSchema = z.object({ transactionId: z.string().uuid() });
+
+/** Autor da mutação e correlation ID (garantido pelo `requestLogger`). */
+const mutationContext = (request: AuthenticatedRequest): MutationContext => ({
+  actorId: request.auth!.userId,
+  correlationId: request.header(CORRELATION_HEADER),
+});
 
 export class InventoryController {
   constructor(
-    private readonly inventory: InventoryRepository,
+    private readonly queries: QueryInventoryUseCase,
     private readonly updateStock: UpdateStockUseCase,
     private readonly reserveStock: ReserveStockUseCase,
     private readonly releaseStock: ReleaseStockUseCase,
     private readonly commitReservation: CommitReservationUseCase,
   ) {}
 
-  list = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      response.json(await this.inventory.list(listSchema.parse(request.query)));
-    } catch (error) { next(error); }
-  };
-
-  warehouses = async (_request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      response.json({ items: await this.inventory.listWarehouses() });
-    } catch (error) { next(error); }
-  };
-
-  movements = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const { stockLevelId } = movementParamsSchema.parse(request.params);
-      const { page, pageSize } = listSchema.pick({ page: true, pageSize: true }).parse(request.query);
-      response.json(await this.inventory.listMovements(stockLevelId, page, pageSize));
-    } catch (error) { next(error); }
-  };
-
-  reservationByTransaction = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const { transactionId } = z.object({ transactionId: z.string().uuid() }).parse(request.params);
-      response.json(await this.inventory.findReservationByTransaction(transactionId));
-    } catch (error) { next(error); }
-  };
-
-  createMovement = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const input = movementSchema.parse(request.body);
-      const correlationId = this.correlationId(request, response);
-      const movement = await this.updateStock.execute({ ...input, actorId: request.auth!.userId, correlationId });
-      response.status(201).json(movement);
-    } catch (error) { next(error); }
-  };
-
-  createReservation = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const input = reservationSchema.parse(request.body);
-      const correlationId = this.correlationId(request, response);
-      const reservation = await this.reserveStock.execute({ ...input, actorId: request.auth!.userId, correlationId });
-      response.status(201).json(reservation);
-    } catch (error) { next(error); }
-  };
-
-  releaseReservation = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const { id } = idSchema.parse(request.params);
-      const correlationId = this.correlationId(request, response);
-      response.json(await this.releaseStock.execute({ reservationId: id, actorId: request.auth!.userId, correlationId }));
-    } catch (error) { next(error); }
-  };
-
-  commit = async (request: AuthenticatedRequest, response: Response, next: NextFunction) => {
-    try {
-      const { id } = idSchema.parse(request.params);
-      const correlationId = this.correlationId(request, response);
-      response.json(await this.commitReservation.execute({ reservationId: id, actorId: request.auth!.userId, correlationId }));
-    } catch (error) { next(error); }
-  };
-
-  private correlationId(request: AuthenticatedRequest, response: Response): string {
-    const supplied = request.header("x-correlation-id")?.trim();
-    const correlationId = supplied && supplied.length <= 120 ? supplied : randomUUID();
-    response.setHeader("x-correlation-id", correlationId);
-    return correlationId;
-  }
+  list = handle(200, (request) => this.queries.list(listSchema.parse(request.query)));
+  warehouses = handle(200, () => this.queries.warehouses());
+  movements = handle(200, (request) => {
+    const { stockLevelId } = movementParamsSchema.parse(request.params);
+    const { page, pageSize } = pageSchema.parse(request.query);
+    return this.queries.movements(stockLevelId, page, pageSize);
+  });
+  reservationByTransaction = handle(200, (request) =>
+    this.queries.reservationByTransaction(
+      transactionParamsSchema.parse(request.params).transactionId,
+    ),
+  );
+  createMovement = handle(201, (request) =>
+    this.updateStock.execute({
+      ...movementSchema.parse(request.body),
+      ...mutationContext(request),
+    }),
+  );
+  createReservation = handle(201, (request) =>
+    this.reserveStock.execute({
+      ...reservationSchema.parse(request.body),
+      ...mutationContext(request),
+    }),
+  );
+  releaseReservation = handle(200, (request) =>
+    this.releaseStock.execute({
+      reservationId: idSchema.parse(request.params).id,
+      ...mutationContext(request),
+    }),
+  );
+  commit = handle(200, (request) =>
+    this.commitReservation.execute({
+      reservationId: idSchema.parse(request.params).id,
+      ...mutationContext(request),
+    }),
+  );
 }

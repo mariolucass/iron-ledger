@@ -1,14 +1,13 @@
-import type { EventPublisher } from "../../../../infra/messaging/rabbitmq.client";
-import { stockReservationEvent } from "../../domain/events/stock-reserved.event";
-import type { InventoryRepository } from "../../domain/repositories/inventory.repository";
-import type { ReleaseStockDto } from "../dtos/reserve-stock.dto";
+import type {
+  InventoryRepository,
+  ReservationActionInput,
+} from "../../domain/repositories/inventory.repository";
 
+/** Liberar uma reserva já liberada devolve o mesmo registro sem novo evento. */
 export class ReleaseStockUseCase {
-  constructor(private readonly inventory: InventoryRepository, private readonly events: EventPublisher) {}
+  constructor(private readonly inventory: InventoryRepository) {}
 
-  async execute(input: ReleaseStockDto) {
-    const reservation = await this.inventory.releaseReservation(input);
-    await this.events.publish(stockReservationEvent("Inventory.StockReleased", reservation, input.actorId, input.correlationId));
-    return reservation;
+  execute(input: ReservationActionInput) {
+    return this.inventory.releaseReservation(input);
   }
 }
