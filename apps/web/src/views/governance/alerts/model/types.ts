@@ -1,5 +1,7 @@
-export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
-export type Source = "FORECASTING" | "TRANSACTIONS" | "SECURITY" | "SYSTEM";
+import type { AlertSeverity } from "@/entities/alert";
+
+export type Severity = AlertSeverity;
+export type Source = "FORECASTING" | "TRANSACTIONS" | "INVENTORY" | "SECURITY" | "SYSTEM";
 export type Status = "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED";
 export type AlertTab = Status | "ALL";
 
@@ -29,5 +31,5 @@ export interface AlertsSummaryData {
   criticalCount: number;
   healthPct: number;
   resolvedCount: number;
-  severityPercentages: Record<"CRITICAL" | "HIGH" | "MEDIUM", number>;
+  severityPercentages: Record<"CRITICAL" | "WARNING" | "INFO", number>;
 }

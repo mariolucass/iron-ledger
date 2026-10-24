@@ -15,7 +15,7 @@ export function selectAlertsSummary(alerts: SystemAlert[]): AlertsSummaryData {
   const acknowledgedCount = alerts.filter(({ status }) => status === "ACKNOWLEDGED").length;
   const resolvedCount = alerts.filter(({ status }) => status === "RESOLVED").length;
   const unresolved = alerts.filter(({ status }) => status !== "RESOLVED");
-  const percentage = (severity: "CRITICAL" | "HIGH" | "MEDIUM") =>
+  const percentage = (severity: "CRITICAL" | "WARNING" | "INFO") =>
     unresolved.length ? Math.round((unresolved.filter((alert) => alert.severity === severity).length / unresolved.length) * 100) : 0;
 
   return {
@@ -24,6 +24,6 @@ export function selectAlertsSummary(alerts: SystemAlert[]): AlertsSummaryData {
     resolvedCount,
     criticalCount: alerts.filter((alert) => alert.status === "ACTIVE" && alert.severity === "CRITICAL").length,
     healthPct: alerts.length ? Math.round((resolvedCount / alerts.length) * 100) : 100,
-    severityPercentages: { CRITICAL: percentage("CRITICAL"), HIGH: percentage("HIGH"), MEDIUM: percentage("MEDIUM") },
+    severityPercentages: { CRITICAL: percentage("CRITICAL"), WARNING: percentage("WARNING"), INFO: percentage("INFO") },
   };
 }

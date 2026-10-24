@@ -15,7 +15,7 @@ export interface FlagInput {
   description: string | null;
   isEnabled: boolean;
   rollout: number;
-  rules: unknown | null;
+  rules?: unknown;
 }
 export interface ServiceStatus {
   key: string;

@@ -103,6 +103,9 @@ import { TransactionController } from "../../modules/transaction/infra/http/tran
 import { createTransactionRouter } from "../../modules/transaction/infra/http/transaction.routes";
 import { PrismaStockAvailability } from "../../modules/transaction/infra/repositories/prisma-stock-availability";
 import { PrismaTransactionRepository } from "../../modules/transaction/infra/repositories/prisma-transaction.repository";
+import { AlertsController } from "../../modules/alerts/infra/http/alerts.controller";
+import { createAlertsRouter } from "../../modules/alerts/infra/http/alerts.routes";
+import { PrismaAlertRepository } from "../../modules/alerts/infra/repositories/prisma-alert.repository";
 
 export interface RouterDependencies {
   eventBus: EventBus;
@@ -264,6 +267,7 @@ export function createRouter({
   router.use("/inventory", createInventoryRouter(inventoryController, env.JWT_SECRET));
   router.use("/warehouses", createWarehouseRouter(warehouseController, env.JWT_SECRET));
   router.use("/audit", createAuditRouter(auditController, env.JWT_SECRET));
+  router.use("/alerts", createAlertsRouter(new AlertsController(new PrismaAlertRepository(prisma)), env.JWT_SECRET));
   router.use("/transactions", createTransactionRouter(transactionController, env.JWT_SECRET));
 
   router.post(

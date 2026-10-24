@@ -14,8 +14,8 @@ export function AlertsSummary({
   const circumference = 2 * Math.PI * 18;
   const segments = [
     { label: "Crítico", value: severityPercentages.CRITICAL, color: "bg-destructive" },
-    { label: "Alto", value: severityPercentages.HIGH, color: "bg-warning" },
-    { label: "Médio", value: severityPercentages.MEDIUM, color: "bg-info" },
+    { label: "Aviso", value: severityPercentages.WARNING, color: "bg-warning" },
+    { label: "Informativo", value: severityPercentages.INFO, color: "bg-info" },
   ];
 
   return (

@@ -38,6 +38,7 @@ export const severityConfig = {
 export const sourceConfig = {
   FORECASTING: { label: "Previsão AI", icon: Activity },
   TRANSACTIONS: { label: "Motor de Sagas", icon: Zap },
+  INVENTORY: { label: "Estoque", icon: Activity },
   SECURITY: { label: "Segurança / Identidade", icon: ShieldAlert },
   SYSTEM: { label: "Infraestrutura", icon: Bell },
 } satisfies Record<Source, { label: string; icon: typeof Activity }>;
