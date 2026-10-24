@@ -7,11 +7,12 @@ import { severityConfig, sourceConfig, statusConfig } from "../config";
 
 interface AlertCardProps {
   alert: SystemAlert;
+  disabled?: boolean;
   onAcknowledge: (id: string) => void;
   onResolve: (id: string) => void;
 }
 
-export function AlertCard({ alert, onAcknowledge, onResolve }: AlertCardProps) {
+export function AlertCard({ alert, disabled = false, onAcknowledge, onResolve }: AlertCardProps) {
   const [expanded, setExpanded] = useState(false);
   const severity = severityConfig[alert.severity];
   const source = sourceConfig[alert.source];
@@ -45,8 +46,8 @@ export function AlertCard({ alert, onAcknowledge, onResolve }: AlertCardProps) {
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
           {!resolved && <div className="flex gap-1.5">
-            {alert.status === "ACTIVE" && <button type="button" onClick={() => onAcknowledge(alert.id)} className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-warning hover:text-warning"><Info size={13} />Reconhecer</button>}
-            <button type="button" onClick={() => onResolve(alert.id)} className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary"><CheckCircle size={13} />Resolver</button>
+            {alert.status === "ACTIVE" && <button type="button" disabled={disabled} onClick={() => onAcknowledge(alert.id)} className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-warning hover:text-warning disabled:cursor-wait disabled:opacity-50"><Info size={13} />Reconhecer</button>}
+            <button type="button" disabled={disabled} onClick={() => onResolve(alert.id)} className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary disabled:cursor-wait disabled:opacity-50"><CheckCircle size={13} />Resolver</button>
           </div>}
         </div>
       </div>

@@ -7,8 +7,8 @@ export function AlertsSummary({ activeCount, criticalCount, healthPct, resolvedC
   const circumference = 2 * Math.PI * 18;
   const segments = [
     { label: "Crítico", value: severityPercentages.CRITICAL, color: "bg-destructive" },
-    { label: "Alto", value: severityPercentages.HIGH, color: "bg-warning" },
-    { label: "Médio", value: severityPercentages.MEDIUM, color: "bg-info" },
+    { label: "Aviso", value: severityPercentages.WARNING, color: "bg-warning" },
+    { label: "Informativo", value: severityPercentages.INFO, color: "bg-info" },
   ];
 
   return <section aria-label="Resumo dos alertas" className="mb-6 grid grid-cols-[1fr_1fr_1.5fr_1.3fr] gap-3 max-xl:grid-cols-2 max-sm:grid-cols-1">

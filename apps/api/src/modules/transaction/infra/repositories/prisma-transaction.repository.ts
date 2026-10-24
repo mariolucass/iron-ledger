@@ -9,6 +9,7 @@ import type {
 import type { RecordSagaStepInput } from "@iron-ledger/workflow-contracts";
 import { enqueueEvents } from "../../../../infra/outbox/outbox.writer";
 import { AppError } from "../../../../shared/errors/domain.error";
+import { PrismaAlertRepository } from "../../../alerts/infra/repositories/prisma-alert.repository";
 import { Transaction, type TransactionSnapshot } from "../../domain/entities/transaction.entity";
 import type { TransactionReadModel, TransactionRepository } from "../../domain/repositories/transaction.repository";
 
@@ -34,10 +35,14 @@ export interface PrismaTransactionRepositoryOptions {
 
 /** Persistência do contexto `transaction` + projeções de leitura. */
 export class PrismaTransactionRepository implements TransactionRepository, TransactionReadModel {
+  private readonly alerts: PrismaAlertRepository;
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly options: PrismaTransactionRepositoryOptions = {},
-  ) {}
+  ) {
+    this.alerts = new PrismaAlertRepository(prisma);
+  }
 
   async create(transaction: Transaction): Promise<"CREATED" | "DUPLICATE"> {
     const state = transaction.snapshot();
@@ -115,6 +120,15 @@ export class PrismaTransactionRepository implements TransactionRepository, Trans
       if (changes.length > 0) {
         await tx.transactionStatusHistory.createMany({
           data: changes.map((change) => ({ ...change, transactionId: state.id })),
+        });
+      }
+      if (changes.some((change) => change.toStatus === "FAILED")) {
+        await this.alerts.createSagaFailure(tx, {
+          transactionId: state.id,
+          transactionCode: state.code,
+          workflowId: state.workflowId,
+          failureCode: state.failureCode,
+          failureReason: state.failureReason,
         });
       }
       await enqueueEvents(tx, events);

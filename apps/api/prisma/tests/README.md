@@ -18,9 +18,10 @@ SQL porque não são representados pelo Prisma 5.22. Use migrations, não `db pu
 e preserve essas regras ao revisar SQL gerado no futuro.
 
 Alertas `OPEN` e `ACKNOWLEDGED` compartilham a unicidade de `dedup_key`.
-`RESOLVED` e `SUPPRESSED` liberam a chave. Consumidores que criem alertas devem
-tratar conflitos de unicidade, relendo o alerta ativo; um índice comum não
-substitui essa proteção. Ainda não há um escritor de alertas neste repositório.
+`RESOLVED` e `SUPPRESSED` liberam a chave. O escritor de falhas de Saga usa
+`INSERT ... ON CONFLICT` com o predicado do índice parcial para consolidar
+reentregas no alerta ativo. Escritores futuros também precisam preservar essa
+regra; um índice comum não substitui essa proteção.
 
 A auditoria grava `actor_id` sem FK e `actor_email` como snapshot. O backfill usa
 o e-mail atual dos usuários existentes; não pode reconstruir e-mails antigos
