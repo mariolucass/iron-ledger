@@ -8,5 +8,6 @@ export const alertApi = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
-  resolveAll: () => requestJson<{ updatedCount: number }>("/api/alerts/resolve-all", { method: "POST" }),
+  resolveAll: () =>
+    requestJson<{ updatedCount: number }>("/api/alerts/resolve-all", { method: "POST" }),
 };

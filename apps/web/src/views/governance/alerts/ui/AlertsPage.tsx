@@ -1,20 +1,20 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle, RefreshCw } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { alertApi, type AlertItem, type AlertStatusUpdate, type AlertType } from "@/entities/alert";
 import { withSession } from "@/shared/auth/with-session";
 import { staggerContainer, staggerItem } from "@/shared/lib/animation";
+import { formatRelativeTime } from "@/shared/lib/relative-time";
 import { ListError, PageHeader } from "@/shared/ui/data-list";
-import { Layout } from "@/widgets/layout";
+import { Layout, useAlertFeed } from "@/widgets/layout";
 import { selectAlertsSummary, selectFilteredAlerts } from "../model/selectors";
 import type { AlertTab, Source, SystemAlert } from "../model/types";
 import { AlertCard } from "./components/AlertCard";
 import { AlertsFilterBar } from "./components/AlertsFilterBar";
 import { AlertsSummary } from "./components/AlertsSummary";
 
-const relativeTime = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
 const inventoryAlertTypes: AlertType[] = [
   "LOW_STOCK",
   "STOCKOUT",
@@ -24,35 +24,27 @@ const inventoryAlertTypes: AlertType[] = [
   "COUNT_VARIANCE",
 ];
 
-function formatRelativeTime(value: string): string {
-  const seconds = Math.round((new Date(value).getTime() - Date.now()) / 1_000);
-  if (!Number.isFinite(seconds)) return new Date(value).toLocaleString("pt-BR");
-  if (Math.abs(seconds) < 60) return relativeTime.format(seconds, "second");
-  const minutes = Math.round(seconds / 60);
-  if (Math.abs(minutes) < 60) return relativeTime.format(minutes, "minute");
-  const hours = Math.round(minutes / 60);
-  if (Math.abs(hours) < 24) return relativeTime.format(hours, "hour");
-  return relativeTime.format(Math.round(hours / 24), "day");
-}
-
 function payloadRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
 function toSystemAlert(item: AlertItem): SystemAlert {
   const payload = payloadRecord(item.payload);
-  const failureReason = typeof payload.failureReason === "string" ? payload.failureReason : item.message;
+  const failureReason =
+    typeof payload.failureReason === "string" ? payload.failureReason : item.message;
   const failureCode = typeof payload.failureCode === "string" ? payload.failureCode : null;
-  const transactionCode = typeof payload.transactionCode === "string" ? payload.transactionCode : null;
-  const source: Source = item.type === "SAGA_FAILURE"
-    ? "TRANSACTIONS"
-    : item.type === "DEMAND_ANOMALY"
-      ? "FORECASTING"
-      : inventoryAlertTypes.includes(item.type)
-        ? "INVENTORY"
-        : "SYSTEM";
+  const transactionCode =
+    typeof payload.transactionCode === "string" ? payload.transactionCode : null;
+  const source: Source =
+    item.type === "SAGA_FAILURE"
+      ? "TRANSACTIONS"
+      : item.type === "DEMAND_ANOMALY"
+        ? "FORECASTING"
+        : inventoryAlertTypes.includes(item.type)
+          ? "INVENTORY"
+          : "SYSTEM";
 
   return {
     id: item.id,
@@ -63,7 +55,12 @@ function toSystemAlert(item: AlertItem): SystemAlert {
     source,
     timestamp: formatRelativeTime(item.lastSeenAt),
     ts_iso: item.triggeredAt,
-    status: item.status === "OPEN" ? "ACTIVE" : item.status === "ACKNOWLEDGED" ? "ACKNOWLEDGED" : "RESOLVED",
+    status:
+      item.status === "OPEN"
+        ? "ACTIVE"
+        : item.status === "ACKNOWLEDGED"
+          ? "ACKNOWLEDGED"
+          : "RESOLVED",
     affectedEntity: transactionCode ?? item.entityId ?? undefined,
   };
 }
@@ -74,29 +71,26 @@ export function AlertsPage() {
   const [severity, setSeverity] = useState<SystemAlert["severity"] | "ALL">("ALL");
   const [source, setSource] = useState<Source | "ALL">("ALL");
   const [tab, setTab] = useState<AlertTab>("ALL");
-  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const [resolvingAll, setResolvingAll] = useState(false);
+  const { refresh: refreshAlertFeed } = useAlertFeed();
 
-  const loadAlerts = useCallback(async (showLoading = false) => {
-    if (showLoading) setLoading(true);
+  const loadAlerts = useCallback(async () => {
     try {
       const result = await withSession(alertApi.list());
       setAlerts(result.items.map(toSystemAlert));
       setLoadError(null);
-      setLastSync(new Date());
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Não foi possível carregar os alertas.");
-    } finally {
-      if (showLoading) setLoading(false);
+      setLoadError(
+        error instanceof Error ? error.message : "Não foi possível carregar os alertas.",
+      );
     }
   }, []);
 
   useEffect(() => {
-    void loadAlerts(true);
+    void loadAlerts();
     const interval = window.setInterval(() => void loadAlerts(), 15_000);
     return () => window.clearInterval(interval);
   }, [loadAlerts]);
@@ -106,10 +100,41 @@ export function AlertsPage() {
     () => selectFilteredAlerts(alerts, { search, severity, source, tab }),
     [alerts, search, severity, source, tab],
   );
-  const updateStatus = (id: string, status: SystemAlert["status"]) =>
-    setAlerts((current) =>
-      current.map((alert) => (alert.id === id ? { ...alert, status } : alert)),
-    );
+  const updateStatus = async (id: string, status: AlertStatusUpdate) => {
+    setBusyIds((current) => new Set(current).add(id));
+    setActionError(null);
+    try {
+      const updated = await withSession(alertApi.updateStatus(id, status));
+      setAlerts((current) =>
+        current.map((alert) => (alert.id === id ? toSystemAlert(updated) : alert)),
+      );
+      await refreshAlertFeed();
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Não foi possível atualizar o alerta.",
+      );
+    } finally {
+      setBusyIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+  const resolveAll = async () => {
+    setResolvingAll(true);
+    setActionError(null);
+    try {
+      await withSession(alertApi.resolveAll());
+      await Promise.all([loadAlerts(), refreshAlertFeed()]);
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Não foi possível resolver os alertas.",
+      );
+    } finally {
+      setResolvingAll(false);
+    }
+  };
   const counts: Record<AlertTab, number> = {
     ALL: alerts.length,
     ACTIVE: summary.activeCount,
@@ -130,6 +155,9 @@ export function AlertsPage() {
             </span>
           }
         />
+        {(loadError ?? actionError) && (
+          <ListError message={(actionError ?? loadError)!} onRetry={() => void loadAlerts()} />
+        )}
         <AlertsSummary {...summary} total={alerts.length} />
         <AlertsFilterBar
           activeTab={tab}
@@ -137,14 +165,12 @@ export function AlertsPage() {
           search={search}
           severity={severity}
           source={source}
-          canResolveAll={summary.activeCount + summary.acknowledgedCount > 0}
+          canResolveAll={!resolvingAll && summary.activeCount + summary.acknowledgedCount > 0}
           onTabChange={setTab}
           onSearchChange={setSearch}
           onSeverityChange={setSeverity}
           onSourceChange={setSource}
-          onResolveAll={() =>
-            setAlerts((current) => current.map((alert) => ({ ...alert, status: "RESOLVED" })))
-          }
+          onResolveAll={() => void resolveAll()}
         />
         <motion.div
           variants={staggerContainer}
@@ -158,8 +184,9 @@ export function AlertsPage() {
                 <motion.div key={alert.id} variants={staggerItem} layout exit={{ opacity: 0 }}>
                   <AlertCard
                     alert={alert}
-                    onAcknowledge={(id) => updateStatus(id, "ACKNOWLEDGED")}
-                    onResolve={(id) => updateStatus(id, "RESOLVED")}
+                    disabled={busyIds.has(alert.id)}
+                    onAcknowledge={(id) => void updateStatus(id, "ACKNOWLEDGED")}
+                    onResolve={(id) => void updateStatus(id, "RESOLVED")}
                   />
                 </motion.div>
               ))

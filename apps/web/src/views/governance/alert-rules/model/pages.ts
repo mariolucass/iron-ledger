@@ -5,13 +5,15 @@ import type { PlannedPage } from "@/shared/config/planned-page";
 export const alertRulePages = {
   list: {
     title: "Regras de alerta",
-    description: "Condições que disparam alertas de estoque, validade, reservas, sagas e divergências de contagem.",
+    description:
+      "Condições que disparam alertas de estoque, validade, reservas, sagas e divergências de contagem.",
     back: { href: "/alerts", label: "Alertas" },
     action: { href: "/alerts/rules/new", label: "Nova regra" },
   },
   create: {
     title: "Nova regra de alerta",
-    description: "Defina tipo, severidade, escopo por produto ou armazém, condição e intervalo de silêncio.",
+    description:
+      "Defina tipo, severidade, escopo por produto ou armazém, condição e intervalo de silêncio.",
     back: { href: "/alerts/rules", label: "Regras" },
   },
   detail: (id: string): PlannedPage => ({
