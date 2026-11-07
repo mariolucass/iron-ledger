@@ -1,5 +1,6 @@
 import { handle } from "../../../../infra/http/handle";
 import { CORRELATION_HEADER } from "../../../../infra/http/middlewares/request-logger.middleware";
+import type { CancelTransactionUseCase } from "../../application/use-cases/cancel-transaction.use-case";
 import type { QueryTransactionsUseCase } from "../../application/use-cases/query-transactions.use-case";
 import type { RecordSagaStepUseCase } from "../../application/use-cases/record-saga-step.use-case";
 import type { ReportTransactionOutcomeUseCase } from "../../application/use-cases/report-transaction-outcome.use-case";
@@ -19,6 +20,7 @@ export class TransactionController {
     private readonly queries: QueryTransactionsUseCase,
     private readonly recordStep: RecordSagaStepUseCase,
     private readonly reportOutcome: ReportTransactionOutcomeUseCase,
+    private readonly cancelTransaction: CancelTransactionUseCase,
   ) {}
 
   list = handle(200, (request) => this.queries.list(listTransactionsSchema.parse(request.query)));
@@ -39,6 +41,13 @@ export class TransactionController {
   });
 
   get = handle(200, (request) => this.queries.get(transactionIdSchema.parse(request.params).id));
+
+  /** 202: o cancelamento é assíncrono; o desfecho chega pela Saga (ou 200 se já estava cancelada). */
+  cancel = handle(202, async (request, response) => {
+    const { id } = transactionIdSchema.parse(request.params);
+    const result = await this.cancelTransaction.execute({ transactionId: id, actorId: request.auth!.userId });
+    response.status(result.accepted ? 202 : 200).json(result.transaction);
+  });
 
   /** Interno (worker): registra o progresso de um passo da Saga. */
   steps = handle(204, async (request) => {

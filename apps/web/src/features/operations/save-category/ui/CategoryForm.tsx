@@ -1,4 +1,5 @@
 "use client";
+import { formGrid } from "@/shared/ui/page-width";
 import { Save } from "lucide-react";
 import type { Category } from "@/entities/category";
 import { inputClass, textareaClass } from "@/shared/ui/form-primitives";
@@ -9,7 +10,7 @@ import { useCategoryForm } from "../model/use-category-form";
 
 export function CategoryForm({ parents, onSaved, onCancel }: { parents: Category[]; onSaved: (category: Category) => void; onCancel: () => void }) {
   const { form, submit, status } = useCategoryForm(onSaved);
-  return <Form {...form}><form onSubmit={submit} noValidate className="grid gap-9">
+  return <Form {...form}><form onSubmit={submit} noValidate className={formGrid}>
     <FormSection title="Identificação">
       <FormFieldRow control={form.control} name="code" label="Código" description="Identificador único da categoria.">
         {(field) => <input {...field} className={`${inputClass} uppercase font-mono`} autoComplete="off" />}

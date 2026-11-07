@@ -19,6 +19,7 @@ import { firstNameOf, roleLabelOf, useCurrentUser } from "@/entities/user";
 import { isNavigationItemActive, navigationChildren, navigationSections } from "@/shared/config/app-navigation";
 import type { NavigationChild, NavigationRecordMatch } from "@/shared/config/app-navigation-types";
 import { UserAvatar } from "@/entities/user";
+import { useAlertFeed } from "../../../model/alert-feed";
 import { useRecordNames } from "../../../model/record-names";
 import styles from "./Sidebar.module.css";
 
@@ -52,6 +53,7 @@ function SidebarComponent({ collapsed, mobileOpen, onNavigate, setCollapsed }: S
   const previousPathname = useRef(pathname);
   const { profile } = useCurrentUser();
   const nameOf = useRecordNames();
+  const { openCount: openAlertsCount } = useAlertFeed();
   const compact = collapsed && !mobileOpen;
   const desktopWidth = collapsed ? "md:w-16 md:min-w-16" : "md:w-[268px] md:min-w-[268px]";
 
@@ -171,7 +173,9 @@ function SidebarComponent({ collapsed, mobileOpen, onNavigate, setCollapsed }: S
                   className="flex flex-col gap-1 overflow-hidden"
                 >
                   {items.map((navigationItem) => {
-                    const { icon: Icon, label, path, badge, shortcut } = navigationItem;
+                    const { icon: Icon, label, path, shortcut } = navigationItem;
+                    const badge = navigationItem.badge === "alerts" ? openAlertsCount : 0;
+                    const badgeLabel = badge > 99 ? "99+" : badge;
                     const active = isNavigationItemActive(pathname, path);
                     const children = navigationChildren(navigationItem, pathname);
                     const hasChildren = children.length > 0;
@@ -190,14 +194,14 @@ function SidebarComponent({ collapsed, mobileOpen, onNavigate, setCollapsed }: S
                         )}
                         <span className={`relative z-10 flex size-7 shrink-0 items-center justify-center rounded-[9px] ${active ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgb(0_229_160/12%),0_0_18px_rgb(0_229_160/14%)]" : ""}`}>
                           <Icon size={16} strokeWidth={active ? 1.9 : 1.65} />
-                          {badge && compact ? (
-                            <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full border-2 border-[rgb(var(--surface-rgb))] bg-destructive text-[10px] font-bold text-white">{badge}</span>
+                          {badge > 0 && compact ? (
+                            <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full border-2 border-[rgb(var(--surface-rgb))] bg-destructive text-[10px] font-bold text-white">{badgeLabel}</span>
                           ) : null}
                         </span>
                         {!compact && (
                           <span className="relative z-10 flex min-w-0 flex-1 items-center gap-1.5">
                             <span className="min-w-0 flex-1 truncate">{label}</span>
-                            {badge ? <span className="rounded-full bg-destructive px-1.5 py-px text-[12px] font-bold text-white">{badge}</span> : null}
+                            {badge > 0 ? <span className="rounded-full bg-destructive px-1.5 py-px text-[12px] font-bold text-white">{badgeLabel}</span> : null}
                             {shortcut && <kbd className="shrink-0 px-1 py-0.5 font-sans text-[12px] font-normal tracking-normal text-ink/70">Ctrl/⌘+⇧{shortcut}</kbd>}
                             {hasChildren ? (
                               <motion.span aria-hidden="true" initial={false} animate={{ rotate: expanded ? 90 : 0 }} transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 32 }} className="shrink-0 text-ink/45">

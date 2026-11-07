@@ -33,14 +33,14 @@ function SpotlightCard({ children, className, tone }: { children: ReactNode; cla
     <div
       ref={ref}
       onPointerMove={onPointerMove}
-      className={`group relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition-colors duration-300 hover:border-white/20 motion-reduce:transition-none md:p-8 ${className}`}
+      className={`group relative overflow-hidden rounded-[28px] border border-ink/10 bg-ink/[0.03] p-7 transition-colors duration-300 hover:border-ink/20 motion-reduce:transition-none md:p-8 ${className}`}
     >
       <div
         aria-hidden
         style={{ background: `radial-gradient(380px circle at var(--sx, 50%) var(--sy, 50%), ${glow[tone]}, transparent 70%)` }}
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none"
       />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/15 to-transparent" />
       <div className="relative flex h-full flex-col">{children}</div>
     </div>
   );
@@ -70,10 +70,10 @@ export function FeaturesSection() {
                     <Icon size={22} strokeWidth={1.7} />
                   </span>
                   <h3 className="m-0 mb-2.5 text-[21px] leading-tight font-semibold tracking-[-0.03em] text-foreground">{feature.title}</h3>
-                  <p className="m-0 max-w-[520px] text-[15.5px] leading-relaxed tracking-[-0.008em] text-white/65">{feature.description}</p>
+                  <p className="m-0 max-w-[520px] text-[15.5px] leading-relaxed tracking-[-0.008em] text-ink/65">{feature.description}</p>
                   {feature.sample && (
                     <p className="m-0 mt-auto inline-flex w-fit pt-6">
-                      <span className="rounded-xl border border-white/10 bg-black/30 px-3 py-1.5 font-mono text-[13px] text-white/80">{feature.sample}</span>
+                      <span className="rounded-xl border border-ink/10 bg-sunken px-3 py-1.5 font-mono text-[13px] text-ink/80">{feature.sample}</span>
                     </p>
                   )}
                 </SpotlightCard>

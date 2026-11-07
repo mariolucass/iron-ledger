@@ -87,7 +87,8 @@ export function AlertCard({ alert, disabled = false, onAcknowledge, onResolve }:
                 <button
                   type="button"
                   onClick={() => onAcknowledge(alert.id)}
-                  className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-warning hover:text-warning"
+                  disabled={disabled}
+                  className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-warning hover:text-warning disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Info size={13} />
                   Reconhecer
@@ -96,7 +97,8 @@ export function AlertCard({ alert, disabled = false, onAcknowledge, onResolve }:
               <button
                 type="button"
                 onClick={() => onResolve(alert.id)}
-                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary"
+                disabled={disabled}
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary disabled:pointer-events-none disabled:opacity-50"
               >
                 <CheckCircle size={13} />
                 Resolver

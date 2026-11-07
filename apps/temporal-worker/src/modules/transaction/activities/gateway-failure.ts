@@ -1,5 +1,5 @@
 import { ApplicationFailure } from "@temporalio/activity";
-import { GatewayError } from "../../../ports/gateway-error";
+import { GatewayError } from "../../../shared/gateway-error";
 
 /** Traduz a classificação do gateway para a política de retry do Temporal. */
 export async function runGatewayOperation<T>(operation: () => Promise<T>): Promise<T> {

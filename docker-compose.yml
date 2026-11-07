@@ -80,6 +80,7 @@ services:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
       TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE:-iron-ledger-tasks}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_DOCKER_ENDPOINT:-}
       # Painel de serviços (/platform/services) consulta estes endereços internos.
       ANALYTICS_URL: http://analytics:8000
       KAFKA_BROKERS: kafka:29092
@@ -144,7 +145,8 @@ services:
       timeout: 10s
       retries: 20
       start_period: 30s
-    networks: [messaging]
+    # `messaging` e internal (sem portas no host); `app` permite publicar 9092.
+    networks: [messaging, app]
 
   temporal:
     <<: *service-defaults
@@ -196,6 +198,7 @@ services:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
       TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE:-iron-ledger-tasks}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_DOCKER_ENDPOINT:-}
       API_URL: http://host.docker.internal:${API_PORT:-3000}
       WORKER_SERVICE_EMAIL: ${WORKER_SERVICE_EMAIL:-${SEED_ADMIN_EMAIL:-admin@ironledger.local}}
       WORKER_SERVICE_PASSWORD: ${WORKER_SERVICE_PASSWORD:-${SEED_ADMIN_PASSWORD:-ChangeMe123!}}

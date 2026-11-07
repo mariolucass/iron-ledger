@@ -12,6 +12,7 @@ export function createTransactionRouter(
   router.get("/", controller.list);
   router.post("/", controller.start);
   router.get("/:id", controller.get);
+  router.post("/:id/cancel", controller.cancel);
   router.post("/:id/steps", requireRoles(SERVICE_ROLE), controller.steps);
   router.post("/:id/outcome", requireRoles(SERVICE_ROLE), controller.outcome);
   return router;

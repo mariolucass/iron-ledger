@@ -6,6 +6,7 @@ import { Transaction } from "../../domain/entities/transaction.entity";
 import type { TransactionReadModel, TransactionRepository } from "../../domain/repositories/transaction.repository";
 import type { StockAvailabilityPort } from "../ports/stock-availability.port";
 import type { WorkflowOrchestrator } from "../ports/workflow-orchestrator.port";
+import { CancelTransactionUseCase } from "./cancel-transaction.use-case";
 import { RecordSagaStepUseCase } from "./record-saga-step.use-case";
 import { ReportTransactionOutcomeUseCase } from "./report-transaction-outcome.use-case";
 import { StartTransactionUseCase } from "./start-transaction.use-case";
@@ -67,9 +68,25 @@ const stock: StockAvailabilityPort = {
 const logger = { info: vi.fn(), error: vi.fn() };
 const command = { stockLevelId, quantity: 2, failConfirmation: false, actorId: "user-1", correlationId: "corr" };
 
-function setup(orchestrator: WorkflowOrchestrator = { startTransactionSaga: async (workflowId) => ({ workflowId, runId: "run-1", created: true }) }) {
+function setup(orchestrator: Pick<WorkflowOrchestrator, "startTransactionSaga"> = { startTransactionSaga: async (workflowId) => ({ workflowId, runId: "run-1", created: true }) }) {
   const repository = new MemoryTransactions();
-  return { repository, useCase: new StartTransactionUseCase(repository, repository, stock, orchestrator, logger) };
+  return {
+    repository,
+    useCase: new StartTransactionUseCase(
+      repository,
+      repository,
+      stock,
+      { cancelTransactionSaga: async () => "REQUESTED", ...orchestrator },
+      logger,
+    ),
+  };
+}
+
+/** Transação já iniciada (PROCESSING), como a Saga a encontra. */
+async function processing() {
+  const { repository, useCase } = setup();
+  const { transaction } = await useCase.execute(command);
+  return { repository, id: transaction.id };
 }
 
 describe("StartTransactionUseCase", () => {
@@ -113,12 +130,6 @@ describe("StartTransactionUseCase", () => {
 });
 
 describe("Saga → contexto de transação", () => {
-  async function processing() {
-    const { repository, useCase } = setup();
-    const { transaction } = await useCase.execute(command);
-    return { repository, id: transaction.id };
-  }
-
   it("passo de reserva concluído vincula a reserva ao item", async () => {
     const { repository, id } = await processing();
     await new RecordSagaStepUseCase(repository).execute({
@@ -146,5 +157,60 @@ describe("Saga → contexto de transação", () => {
     await report.execute({ transactionId: id, outcome }, "worker");
     expect(repository.rows.get(id)?.status).toBe("COMPLETED");
     expect(repository.events.filter((name) => name === "Transaction.TransactionCompleted")).toHaveLength(1);
+  });
+});
+
+describe("CancelTransactionUseCase", () => {
+  const build = async (cancelTransactionSaga: WorkflowOrchestrator["cancelTransactionSaga"]) => {
+    const { repository, id } = await processing();
+    return { repository, id, useCase: new CancelTransactionUseCase(repository, repository, { startTransactionSaga: vi.fn(), cancelTransactionSaga }, logger) };
+  };
+
+  it("pede o cancelamento ao workflow sem alterar o estado: o desfecho vem da Saga", async () => {
+    const cancelTransactionSaga = vi.fn(async () => "REQUESTED" as const);
+    const { repository, id, useCase } = await build(cancelTransactionSaga);
+    const result = await useCase.execute({ transactionId: id, actorId: "user-1" });
+    expect(result.accepted).toBe(true);
+    expect(cancelTransactionSaga).toHaveBeenCalledWith(id);
+    expect(repository.rows.get(id)?.status).toBe("PROCESSING");
+  });
+
+  it("recusa cancelar transação já finalizada", async () => {
+    const cancelTransactionSaga = vi.fn(async () => "REQUESTED" as const);
+    const { repository, id, useCase } = await build(cancelTransactionSaga);
+    await new ReportTransactionOutcomeUseCase(repository, repository).execute(
+      { transactionId: id, outcome: { status: "COMPLETED", reservationId: "r-1", movementId: "m-1" } },
+      "worker",
+    );
+    await expect(useCase.execute({ transactionId: id, actorId: "user-1" })).rejects.toMatchObject({ code: "TRANSACTION_ALREADY_FINALIZED" });
+    expect(cancelTransactionSaga).not.toHaveBeenCalled();
+  });
+
+  it("é idempotente quando já estava cancelada", async () => {
+    const cancelTransactionSaga = vi.fn(async () => "REQUESTED" as const);
+    const { repository, id, useCase } = await build(cancelTransactionSaga);
+    await new ReportTransactionOutcomeUseCase(repository, repository).execute(
+      { transactionId: id, outcome: { status: "CANCELLED", reason: "x" } },
+      "worker",
+    );
+    const result = await useCase.execute({ transactionId: id, actorId: "user-1" });
+    expect(result.accepted).toBe(false);
+    expect(cancelTransactionSaga).not.toHaveBeenCalled();
+  });
+
+  it("cancela direto uma transação PENDING cujo workflow nunca existiu", async () => {
+    const repository = new MemoryTransactions();
+    const transaction = Transaction.start({ code: "TXN-1", stock: { productId: "p", warehouseId: "w", sku: "SKU" }, quantity: 1, initiatedBy: "user-1" });
+    await repository.create(transaction);
+    const useCase = new CancelTransactionUseCase(repository, repository, { startTransactionSaga: vi.fn(), cancelTransactionSaga: async () => "NOT_FOUND" }, logger);
+    await useCase.execute({ transactionId: transaction.id, actorId: "user-1" });
+    expect(repository.rows.get(transaction.id)?.status).toBe("CANCELLED");
+    expect(repository.events).toContain("Transaction.TransactionCancelled");
+  });
+
+  it("não inventa um desfecho quando o workflow some com a transação em andamento", async () => {
+    const { repository, id, useCase } = await build(async () => "NOT_FOUND");
+    await expect(useCase.execute({ transactionId: id, actorId: "user-1" })).rejects.toMatchObject({ code: "TRANSACTION_NOT_CANCELLABLE" });
+    expect(repository.rows.get(id)?.status).toBe("PROCESSING");
   });
 });

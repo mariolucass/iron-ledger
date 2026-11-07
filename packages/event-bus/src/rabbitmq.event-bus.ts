@@ -1,4 +1,5 @@
-import amqp, { type ChannelModel, type ConfirmChannel, type ConsumeMessage } from "amqplib";
+import type { ConfirmChannel, ConsumeMessage } from "amqplib";
+import amqp, { type AmqpConnectionManager, type ChannelWrapper } from "amqp-connection-manager";
 import type { DomainEvent } from "@iron-ledger/shared-types";
 import { DOMAIN_EXCHANGE, isDomainEvent, routingKeyFor } from "./routing";
 import type { EventBus, EventBusLogger, EventHandler, SubscribeOptions } from "./types";
@@ -24,8 +25,9 @@ export interface RabbitMqEventBusOptions {
  */
 export class RabbitMqEventBus implements EventBus {
   readonly exchange: string;
-  private connection?: ChannelModel;
-  private channel?: ConfirmChannel;
+  private connection?: AmqpConnectionManager;
+  private publisher?: ChannelWrapper;
+  private readonly consumers: ChannelWrapper[] = [];
   private readonly logger: EventBusLogger;
 
   constructor(private readonly options: RabbitMqEventBusOptions) {
@@ -34,56 +36,68 @@ export class RabbitMqEventBus implements EventBus {
   }
 
   async connect(): Promise<void> {
-    this.connection = await amqp.connect(this.options.url, {
-      clientProperties: { connection_name: this.options.connectionName ?? "iron-ledger" },
+    const connection = amqp.connect([this.options.url], {
+      connectionOptions: {
+        clientProperties: { connection_name: this.options.connectionName ?? "iron-ledger" },
+      },
     });
-    this.connection.on("error", (error) =>
+    this.connection = connection;
+    connection.on("error", (error) =>
       this.logger.error({ err: error }, "Conexão RabbitMQ com erro"),
     );
-    this.connection.on("close", () => this.logger.warn({}, "Conexão RabbitMQ encerrada"));
-    this.channel = await this.connection.createConfirmChannel();
-    await this.channel.assertExchange(this.exchange, "topic", { durable: true });
+    connection.on("disconnect", ({ err }) => this.logger.warn({ err }, "Conexão RabbitMQ encerrada; reconectando"));
+    this.publisher = connection.createChannel({
+      name: "domain-events-publisher",
+      publishTimeout: 10_000,
+      setup: (channel: ConfirmChannel) => channel.assertExchange(this.exchange, "topic", { durable: true }).then(() => undefined),
+    });
+    try {
+      await connection.connect({ timeout: 5_000 });
+      await this.publisher.waitForConnect();
+    } catch (error) {
+      await this.close();
+      throw error;
+    }
   }
 
   get isConnected(): boolean {
-    return !!this.channel;
+    return this.connection?.isConnected() ?? false;
   }
 
   async publish(event: DomainEvent): Promise<void> {
-    const channel = this.requireChannel();
+    const publisher = this.requirePublisher();
     const routingKey = routingKeyFor(event.eventName);
-    await new Promise<void>((resolve, reject) => {
-      channel.publish(
-        this.exchange,
-        routingKey,
-        Buffer.from(JSON.stringify(event)),
-        {
-          persistent: true,
-          contentType: "application/json",
-          messageId: event.eventId,
-          type: event.eventName,
-          timestamp: Math.floor(Date.parse(event.occurredAt) / 1000) || undefined,
-          correlationId: event.correlationId,
-          appId: event.producer,
-        },
-        (error) => (error ? reject(error) : resolve()),
-      );
+    await publisher.publish(this.exchange, routingKey, Buffer.from(JSON.stringify(event)), {
+      persistent: true,
+      contentType: "application/json",
+      messageId: event.eventId,
+      type: event.eventName,
+      timestamp: Math.floor(Date.parse(event.occurredAt) / 1000) || undefined,
+      correlationId: event.correlationId,
+      appId: event.producer,
     });
   }
 
   async subscribe(options: SubscribeOptions, handler: EventHandler): Promise<void> {
-    const channel = this.requireChannel();
+    const connection = this.connection;
+    if (!connection) throw new Error("RabbitMQ não conectado.");
     const maxAttempts = options.maxAttempts ?? 5;
     const deadLetterQueue = `${options.queue}.dead-letter`;
-    await channel.assertQueue(options.queue, { durable: true });
-    await channel.assertQueue(deadLetterQueue, { durable: true });
-    await channel.bindQueue(options.queue, this.exchange, options.bindingKey);
-    await channel.prefetch(options.prefetch ?? 10);
-
-    await channel.consume(options.queue, (message) => {
-      if (!message) return;
-      void this.handle(channel, message, handler, { ...options, maxAttempts, deadLetterQueue });
+    const consumer = connection.createChannel({
+      name: `domain-events-${options.queue}`,
+      setup: async (channel: ConfirmChannel) => {
+        await channel.assertExchange(this.exchange, "topic", { durable: true });
+        await channel.assertQueue(options.queue, { durable: true });
+        await channel.assertQueue(deadLetterQueue, { durable: true });
+        await channel.bindQueue(options.queue, this.exchange, options.bindingKey);
+        await channel.prefetch(options.prefetch ?? 10);
+        await channel.consume(options.queue, (message: ConsumeMessage | null) => {
+          if (message) void this.handle(channel, message, handler, { ...options, maxAttempts, deadLetterQueue });
+        });
+      },
     });
+    this.consumers.push(consumer);
+    await consumer.waitForConnect();
   }
 
   private async handle(
@@ -104,11 +118,10 @@ export class RabbitMqEventBus implements EventBus {
         { queue: options.queue, messageId: message.properties.messageId },
         "Mensagem inválida enviada para dead-letter",
       );
-      channel.sendToQueue(options.deadLetterQueue, message.content, {
+      await this.republishThenAck(channel, message, options.deadLetterQueue, {
         ...message.properties,
         persistent: true,
       });
-      channel.ack(message);
       return;
     }
 
@@ -134,7 +147,7 @@ export class RabbitMqEventBus implements EventBus {
           ? "Evento enviado para dead-letter após esgotar tentativas"
           : "Falha ao consumir evento; nova tentativa agendada",
       );
-      channel.sendToQueue(target, message.content, {
+      await this.republishThenAck(channel, message, target, {
         ...message.properties,
         persistent: true,
         headers: {
@@ -143,19 +156,35 @@ export class RabbitMqEventBus implements EventBus {
           "x-last-error": String((error as Error)?.message ?? error),
         },
       });
+    }
+  }
+
+  private async republishThenAck(
+    channel: ConfirmChannel,
+    message: ConsumeMessage,
+    target: string,
+    properties: Parameters<ChannelWrapper["sendToQueue"]>[2],
+  ): Promise<void> {
+    try {
+      // Confirme a republicação antes de remover a entrega original.
+      await this.requirePublisher().sendToQueue(target, message.content, properties);
       channel.ack(message);
+    } catch (error) {
+      this.logger.error({ err: error, target }, "Não foi possível republicar evento; entrega original será refeita");
+      try { channel.nack(message, false, true); } catch { /* Canal encerrado: RabbitMQ redeliverá a entrega. */ }
     }
   }
 
   async close(): Promise<void> {
-    await this.channel?.close().catch(() => undefined);
+    await Promise.all(this.consumers.splice(0).map((channel) => channel.close().catch(() => undefined)));
+    await this.publisher?.close().catch(() => undefined);
     await this.connection?.close().catch(() => undefined);
-    this.channel = undefined;
+    this.publisher = undefined;
     this.connection = undefined;
   }
 
-  private requireChannel(): ConfirmChannel {
-    if (!this.channel) throw new Error("RabbitMQ não conectado.");
-    return this.channel;
+  private requirePublisher(): ChannelWrapper {
+    if (!this.publisher) throw new Error("RabbitMQ não conectado.");
+    return this.publisher;
   }
 }

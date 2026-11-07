@@ -1,5 +1,5 @@
 import { ApplicationFailure } from "@temporalio/activity";
-import type { InventoryGateway } from "../../../ports/inventory-gateway";
+import type { InventoryGateway } from "../ports/inventory-gateway";
 import type { TransactionActivities } from "../contracts/transaction-activities";
 import { runGatewayOperation as execute } from "./gateway-failure";
 

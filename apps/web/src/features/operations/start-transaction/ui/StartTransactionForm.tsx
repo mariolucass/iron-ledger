@@ -1,5 +1,6 @@
 "use client";
 
+import { formGrid } from "@/shared/ui/page-width";
 import type { TransactionDetail } from "@/entities/transaction";
 import { Form } from "@/shared/ui/kit/form";
 import { FormActions, FormSection } from "@/shared/ui/form-page";
@@ -25,8 +26,9 @@ export function StartTransactionForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={submit} noValidate className="grid gap-9">
+      <form onSubmit={submit} noValidate className={formGrid}>
         <FormSection
+          span
           title="Saída de estoque"
           description="Reserva o estoque, confirma a baixa e compensa automaticamente em caso de falha."
           columns={1}

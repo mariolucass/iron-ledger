@@ -75,7 +75,7 @@ function resolvePnpm() {
   if (!works(systemCommand("npm"))) {
     throw new Error("pnpm/Corepack não encontrados e npm não está disponível para o bootstrap.");
   }
-  return { ...systemCommand("npx", ["--yes", "pnpm@12.6.0"]), label: "pnpm 12.6.0 via npx" };
+  return { ...systemCommand("npx", ["--yes", "pnpm@10.12.1"]), label: "pnpm 10.12.1 via npx" };
 }
 
 async function generatePrismaClient() {

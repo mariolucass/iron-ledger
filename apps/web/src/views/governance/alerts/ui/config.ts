@@ -9,23 +9,16 @@ export const severityConfig = {
     soft: "bg-destructive-soft",
     border: "border-l-destructive",
   },
-  HIGH: {
-    label: "Alto",
+  WARNING: {
+    label: "Atenção",
     icon: AlertTriangle,
     text: "text-warning",
     soft: "bg-warning-soft",
     border: "border-l-warning",
   },
-  MEDIUM: {
-    label: "Médio",
+  INFO: {
+    label: "Informativo",
     icon: Info,
-    text: "text-warning",
-    soft: "bg-warning-soft",
-    border: "border-l-warning",
-  },
-  LOW: {
-    label: "Baixo",
-    icon: Activity,
     text: "text-info",
     soft: "bg-info-soft",
     border: "border-l-info",

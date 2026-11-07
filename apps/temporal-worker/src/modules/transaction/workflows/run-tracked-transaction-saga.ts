@@ -5,7 +5,7 @@ import type {
   TransactionOutcome,
   TransactionSagaInput,
   TransactionSagaResult,
-} from "@iron-ledger/workflow-contracts";
+} from "@iron-ledger/workflow-contracts/transaction";
 import type { TransactionActivities } from "../contracts/transaction-activities";
 import type { TransactionLifecycleActivities } from "../contracts/transaction-lifecycle-activities";
 import { describeFailure } from "./describe-failure";

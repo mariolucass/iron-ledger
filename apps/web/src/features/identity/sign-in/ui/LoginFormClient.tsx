@@ -31,24 +31,24 @@ export default function LoginFormClient() {
   return (
     <>
       <header className="mb-8">
-        <h1 id="login-title" className="m-0 mb-2 text-[clamp(1.875rem,4vw,2.25rem)] leading-[1.08] font-semibold tracking-[-0.045em] text-white">
+        <h1 id="login-title" className="m-0 mb-2 text-[clamp(1.875rem,4vw,2.25rem)] leading-[1.08] font-semibold tracking-[-0.045em] text-foreground">
           Entrar
         </h1>
-        <p className="m-0 text-[15.5px] leading-relaxed tracking-[-0.01em] text-white/65">Acesse o seu workspace do Iron Ledger.</p>
+        <p className="m-0 text-[15.5px] leading-relaxed tracking-[-0.01em] text-ink/65">Acesse o seu workspace do Iron Ledger.</p>
       </header>
 
       <div className="grid grid-cols-2 gap-2.5 max-[420px]:grid-cols-1">
         <button type="button" disabled className={authGlassButtonClass} title="Disponível em breve">
           <ShieldCheck size={16} aria-hidden /> SSO
-          <span className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-px text-[11px] text-white/50">Em breve</span>
+          <span className="rounded-full border border-ink/10 bg-ink/[0.05] px-2 py-px text-[11px] text-ink/50">Em breve</span>
         </button>
         <button type="button" disabled className={authGlassButtonClass} title="Disponível em breve">
           <Fingerprint size={16} aria-hidden /> Passkey
-          <span className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-px text-[11px] text-white/50">Em breve</span>
+          <span className="rounded-full border border-ink/10 bg-ink/[0.05] px-2 py-px text-[11px] text-ink/50">Em breve</span>
         </button>
       </div>
 
-      <div className="my-6 flex items-center gap-4 text-[13px] text-white/45 before:h-px before:flex-1 before:bg-white/10 after:h-px after:flex-1 after:bg-white/10">
+      <div className="my-6 flex items-center gap-4 text-[13px] text-ink/45 before:h-px before:flex-1 before:bg-ink/10 after:h-px after:flex-1 after:bg-ink/10">
         ou com e-mail
       </div>
 
@@ -116,7 +116,7 @@ export default function LoginFormClient() {
                     onClick={() => setShowPassword((visible) => !visible)}
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                     aria-pressed={showPassword}
-                    className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-white/50 outline-none transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none"
+                    className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-ink/50 outline-none transition-colors hover:bg-ink/[0.08] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none"
                   >
                     {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
@@ -131,7 +131,7 @@ export default function LoginFormClient() {
             name="remember"
             render={({ field }) => (
               <FormItem>
-                <label className="inline-flex cursor-pointer items-center gap-2.5 text-[14px] text-white/70 select-none">
+                <label className="inline-flex cursor-pointer items-center gap-2.5 text-[14px] text-ink/70 select-none">
                   <input
                     className="peer sr-only"
                     ref={field.ref}
@@ -142,7 +142,7 @@ export default function LoginFormClient() {
                     onBlur={field.onBlur}
                     onChange={field.onChange}
                   />
-                  <span className="grid size-5 place-items-center rounded-md border border-white/25 bg-white/[0.04] text-[#04140e] transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#0e1012] motion-reduce:transition-none">
+                  <span className="grid size-5 place-items-center rounded-md border border-ink/25 bg-ink/[0.04] text-primary-foreground transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-panel motion-reduce:transition-none">
                     {field.value && <Check size={13} strokeWidth={3} aria-hidden />}
                   </span>
                   Manter conectado neste dispositivo
@@ -158,7 +158,7 @@ export default function LoginFormClient() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className={`flex items-start gap-2.5 overflow-hidden rounded-2xl border px-4 py-3 text-[13.5px] leading-normal ${error ? "border-destructive/35 bg-destructive-soft text-destructive" : "border-white/10 bg-white/[0.05] text-white/75"}`}
+                className={`flex items-start gap-2.5 overflow-hidden rounded-2xl border px-4 py-3 text-[13.5px] leading-normal ${error ? "border-destructive/35 bg-destructive-soft text-destructive" : "border-ink/10 bg-ink/[0.05] text-ink/75"}`}
               >
                 {error ? <AlertTriangle className="mt-0.5 shrink-0" size={15} aria-hidden /> : <CheckCircle2 className="mt-0.5 shrink-0 text-primary" size={15} aria-hidden />}
                 <span>{error || notice}</span>
@@ -180,14 +180,14 @@ export default function LoginFormClient() {
         </form>
       </Form>
 
-      <p className="m-0 mt-7 text-center text-[14.5px] text-white/65">
+      <p className="m-0 mt-7 text-center text-[14.5px] text-ink/65">
         Ainda não tem conta?{" "}
         <Link href="/register" className="rounded-md font-semibold text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-primary/60">
           Criar conta
         </Link>
       </p>
 
-      <p className="m-0 mt-6 flex items-start gap-2 border-t border-white/[0.08] pt-5 text-[12.5px] leading-relaxed text-white/50">
+      <p className="m-0 mt-6 flex items-start gap-2 border-t border-ink/[0.08] pt-5 text-[12.5px] leading-relaxed text-ink/50">
         <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
         Seus acessos podem ser registrados no histórico de auditoria da sua organização.
       </p>

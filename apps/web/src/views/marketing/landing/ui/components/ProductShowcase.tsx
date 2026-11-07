@@ -74,7 +74,7 @@ export function ProductShowcase() {
       <Reveal className="mx-auto max-w-[1060px]">
         <div className="mb-8 flex justify-center overflow-x-auto pb-1">
           <LayoutGroup id={groupId}>
-            <div role="tablist" aria-label="Telas da plataforma" onKeyDown={onKeyDown} className="inline-flex gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 backdrop-blur-xl">
+            <div role="tablist" aria-label="Telas da plataforma" onKeyDown={onKeyDown} className="inline-flex gap-1 rounded-full border border-ink/10 bg-ink/[0.04] p-1 backdrop-blur-xl">
               {views.map((item, index) => {
                 const selected = index === active;
                 return (
@@ -88,14 +88,14 @@ export function ProductShowcase() {
                     aria-controls="platform-panel"
                     tabIndex={selected ? 0 : -1}
                     onClick={() => setActive(index)}
-                    className={`relative h-10 rounded-full px-5 text-[14px] font-medium tracking-[-0.01em] whitespace-nowrap outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none ${selected ? "text-foreground" : "text-white/60 hover:text-white/90"}`}
+                    className={`relative h-10 rounded-full px-5 text-[14px] font-medium tracking-[-0.01em] whitespace-nowrap outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none ${selected ? "text-foreground" : "text-ink/60 hover:text-ink/90"}`}
                   >
                     {selected && (
                       <motion.span
                         layoutId="showcase-tab"
                         aria-hidden
                         transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }}
-                        className="absolute inset-0 rounded-full border border-white/10 bg-white/[0.11] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+                        className="absolute inset-0 rounded-full border border-ink/10 bg-ink/[0.11] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
                       />
                     )}
                     <span className="relative">{item.label}</span>
@@ -120,8 +120,8 @@ export function ProductShowcase() {
               </motion.div>
             </AnimatePresence>
           </WindowFrame>
-          <p aria-live="polite" className="mx-auto mt-6 max-w-[620px] text-center text-[15.5px] leading-relaxed tracking-[-0.01em] text-white/65">{view.caption}</p>
-          <p className="m-0 mt-2 text-center text-[12.5px] text-white/45">Prévia ilustrativa, com dados de exemplo.</p>
+          <p aria-live="polite" className="mx-auto mt-6 max-w-[620px] text-center text-[15.5px] leading-relaxed tracking-[-0.01em] text-ink/65">{view.caption}</p>
+          <p className="m-0 mt-2 text-center text-[12.5px] text-ink/45">Prévia ilustrativa, com dados de exemplo.</p>
         </div>
       </Reveal>
     </section>

@@ -1,7 +1,17 @@
 import type { TransactionSagaInput, TransactionSagaResult } from "@iron-ledger/workflow-contracts";
-import { Client, Connection, WorkflowExecutionAlreadyStartedError } from "@temporalio/client";
+import {
+  Client,
+  Connection,
+  WorkflowExecutionAlreadyStartedError,
+  WorkflowNotFoundError,
+} from "@temporalio/client";
+import { OpenTelemetryWorkflowClientInterceptor } from "@temporalio/interceptors-opentelemetry";
 import { AppError } from "../../../../shared/errors/domain.error";
-import type { StartedWorkflow, WorkflowOrchestrator } from "../../application/ports/workflow-orchestrator.port";
+import type {
+  CancelRequestResult,
+  StartedWorkflow,
+  WorkflowOrchestrator,
+} from "../../application/ports/workflow-orchestrator.port";
 
 type TransactionWorkflow = (input: TransactionSagaInput) => Promise<TransactionSagaResult>;
 
@@ -45,6 +55,17 @@ export class TemporalWorkflowOrchestrator implements WorkflowOrchestrator {
     }
   }
 
+  async cancelTransactionSaga(workflowId: string): Promise<CancelRequestResult> {
+    const client = await this.getClient();
+    try {
+      await client.workflow.getHandle(workflowId).cancel();
+      return "REQUESTED";
+    } catch (error) {
+      if (error instanceof WorkflowNotFoundError) return "NOT_FOUND";
+      throw error;
+    }
+  }
+
   /** Confirma que o servidor responde e conta os workers em polling na task queue. */
   async health(): Promise<{ pollers: number }> {
     const client = await this.getClient();
@@ -66,7 +87,13 @@ export class TemporalWorkflowOrchestrator implements WorkflowOrchestrator {
     this.client ??= Connection.connect({ address: this.options.address, connectTimeout: "5 seconds" })
       .then((connection) => {
         this.connection = connection;
-        return new Client({ connection, namespace: this.options.namespace });
+        return new Client({
+          connection,
+          namespace: this.options.namespace,
+          ...(process.env.OTEL_EXPORTER_OTLP_ENDPOINT ? {
+            interceptors: { workflow: [new OpenTelemetryWorkflowClientInterceptor()] },
+          } : {}),
+        });
       })
       .catch((error: unknown) => {
         this.client = undefined;

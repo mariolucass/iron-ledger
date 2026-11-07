@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Menu, X } from "lucide-react";
-import Image from "next/image";
+import { BrandMark } from "@/shared/ui/brand-mark";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { landingNavLinks } from "../../model/fixtures";
@@ -76,8 +76,8 @@ export function LandingHeader() {
 
   const highlighted = hovered ?? (activeSection ? `#${activeSection}` : null);
   const glass = scrolled || menuOpen
-    ? "border-white/[0.12] bg-[rgb(18_20_22/0.72)] shadow-[0_10px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-2xl backdrop-saturate-150"
-    : "border-white/[0.07] bg-white/[0.03] backdrop-blur-md";
+    ? "border-ink/[0.12] bg-[rgb(var(--surface-rgb)/0.72)] shadow-elevated backdrop-blur-2xl backdrop-saturate-150"
+    : "border-ink/[0.07] bg-ink/[0.03] backdrop-blur-md";
   const spring = reducedMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 420, damping: 36 };
 
   return (
@@ -104,7 +104,7 @@ export function LandingHeader() {
             className={`pointer-events-auto flex h-14 items-center justify-between gap-3 rounded-full border pr-2 pl-4 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 motion-reduce:transition-none ${glass}`}
           >
             <a href="#top" onClick={() => setMenuOpen(false)} className={`flex shrink-0 items-center gap-2.5 rounded-full py-1 pr-2 ${focusRing}`}>
-              <Image src="/brand/logo-symbol-dark.svg" alt="" width={22} height={25} priority className="h-[25px] w-[22px]" />
+              <BrandMark width={22} height={25} priority />
               <span className="text-[15px] font-semibold tracking-[-0.025em] text-foreground">Iron Ledger</span>
             </a>
 
@@ -131,7 +131,7 @@ export function LandingHeader() {
                         layoutId="landing-nav-highlight"
                         transition={spring}
                         aria-hidden
-                        className="absolute inset-0 rounded-full bg-white/[0.08]"
+                        className="absolute inset-0 rounded-full bg-ink/[0.08]"
                       />
                     )}
                   </li>
@@ -142,7 +142,7 @@ export function LandingHeader() {
             <div className="flex items-center gap-1">
               <Link
                 href="/login"
-                className={`hidden h-10 items-center rounded-full px-4 text-[14px] font-medium tracking-[-0.015em] text-muted-foreground transition-colors duration-150 hover:bg-white/[0.07] hover:text-foreground md:inline-flex ${focusRing}`}
+                className={`hidden h-10 items-center rounded-full px-4 text-[14px] font-medium tracking-[-0.015em] text-muted-foreground transition-colors duration-150 hover:bg-ink/[0.07] hover:text-foreground md:inline-flex ${focusRing}`}
               >
                 Entrar
               </Link>
@@ -156,7 +156,7 @@ export function LandingHeader() {
                 aria-expanded={menuOpen}
                 aria-controls="mobile-navigation"
                 aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
-                className={`grid size-10 place-items-center rounded-full text-foreground transition-colors hover:bg-white/[0.08] md:hidden ${focusRing}`}
+                className={`grid size-10 place-items-center rounded-full text-foreground transition-colors hover:bg-ink/[0.08] md:hidden ${focusRing}`}
               >
                 {menuOpen ? <X size={19} strokeWidth={1.9} /> : <Menu size={19} strokeWidth={1.9} />}
               </button>
@@ -172,7 +172,7 @@ export function LandingHeader() {
                 exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.97 }}
                 transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 style={{ transformOrigin: "top center" }}
-                className="pointer-events-auto absolute inset-x-0 top-[calc(100%+8px)] rounded-3xl border border-white/[0.12] bg-[rgb(18_20_22/0.88)] p-2 shadow-[0_24px_60px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-2xl backdrop-saturate-150 md:hidden"
+                className="pointer-events-auto absolute inset-x-0 top-[calc(100%+8px)] rounded-3xl border border-ink/[0.12] bg-[rgb(var(--surface-rgb)/0.88)] p-2 shadow-elevated backdrop-blur-2xl backdrop-saturate-150 md:hidden"
               >
                 <ul className="m-0 grid list-none gap-0.5 p-0">
                   {landingNavLinks.map((link) => (
@@ -180,19 +180,19 @@ export function LandingHeader() {
                       <a
                         href={link.href}
                         onClick={() => setMenuOpen(false)}
-                        className={`flex h-12 items-center rounded-2xl px-4 text-[17px] font-medium tracking-[-0.02em] transition-colors hover:bg-white/[0.07] ${activeSection && `#${activeSection}` === link.href ? "text-primary" : "text-foreground"} ${focusRing}`}
+                        className={`flex h-12 items-center rounded-2xl px-4 text-[17px] font-medium tracking-[-0.02em] transition-colors hover:bg-ink/[0.07] ${activeSection && `#${activeSection}` === link.href ? "text-primary" : "text-foreground"} ${focusRing}`}
                       >
                         {link.label}
                       </a>
                     </li>
                   ))}
                 </ul>
-                <div className="mx-2 my-2 h-px bg-white/[0.08]" />
+                <div className="mx-2 my-2 h-px bg-ink/[0.08]" />
                 <div className="grid gap-2 p-1">
                   <Link
                     href="/login"
                     onClick={() => setMenuOpen(false)}
-                    className={`flex h-12 items-center justify-center rounded-2xl text-[16px] font-medium text-foreground transition-colors hover:bg-white/[0.07] ${focusRing}`}
+                    className={`flex h-12 items-center justify-center rounded-2xl text-[16px] font-medium text-foreground transition-colors hover:bg-ink/[0.07] ${focusRing}`}
                   >
                     Entrar
                   </Link>

@@ -11,9 +11,13 @@ catalog:
   tsx: ^4.20.6
   # Validação (API e web)
   zod: ^3.25.76
+  # Observabilidade compartilhada entre API e worker
+  "@opentelemetry/api": 1.10.0
+  "@opentelemetry/auto-instrumentations-node": 0.83.0
   # Temporal: todos os pacotes do SDK devem estar na MESMA versão exata
   "@temporalio/activity": 1.24.0
   "@temporalio/client": 1.24.0
+  "@temporalio/interceptors-opentelemetry": 1.24.0
   "@temporalio/testing": 1.24.0
   "@temporalio/worker": 1.24.0
   "@temporalio/workflow": 1.24.0

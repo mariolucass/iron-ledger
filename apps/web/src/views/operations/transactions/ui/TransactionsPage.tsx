@@ -5,6 +5,8 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import {
   isTerminalStatus,
   TransactionStatusBadge,
@@ -13,8 +15,6 @@ import {
   type TransactionSummary,
 } from "@/entities/transaction";
 import { StartTransactionDialog, type TransactionStockOption } from "@/features/operations/start-transaction";
-import { usePolling } from "@/shared/lib/use-polling";
-import { useRemoteList } from "@/shared/lib/use-remote-list";
 import {
   DataTable,
   EmptyState,
@@ -33,6 +33,12 @@ import { dayRange, fetchStockOptions, fetchTransactions, formatDateTime, PAGE_SI
 type StatusTab = TransactionStatus | "ALL";
 
 const statusTabs: StatusTab[] = ["ALL", "PROCESSING", "COMPLETED", "COMPENSATED", "FAILED"];
+const filterParsers = {
+  status: parseAsStringLiteral(statusTabs).withDefault("ALL"),
+  from: parseAsString.withDefault(""),
+  to: parseAsString.withDefault(""),
+  page: parseAsInteger.withDefault(1),
+};
 const tabOptions = statusTabs.map((value) => ({ value, label: value === "ALL" ? "Todas" : transactionStatusLabel(value) }));
 
 const typeLabel: Record<TransactionSummary["type"], string> = {
@@ -71,21 +77,21 @@ const columns: Column<TransactionSummary>[] = [
 // Lista de transações (sagas orquestradas pelo Temporal).
 export function TransactionsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<StatusTab>("ALL");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [page, setPage] = useState(1);
+  const [{ status: activeTab, from, to, page }, setFilters] = useQueryStates(filterParsers);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [stockOptions, setStockOptions] = useState<TransactionStockOption[]>([]);
   const [stockLoading, setStockLoading] = useState(false);
 
-  const { items, total, loading, error, reload, refresh } = useRemoteList(
-    () => fetchTransactions({ status: activeTab === "ALL" ? undefined : activeTab, page, ...dayRange(from, to) }),
-    [activeTab, from, to, page],
-  );
-
-  // Sagas em andamento mudam de estado sozinhas: atualiza até todas terminarem.
-  usePolling(reload, 3_000, items.some((item) => !isTerminalStatus(item.status)));
+  const transactions = useQuery({
+    queryKey: ["transactions", activeTab, from, to, page],
+    queryFn: () => fetchTransactions({ status: activeTab === "ALL" ? undefined : activeTab, page, ...dayRange(from, to) }),
+    refetchInterval: (query) => query.state.data?.items.some((item) => !isTerminalStatus(item.status)) ? 3_000 : false,
+  });
+  const items = transactions.data?.items ?? [];
+  const total = transactions.data?.total ?? 0;
+  const loading = transactions.isPending;
+  const error = transactions.error instanceof Error ? transactions.error.message : "";
+  const refresh = () => transactions.refetch();
 
   const openDialog = async () => {
     setDialogOpen(true);
@@ -99,7 +105,9 @@ export function TransactionsPage() {
     }
   };
 
-  const reset = <T,>(set: (value: T) => void) => (value: T) => { set(value); setPage(1); };
+  const reset = <T,>(key: "status" | "from" | "to") => (value: T) => {
+    void setFilters({ [key]: value, page: 1 });
+  };
 
   return (
     <Layout title="Transações">
@@ -109,7 +117,7 @@ export function TransactionsPage() {
         actions={
           <>
             <button type="button" onClick={() => void refresh()} aria-label="Atualizar lista" className={`${secondaryActionClass} !px-0 w-11`}>
-              <RefreshCw size={16} aria-hidden className={loading ? "animate-spin motion-reduce:animate-none" : undefined} />
+              <RefreshCw size={16} aria-hidden className={transactions.isFetching ? "animate-spin motion-reduce:animate-none" : undefined} />
             </button>
             <button type="button" onClick={() => void openDialog()} className={primaryActionClass}><Plus size={17} aria-hidden /> Nova transação</button>
           </>
@@ -117,11 +125,11 @@ export function TransactionsPage() {
       />
 
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-        <SegmentedTabs label="Filtrar por status" value={activeTab} onChange={reset(setActiveTab)} options={tabOptions} />
+        <SegmentedTabs label="Filtrar por status" value={activeTab} onChange={reset<StatusTab>("status")} options={tabOptions} />
         <div className="grid grid-cols-2 items-center gap-2 sm:flex">
-          <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={reset(setFrom)} className="h-11 w-full sm:w-[150px]" />
+          <DatePicker aria-label="Data inicial" placeholder="Data inicial" value={from} max={to || undefined} onChange={reset<string>("from")} className="h-11 w-full sm:w-[150px]" />
           <span aria-hidden className="text-ink/45 max-sm:hidden">–</span>
-          <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={reset(setTo)} className="h-11 w-full sm:w-[150px]" />
+          <DatePicker aria-label="Data final" placeholder="Data final" value={to} min={from || undefined} onChange={reset<string>("to")} className="h-11 w-full sm:w-[150px]" />
         </div>
       </div>
 
@@ -145,7 +153,7 @@ export function TransactionsPage() {
         }
       />
 
-      <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} noun={["transação", "transações"]} />
+      <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={(nextPage) => void setFilters({ page: nextPage })} noun={["transação", "transações"]} />
 
       <AnimatePresence>
         {dialogOpen && (
