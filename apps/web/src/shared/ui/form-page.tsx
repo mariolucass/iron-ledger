@@ -100,6 +100,7 @@ export function FormSection({
   action,
   columns = 2,
   flush = false,
+  span = false,
   children,
 }: {
   title: string;
@@ -109,11 +110,13 @@ export function FormSection({
   columns?: 1 | 2;
   /** Sem espaçamento interno; os filhos viram linhas separadas por filetes. */
   flush?: boolean;
+  /** Ocupa a largura inteira do formulário quando ele está em duas colunas. */
+  span?: boolean;
   children: ReactNode;
 }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="grid gap-3">
+    <section aria-labelledby={id} className={cn("grid gap-3", span && spanSections)}>
       <div className="flex items-end justify-between gap-4 px-1">
         <div className="min-w-0">
           <h2
@@ -143,6 +146,9 @@ export function FormSection({
 
 /** Ocupa as duas colunas de um `FormSection`. */
 export const fullWidth = "md:col-span-2";
+
+/** Seção que atravessa as duas colunas de `formGrid` (tabelas, fotos, listas longas). */
+export const spanSections = "xl:col-span-2";
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
@@ -194,8 +200,12 @@ export function FormActions({
 
   return (
     <>
-      {status && <StatusMessage status={status} />}
-      <div className="sticky bottom-3 z-20 md:bottom-4">
+      {status && (
+        <div className="xl:col-span-2">
+          <StatusMessage status={status} />
+        </div>
+      )}
+      <div className="sticky bottom-3 z-20 md:bottom-4 xl:col-span-2">
         <div className="flex items-center gap-2 rounded-2xl border border-ink/10 bg-[rgb(var(--surface-rgb)/0.82)] py-2 pr-2 pl-4 shadow-elevated backdrop-blur-2xl backdrop-saturate-150">
           <p className="m-0 flex min-w-0 flex-1 items-center gap-2 truncate text-[13px] text-muted-foreground">
             {dirty !== undefined && (

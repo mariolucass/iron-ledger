@@ -4,7 +4,8 @@ import type { Route } from "next";
 export type NavigationShortcut = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
 export interface NavigationItem {
-  badge?: number;
+  /** Contador dinâmico exibido ao lado do item; o valor vem do shell. */
+  badge?: "alerts";
   icon: LucideIcon;
   label: string;
   path: Route;

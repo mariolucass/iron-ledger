@@ -1,5 +1,6 @@
 "use client";
 
+import { formGrid } from "@/shared/ui/page-width";
 import { Check, Save } from "lucide-react";
 import { USER_STATUSES, userStatusLabel, type RoleSummary, type UserDetail } from "@/entities/user";
 import {
@@ -32,7 +33,7 @@ export function UserForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={submit} noValidate className="grid gap-9">
+      <form onSubmit={submit} noValidate className={formGrid}>
         <FormSection title="Dados do usuário">
           <FormFieldRow control={form.control} name="name" label="Nome completo">
             {(field) => <input {...field} className={inputClass} autoComplete="off" />}

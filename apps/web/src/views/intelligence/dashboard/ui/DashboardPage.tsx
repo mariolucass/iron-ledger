@@ -313,13 +313,13 @@ export function DashboardPage() {
 
       <AttentionList items={attention} />
 
-      <section aria-label="Indicadores" className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Indicadores" className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-4 2xl:gap-6">
         {kpis.map((kpi) => (
           <MetricCard key={kpi.label} kpi={kpi} />
         ))}
       </section>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] 2xl:gap-x-8">
         <Panel id="recent-transactions" title="Transações recentes" link={{ href: "/transactions", label: "Ver todas" }}>
           {recentTransactions.map((tx) => (
             <TransactionRow key={tx.id} tx={tx} />

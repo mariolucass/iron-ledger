@@ -180,7 +180,7 @@ export function PanelSkeleton({ rows = 5 }: { rows?: number }) {
 
 export function SettingsSkeleton() {
   return (
-    <div className="grid max-w-[1200px] items-start gap-6 lg:grid-cols-[240px_1fr] lg:gap-10">
+    <div className="grid max-w-[1440px] items-start gap-6 lg:grid-cols-[240px_1fr] lg:gap-10">
       <div className="grid gap-2 rounded-xl border border-border bg-card p-3">
         {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-11 rounded-lg" />)}
       </div>

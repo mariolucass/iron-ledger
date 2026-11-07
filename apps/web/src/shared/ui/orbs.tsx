@@ -59,7 +59,7 @@ export function Orb({ color, position, opacity = 0.6, motion: m = 0, blur = 70 }
     <div aria-hidden className={`pointer-events-none absolute ${position}`}>
       <div
         style={{ opacity, filter: `blur(${blur}px)` }}
-        className={`size-full rounded-full mix-blend-screen motion-reduce:animate-none ${paint[color]} ${drift[m]}`}
+        className={`size-full rounded-full mix-blend-screen in-data-[theme=light]:mix-blend-normal motion-reduce:animate-none ${paint[color]} ${drift[m]}`}
       />
     </div>
   );

@@ -87,11 +87,11 @@ export default function RegisterFormClient() {
       <header className="mb-8">
         <h1
           id="register-title"
-          className="m-0 mb-2 text-[clamp(1.875rem,4vw,2.25rem)] leading-[1.08] font-semibold tracking-[-0.045em] text-white"
+          className="m-0 mb-2 text-[clamp(1.875rem,4vw,2.25rem)] leading-[1.08] font-semibold tracking-[-0.045em] text-foreground"
         >
           Criar conta
         </h1>
-        <p className="m-0 text-[15.5px] leading-relaxed tracking-[-0.01em] text-white/65">
+        <p className="m-0 text-[15.5px] leading-relaxed tracking-[-0.01em] text-ink/65">
           Cadastre-se para acessar o workspace do Iron Ledger.
         </p>
       </header>
@@ -131,7 +131,7 @@ export default function RegisterFormClient() {
                           onClick={() => setShowPassword((visible) => !visible)}
                           aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                           aria-pressed={showPassword}
-                          className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-white/50 outline-none transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none"
+                          className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-ink/50 outline-none transition-colors hover:bg-ink/[0.08] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60 motion-reduce:transition-none"
                         >
                           {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                         </button>
@@ -178,7 +178,7 @@ export default function RegisterFormClient() {
         </form>
       </Form>
 
-      <p className="m-0 mt-7 text-center text-[14.5px] text-white/65">
+      <p className="m-0 mt-7 text-center text-[14.5px] text-ink/65">
         Já tem uma conta?{" "}
         <Link
           href="/login"

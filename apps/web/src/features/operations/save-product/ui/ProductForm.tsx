@@ -1,5 +1,6 @@
 "use client";
 
+import { formGrid } from "@/shared/ui/page-width";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useFieldArray, useFormContext, type FieldPathByValue } from "react-hook-form";
 import {
@@ -115,7 +116,7 @@ export function ProductForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={submit} noValidate className="grid gap-9">
+      <form onSubmit={submit} noValidate className={formGrid}>
         <FormSection title="Identificação">
           <ProductField
             name="sku"
@@ -263,6 +264,7 @@ export function ProductForm({
         </FormSection>
 
         <FormSection
+          span
           title="Códigos de barras"
           description="A quantidade é a de unidades base que o código representa (ex.: caixa com 12)."
           flush

@@ -10,6 +10,8 @@ build/
 dist/
 coverage/
 *.tsbuildinfo
+playwright-report/
+test-results/
 
 # Local environment files (keep an example file if one is added)
 .env*
@@ -28,3 +30,4 @@ figma/
 Thumbs.db
 *.log
 pnpm-debug.log*
+.vercel
