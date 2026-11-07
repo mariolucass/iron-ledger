@@ -1,5 +1,5 @@
 import { proxyActivities } from "@temporalio/workflow";
-import type { TransactionActivities } from "../../src/modules/transaction/contracts/transaction-activities";
+import type { TransactionActivities } from "../../contracts/transaction-activities";
 
 const activities = proxyActivities<TransactionActivities>({
   startToCloseTimeout: "30 seconds",

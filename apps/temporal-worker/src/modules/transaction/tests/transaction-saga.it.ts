@@ -7,11 +7,11 @@ import { ApplicationFailure, heartbeat, sleep } from "@temporalio/activity";
 import type {
   RecordSagaStepInput,
   ReportTransactionOutcomeInput,
-} from "@iron-ledger/workflow-contracts";
-import { createLifecycleActivities } from "../../src/modules/transaction/activities/create-lifecycle-activities";
-import { createTransactionActivities } from "../../src/modules/transaction/activities/create-transaction-activities";
-import type { InventoryGateway } from "../../src/ports/inventory-gateway";
-import type { TransactionLifecycleGateway } from "../../src/ports/transaction-lifecycle-gateway";
+} from "@iron-ledger/workflow-contracts/transaction";
+import { createLifecycleActivities } from "../activities/create-lifecycle-activities";
+import { createTransactionActivities } from "../activities/create-transaction-activities";
+import type { InventoryGateway } from "../ports/inventory-gateway";
+import type { TransactionLifecycleGateway } from "../ports/transaction-lifecycle-gateway";
 
 let env: TestWorkflowEnvironment;
 before(async () => {
@@ -60,7 +60,7 @@ async function run(gateway: InventoryGateway, overrides = {}) {
   const worker = await Worker.create({
     connection: env.nativeConnection,
     taskQueue,
-    workflowsPath: require.resolve("../../src/workflows"),
+    workflowsPath: require.resolve("../workflows"),
     activities: activitiesFor(gateway),
   });
   return worker.runUntil(
@@ -162,7 +162,7 @@ test("cancellation waits for the activity and performs non-cancellable cleanup",
   const worker = await Worker.create({
     connection: env.nativeConnection,
     taskQueue,
-    workflowsPath: require.resolve("../../src/workflows"),
+    workflowsPath: require.resolve("../workflows"),
     activities: activitiesFor(gateway),
   });
   await worker.runUntil(async () => {
@@ -184,7 +184,7 @@ test("replay accepts success and compensation histories from the original workfl
     const worker = await Worker.create({
       connection: env.nativeConnection,
       taskQueue,
-      workflowsPath: require.resolve("../replay/legacy-workflows"),
+      workflowsPath: require.resolve("./replay/legacy-workflows"),
       activities: {
         reserveStock: async () => ({ id: "reservation" }),
         confirmTransaction: async () => {
@@ -201,7 +201,7 @@ test("replay accepts success and compensation histories from the original workfl
     });
     await worker.runUntil(handle.result());
     await Worker.runReplayHistory(
-      { workflowsPath: require.resolve("../../src/workflows") },
+      { workflowsPath: require.resolve("../workflows") },
       await handle.fetchHistory(),
     );
   }
@@ -237,7 +237,7 @@ test("replay accepts histories recorded by the reconciliation-v1 workflow", asyn
     const worker = await Worker.create({
       connection: env.nativeConnection,
       taskQueue,
-      workflowsPath: require.resolve("../replay/reconciliation-v1-workflows"),
+      workflowsPath: require.resolve("./replay/reconciliation-v1-workflows"),
       activities: activitiesFor(gateway),
     });
     const handle = await env.client.workflow.start("transactionSaga", {
@@ -247,7 +247,7 @@ test("replay accepts histories recorded by the reconciliation-v1 workflow", asyn
     });
     await worker.runUntil(handle.result());
     await Worker.runReplayHistory(
-      { workflowsPath: require.resolve("../../src/workflows") },
+      { workflowsPath: require.resolve("../workflows") },
       await handle.fetchHistory(),
     );
   }

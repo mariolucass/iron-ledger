@@ -5,9 +5,12 @@ import {
   patched,
   proxyActivities,
 } from "@temporalio/workflow";
-import type { TransactionSagaInput, TransactionSagaResult } from "@iron-ledger/workflow-contracts";
-import type { TransactionActivities } from "../../src/modules/transaction/contracts/transaction-activities";
-import { runTransactionSaga } from "../../src/modules/transaction/workflows/run-transaction-saga";
+import type {
+  TransactionSagaInput,
+  TransactionSagaResult,
+} from "@iron-ledger/workflow-contracts/transaction";
+import type { TransactionActivities } from "../../contracts/transaction-activities";
+import { runTransactionSaga } from "../../workflows/run-transaction-saga";
 
 /** Snapshot of the workflow as deployed with only the reconciliation-v1 patch. */
 const operations = proxyActivities<TransactionActivities>({

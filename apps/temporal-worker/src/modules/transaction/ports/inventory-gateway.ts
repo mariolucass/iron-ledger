@@ -1,4 +1,4 @@
-import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts";
+import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts/transaction";
 
 export interface ReserveStockInput {
   stockLevelId: string;

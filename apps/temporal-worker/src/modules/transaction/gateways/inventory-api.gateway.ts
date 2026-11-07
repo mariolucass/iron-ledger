@@ -1,7 +1,7 @@
-import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts";
-import type { InventoryGateway, ReserveStockInput } from "../../ports/inventory-gateway";
-import { ApiClient } from "./api-client";
-import { ApiError } from "./api-error";
+import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts/transaction";
+import type { InventoryGateway, ReserveStockInput } from "../ports/inventory-gateway";
+import { ApiClient } from "../../../shared/http/api-client";
+import { ApiError } from "../../../shared/http/api-error";
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object")

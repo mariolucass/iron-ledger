@@ -5,7 +5,10 @@ import {
   patched,
   proxyActivities,
 } from "@temporalio/workflow";
-import type { TransactionSagaInput, TransactionSagaResult } from "@iron-ledger/workflow-contracts";
+import type {
+  TransactionSagaInput,
+  TransactionSagaResult,
+} from "@iron-ledger/workflow-contracts/transaction";
 import type { TransactionActivities } from "../contracts/transaction-activities";
 import type { TransactionLifecycleActivities } from "../contracts/transaction-lifecycle-activities";
 import {

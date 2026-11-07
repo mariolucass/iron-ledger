@@ -3,10 +3,10 @@ import { test } from "node:test";
 import type {
   RecordSagaStepInput,
   ReportTransactionOutcomeInput,
-} from "@iron-ledger/workflow-contracts";
-import { runTrackedTransactionSaga } from "../../src/modules/transaction/workflows/run-tracked-transaction-saga";
-import type { TransactionActivities } from "../../src/modules/transaction/contracts/transaction-activities";
-import type { TransactionLifecycleActivities } from "../../src/modules/transaction/contracts/transaction-lifecycle-activities";
+} from "@iron-ledger/workflow-contracts/transaction";
+import { runTrackedTransactionSaga } from "../workflows/run-tracked-transaction-saga";
+import type { TransactionActivities } from "../contracts/transaction-activities";
+import type { TransactionLifecycleActivities } from "../contracts/transaction-lifecycle-activities";
 
 const input = { transactionId: "txn", stockLevelId: "stock", quantity: 1, failConfirmation: false };
 const cancelled = new Error("cancelled");
@@ -158,5 +158,41 @@ test("cancellation releases the reservation and reports CANCELLED", async () => 
     (error) => error === cancelled,
   );
   assert.ok(released);
+  assert.equal(tracking.outcomes[0]?.outcome.status, "CANCELLED");
+});
+
+test("cancellation after the commit reports COMPLETED instead of CANCELLED", async () => {
+  const tracking = lifecycle();
+  let confirmations = 0;
+  const activities = defaults();
+  activities.confirmTransaction = async () => {
+    if (confirmations++ === 0) throw cancelled;
+    return { id: "movement" };
+  };
+  activities.reconcileReservation = async () => ({
+    status: "COMMITTED",
+    reservationId: "reservation",
+    movementId: "movement",
+  });
+  const result = await runTrackedTransactionSaga(input, activities, tracking.activities, runtime);
+  assert.equal(result.status, "COMPLETED");
+  assert.deepEqual(tracking.outcomes[0]?.outcome, {
+    status: "COMPLETED",
+    reservationId: "reservation",
+    movementId: "movement",
+  });
+});
+
+test("cancellation before the reservation started reports CANCELLED", async () => {
+  const tracking = lifecycle();
+  const activities = defaults();
+  activities.reserveStock = async () => {
+    throw cancelled;
+  };
+  activities.reconcileReservation = async () => ({ status: "NOT_FOUND" });
+  await assert.rejects(
+    runTrackedTransactionSaga(input, activities, tracking.activities, runtime),
+    (error) => error === cancelled,
+  );
   assert.equal(tracking.outcomes[0]?.outcome.status, "CANCELLED");
 });

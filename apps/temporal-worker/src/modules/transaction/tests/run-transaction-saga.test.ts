@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { runTransactionSaga } from "../../src/modules/transaction/workflows/run-transaction-saga";
-import type { TransactionActivities } from "../../src/modules/transaction/contracts/transaction-activities";
+import { runTransactionSaga } from "../workflows/run-transaction-saga";
+import type { TransactionActivities } from "../contracts/transaction-activities";
 
 const input = { transactionId: "txn", stockLevelId: "stock", quantity: 1, failConfirmation: false };
 const cancelled = new Error("cancelled");
@@ -125,4 +125,35 @@ test("an already released reservation does not repeat the release operation", as
     reservationId: "reservation",
   });
   assert.equal((await runTransactionSaga(input, activities, runtime)).status, "COMPENSATED");
+});
+
+test("cancellation after the reservation was committed keeps the completed result", async () => {
+  let confirmations = 0;
+  const activities = defaults();
+  activities.confirmTransaction = async () => {
+    if (confirmations++ === 0) throw cancelled;
+    return { id: "movement" };
+  };
+  activities.reconcileReservation = async () => ({
+    status: "COMMITTED",
+    reservationId: "reservation",
+    movementId: "movement",
+  });
+  assert.deepEqual(await runTransactionSaga(input, activities, runtime), {
+    status: "COMPLETED",
+    reservationId: "reservation",
+    movementId: "movement",
+  });
+});
+
+test("cancellation before the reservation started is a clean cancellation, not an unresolved outcome", async () => {
+  const activities = defaults();
+  activities.reserveStock = async () => {
+    throw cancelled;
+  };
+  activities.reconcileReservation = async () => ({ status: "NOT_FOUND" });
+  await assert.rejects(
+    runTransactionSaga(input, activities, runtime),
+    (error) => error === cancelled,
+  );
 });

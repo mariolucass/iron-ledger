@@ -1,9 +1,9 @@
 import type {
   RecordSagaStepInput,
   ReportTransactionOutcomeInput,
-} from "@iron-ledger/workflow-contracts";
-import type { TransactionLifecycleGateway } from "../../ports/transaction-lifecycle-gateway";
-import type { ApiClient } from "./api-client";
+} from "@iron-ledger/workflow-contracts/transaction";
+import type { TransactionLifecycleGateway } from "../ports/transaction-lifecycle-gateway";
+import type { ApiClient } from "../../../shared/http/api-client";
 
 export class TransactionApiGateway implements TransactionLifecycleGateway {
   constructor(private readonly client: ApiClient) {}

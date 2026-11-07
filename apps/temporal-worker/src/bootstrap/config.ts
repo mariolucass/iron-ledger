@@ -5,6 +5,19 @@ export interface WorkerConfig {
   apiUrl: string;
   serviceEmail: string;
   servicePassword: string;
+  maxConcurrentActivities: number;
+  maxConcurrentWorkflowTasks: number;
+  /** Tempo que as activities em andamento têm para terminar após SIGINT/SIGTERM. */
+  shutdownGraceMs: number;
+}
+
+function positiveInteger(value: string | undefined, fallback: number, label: string): number {
+  if (value === undefined || value.trim() === "") return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`Configuração inválida: ${label} deve ser um inteiro positivo.`);
+  }
+  return parsed;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
@@ -31,5 +44,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
       explicitService ? env.WORKER_SERVICE_PASSWORD : env.SEED_ADMIN_PASSWORD,
       "WORKER_SERVICE_PASSWORD",
     ),
+    maxConcurrentActivities: positiveInteger(
+      env.WORKER_MAX_CONCURRENT_ACTIVITIES,
+      20,
+      "WORKER_MAX_CONCURRENT_ACTIVITIES",
+    ),
+    maxConcurrentWorkflowTasks: positiveInteger(
+      env.WORKER_MAX_CONCURRENT_WORKFLOW_TASKS,
+      20,
+      "WORKER_MAX_CONCURRENT_WORKFLOW_TASKS",
+    ),
+    shutdownGraceMs:
+      positiveInteger(env.WORKER_SHUTDOWN_GRACE_SECONDS, 30, "WORKER_SHUTDOWN_GRACE_SECONDS") *
+      1000,
   };
 }

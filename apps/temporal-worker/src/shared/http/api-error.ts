@@ -1,4 +1,4 @@
-import { GatewayError } from "../../ports/gateway-error";
+import { GatewayError } from "../gateway-error";
 
 export class ApiError extends GatewayError {
   constructor(
