@@ -49,9 +49,8 @@ Mutação de Estoque → Evento de Domínio → Auditoria Imutável → Análise
 - **Framework:** Next.js 14+ (App Router, SSR)
 - **Arquitetura:** Feature-Sliced Design (FSD)
 - **UI:** shadcn/ui + Tailwind CSS
-- **Estado global:** Zustand
-- **Estado de URL:** nuqs
-- **Data fetching:** TanStack Query
+- **Estado de URL:** nuqs nos filtros de transações
+- **Data fetching:** TanStack Query na listagem de transações
 - **Linguagem:** TypeScript
 
 ---
