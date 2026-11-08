@@ -1,4 +1,4 @@
-import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts";
+import type { ReservationSnapshot } from "@iron-ledger/workflow-contracts/transaction";
 
 /** Stable activity names and payloads are part of Temporal history compatibility. */
 export interface TransactionActivities {

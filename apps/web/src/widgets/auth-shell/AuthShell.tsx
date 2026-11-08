@@ -2,9 +2,10 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PublicThemeSync } from "@/shared/lib/public-theme";
+import { BrandMark } from "@/shared/ui/brand-mark";
 import { ParallaxOrb, usePointerParallax } from "@/shared/ui/orbs";
 
 const focusRing =
@@ -24,7 +25,9 @@ export function AuthShell({ children, labelledBy }: { children: ReactNode; label
       onPointerLeave={onPointerLeave}
       className="relative isolate flex min-h-svh flex-col overflow-x-hidden bg-background font-sans text-foreground"
     >
+      <PublicThemeSync />
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 opacity-[var(--orb-opacity)]">
         <ParallaxOrb
           x={x}
           y={y}
@@ -65,7 +68,8 @@ export function AuthShell({ children, labelledBy }: { children: ReactNode; label
           motion={3}
           blur={90}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.14)_1px,transparent_1px)] bg-size-[28px_28px] opacity-25 [mask-image:radial-gradient(ellipse_at_center,black_10%,transparent_70%)]" />
+        </div>
+        <div className="absolute inset-0 bg-[radial-gradient(rgb(var(--ink-rgb)/0.14)_1px,transparent_1px)] bg-size-[28px_28px] opacity-25 [mask-image:radial-gradient(ellipse_at_center,black_10%,transparent_70%)]" />
       </div>
 
       <header className="flex items-center justify-between px-5 pt-5 md:px-10 md:pt-8">
@@ -74,21 +78,14 @@ export function AuthShell({ children, labelledBy }: { children: ReactNode; label
           aria-label="Iron Ledger, página inicial"
           className={`flex items-center gap-2.5 rounded-xl py-1 pr-2 ${focusRing}`}
         >
-          <Image
-            src="/brand/logo-symbol-dark.svg"
-            alt=""
-            width={24}
-            height={27}
-            priority
-            className="h-[27px] w-[24px]"
-          />
+          <BrandMark width={24} height={27} priority />
           <span className="text-[17px] font-semibold tracking-[-0.025em] text-foreground">
             Iron Ledger
           </span>
         </Link>
         <Link
           href="/"
-          className={`inline-flex h-10 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-4 text-[14px] font-medium text-white/75 backdrop-blur-xl transition-colors hover:bg-white/[0.09] hover:text-foreground motion-reduce:transition-none ${focusRing}`}
+          className={`inline-flex h-10 items-center gap-1.5 rounded-full border border-ink/10 bg-ink/[0.04] px-4 text-[14px] font-medium text-ink/75 backdrop-blur-xl transition-colors hover:bg-ink/[0.09] hover:text-foreground motion-reduce:transition-none ${focusRing}`}
         >
           <ArrowLeft size={15} aria-hidden /> Início
         </Link>
@@ -100,17 +97,17 @@ export function AuthShell({ children, labelledBy }: { children: ReactNode; label
           initial={reducedMotion ? false : { opacity: 0, y: 24, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="relative w-full max-w-[448px] rounded-[32px] border border-white/[0.12] bg-[rgb(14_16_18/0.72)] p-7 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-2xl backdrop-saturate-150 sm:p-10"
+          className="relative w-full max-w-[448px] rounded-[32px] border border-ink/[0.12] bg-[rgb(var(--surface-rgb)/0.72)] p-7 shadow-elevated backdrop-blur-2xl backdrop-saturate-150 sm:p-10"
         >
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"
+            className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-ink/30 to-transparent"
           />
           {children}
         </motion.section>
       </div>
 
-      <footer className="px-5 pb-6 text-center text-[13px] text-white/45 md:pb-8">
+      <footer className="px-5 pb-6 text-center text-[13px] text-ink/45 md:pb-8">
         © 2026 Iron Ledger
       </footer>
     </main>

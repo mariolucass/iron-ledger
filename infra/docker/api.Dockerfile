@@ -15,6 +15,8 @@ COPY packages/event-bus/package.json packages/event-bus/package.json
 COPY packages/logger/package.json packages/logger/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
 COPY packages/workflow-contracts packages/workflow-contracts
+# O postinstall da raiz precisa do script presente durante o pnpm install.
+COPY scripts/postinstall scripts/postinstall
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
   pnpm install --filter @iron-ledger/api... --frozen-lockfile
 # Pacotes compartilhados são consumidos a partir de dist/: compila as dependências do app.
@@ -49,4 +51,4 @@ COPY --from=build --chown=node:node /workspace/apps/api/dist ./apps/api/dist
 USER node
 EXPOSE 3000
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["node", "apps/api/dist/start.js"]

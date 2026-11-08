@@ -1,4 +1,7 @@
-import type { TransactionSagaInput, TransactionSagaResult } from "@iron-ledger/workflow-contracts";
+import type {
+  TransactionSagaInput,
+  TransactionSagaResult,
+} from "@iron-ledger/workflow-contracts/transaction";
 import type { TransactionActivities } from "../contracts/transaction-activities";
 import { describeFailure } from "./describe-failure";
 
@@ -22,9 +25,14 @@ export async function runTransactionSaga(
     });
     return { status: "COMPLETED", reservationId: reservation.id, movementId: movement.id };
   } catch (failure) {
-    const result = await runtime.nonCancellable(async (): Promise<TransactionSagaResult> => {
+    const result = await runtime.nonCancellable(async (): Promise<TransactionSagaResult | null> => {
       try {
         const snapshot = await activities.reconcileReservation(input.transactionId);
+        if (snapshot.status === "NOT_FOUND" && runtime.isCancellation(failure)) {
+          // Activities sem heartbeat só são canceladas antes de iniciar (as iniciadas rodam até
+          // o fim), então aqui a reserva comprovadamente nunca foi criada: nada a desfazer.
+          return null;
+        }
         if (snapshot.status === "NOT_FOUND") {
           // A timed-out HTTP handler may still finish later. Do not claim rollback from absence alone.
           throw runtime.unresolved(
@@ -59,7 +67,10 @@ export async function runTransactionSaga(
         );
       }
     });
-    if (runtime.isCancellation(failure)) throw failure;
+    // Estoque já baixado não pode ser reportado como cancelado: o fato consumado prevalece.
+    if (result === null || (runtime.isCancellation(failure) && result.status !== "COMPLETED")) {
+      throw failure;
+    }
     return result;
   }
 }

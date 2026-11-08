@@ -151,6 +151,9 @@ export const themeStylesheet = `:root{${toCssDeclarations(themeVariables)}}:root
 
 export const THEME_STORAGE_KEY = "iron-ledger-theme";
 
+/** Runs before first paint so a stored light preference never flashes dark. */
+export const themeBootScript = `try{if(localStorage.getItem("${THEME_STORAGE_KEY}")==="light")document.documentElement.dataset.theme="light"}catch(e){}`;
+
 /** Tailwind utilities backed by the same runtime variables used by components. */
 export default {
   theme: {

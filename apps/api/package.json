@@ -4,11 +4,11 @@
   "private": true,
   "description": "API do iron-ledger: monólito modular (DDD) com outbox transacional e orquestração via Temporal.",
   "license": "MIT",
-  "main": "./dist/main.js",
+  "main": "./dist/start.js",
   "scripts": {
-    "dev": "tsx watch --clear-screen=false src/main.ts",
+    "dev": "tsx watch --clear-screen=false src/start.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/main.js",
+    "start": "node dist/start.js",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -21,33 +21,33 @@
     "prisma:reset": "node ../../scripts/db/run-prisma.mjs migrate reset",
     "prisma:status": "node ../../scripts/db/run-prisma.mjs migrate status"
   },
-  "prisma": {
-    "schema": "prisma/schema",
-    "seed": "tsx prisma/seeds/index.ts"
-  },
   "dependencies": {
     "@iron-ledger/event-bus": "workspace:*",
     "@iron-ledger/logger": "workspace:*",
     "@iron-ledger/shared-types": "workspace:*",
     "@iron-ledger/workflow-contracts": "workspace:*",
-    "@prisma/client": "~5.22.0",
+    "@opentelemetry/api": "catalog:",
+    "@opentelemetry/auto-instrumentations-node": "catalog:",
+    "@prisma/adapter-pg": "~7.10.1",
+    "@prisma/client": "~7.10.1",
     "@temporalio/client": "catalog:",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.6.1",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
+    "@temporalio/interceptors-opentelemetry": "catalog:",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/jsonwebtoken": "^9.0.7",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "catalog:",
-    "prisma": "~5.22.0",
+    "prisma": "~7.10.1",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^2.1.9"
+    "vite": "^7.3.7",
+    "vitest": "^5.1.0"
   }
 }

@@ -14,6 +14,8 @@ COPY packages/event-bus/package.json packages/event-bus/package.json
 COPY packages/logger/package.json packages/logger/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
 COPY packages/workflow-contracts packages/workflow-contracts
+# O postinstall da raiz precisa do script presente durante o pnpm install.
+COPY scripts/postinstall scripts/postinstall
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
   pnpm install --filter @iron-ledger/temporal-worker... --frozen-lockfile
 # Pacotes compartilhados são consumidos a partir de dist/: compila as dependências do app.
@@ -42,4 +44,4 @@ COPY --from=build --chown=node:node /workspace/apps/temporal-worker/package.json
 COPY --from=build --chown=node:node /workspace/apps/temporal-worker/dist ./apps/temporal-worker/dist
 USER node
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "apps/temporal-worker/dist/worker.js"]
+CMD ["node", "apps/temporal-worker/dist/start.js"]

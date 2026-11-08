@@ -1,4 +1,5 @@
 import type { ModuleFactory } from "../../infra/http/module";
+import { CancelTransactionUseCase } from "./application/use-cases/cancel-transaction.use-case";
 import { QueryTransactionsUseCase } from "./application/use-cases/query-transactions.use-case";
 import { RecordSagaStepUseCase } from "./application/use-cases/record-saga-step.use-case";
 import { ReportTransactionOutcomeUseCase } from "./application/use-cases/report-transaction-outcome.use-case";
@@ -27,6 +28,7 @@ export const transactionModule: ModuleFactory = ({
     new QueryTransactionsUseCase(repository),
     new RecordSagaStepUseCase(repository),
     new ReportTransactionOutcomeUseCase(repository, repository),
+    new CancelTransactionUseCase(repository, repository, workflowOrchestrator, logger.child({ component: "transaction" })),
   );
 
   return [{ path: "/transactions", router: createTransactionRouter(controller, env.JWT_SECRET) }];

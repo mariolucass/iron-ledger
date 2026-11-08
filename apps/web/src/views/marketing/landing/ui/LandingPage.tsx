@@ -1,3 +1,4 @@
+import { PublicThemeSync } from "@/shared/lib/public-theme";
 import { FeaturesSection } from "./components/FeaturesSection";
 import { FinalCta } from "./components/FinalCta";
 import { HeroSection } from "./components/HeroSection";
@@ -12,7 +13,8 @@ import { TechSection } from "./components/TechSection";
 function AmbientBackground() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:72px_72px] opacity-[0.12] [mask-image:radial-gradient(ellipse_at_50%_0%,black_20%,transparent_75%)]" />
+      <div className="absolute inset-0 opacity-[var(--orb-opacity)]">
+      <div className="absolute inset-0 bg-[linear-gradient(rgb(var(--ink-rgb)/0.06)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--ink-rgb)/0.06)_1px,transparent_1px)] bg-[size:72px_72px] opacity-[0.12] [mask-image:radial-gradient(ellipse_at_50%_0%,black_20%,transparent_75%)]" />
       <Orb
         color="green"
         position="-top-[12%] left-[14%] size-[640px]"
@@ -27,6 +29,7 @@ function AmbientBackground() {
         motion={2}
         blur={110}
       />
+      </div>
     </div>
   );
 }
@@ -34,6 +37,7 @@ function AmbientBackground() {
 export function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background font-sans text-foreground">
+      <PublicThemeSync />
       <AmbientBackground />
       <LandingHeader />
       <main>

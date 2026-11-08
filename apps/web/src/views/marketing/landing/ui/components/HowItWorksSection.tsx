@@ -12,15 +12,15 @@ export function HowItWorksSection() {
         </Reveal>
 
         <ol className="relative m-0 grid list-none gap-4 p-0 md:grid-cols-3 md:gap-5">
-          <span aria-hidden className="pointer-events-none absolute top-[58px] right-[16%] left-[16%] hidden h-px bg-gradient-to-r from-transparent via-white/20 to-transparent md:block" />
+          <span aria-hidden className="pointer-events-none absolute top-[58px] right-[16%] left-[16%] hidden h-px bg-gradient-to-r from-transparent via-ink/20 to-transparent md:block" />
           {landingSteps.map((step, index) => (
             <Reveal key={step.title} delay={index * 0.08}>
-              <li className="relative h-full rounded-[28px] border border-white/10 bg-white/[0.03] p-7 backdrop-blur-xl md:p-8">
+              <li className="relative h-full rounded-[28px] border border-ink/10 bg-ink/[0.03] p-7 backdrop-blur-xl md:p-8">
                 <span aria-hidden className={`${gradientText} mb-8 block text-[56px] leading-none font-semibold tracking-[-0.06em] tabular-nums`}>
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <h3 className="m-0 mb-2.5 text-[21px] font-semibold tracking-[-0.03em] text-foreground">{step.title}</h3>
-                <p className="m-0 text-[15.5px] leading-relaxed text-white/65">{step.description}</p>
+                <p className="m-0 text-[15.5px] leading-relaxed text-ink/65">{step.description}</p>
               </li>
             </Reveal>
           ))}

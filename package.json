@@ -19,6 +19,7 @@
     "dev:lite": "node scripts/dev/run-app.mjs lite dev",
     "dev:api": "node scripts/dev/run-app.mjs api dev",
     "dev:web": "node scripts/dev/run-app.mjs web dev",
+    "demo": "bash scripts/dev/demo-tunnel.sh",
     "dev:worker": "node scripts/dev/run-app.mjs worker dev",
     "dev:analytics": "node scripts/dev/run-app.mjs analytics dev",
     "build": "pnpm -r --if-present run build",
@@ -33,7 +34,9 @@
     "test:temporal": "pnpm --filter @iron-ledger/temporal-worker run test:temporal",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm typecheck && pnpm test && pnpm build",
+    "lint": "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\"",
+    "deps:check": "knip --dependencies",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "pnpm --filter @iron-ledger/api run prisma:generate",
     "db:test:integrity": "node scripts/db/test-schema-integrity.mjs",
     "db:validate": "pnpm --filter @iron-ledger/api run prisma:validate",
@@ -67,6 +70,12 @@
     "db:status": "pnpm --filter @iron-ledger/api run prisma:status"
   },
   "devDependencies": {
-    "prettier": "^3.6.2"
+    "@eslint/js": "^10.0.1",
+    "@next/eslint-plugin-next": "^16.4.5",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "knip": "^6.44.2",
+    "prettier": "^3.9.10",
+    "typescript-eslint": "^8.72.1"
   }
 }

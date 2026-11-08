@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { fontVariables } from "@/shared/config/font";
 import { siteMetadata } from "@/shared/config/metadata";
-import { themeStylesheet, themeVariables } from "@/shared/config/theme";
+import { themeBootScript, themeStylesheet, themeVariables } from "@/shared/config/theme";
 import "./globals.css";
 import { ApplicationShell } from "@/widgets/layout";
+import { DataProviders } from "@/shared/lib/data-providers";
 
 export const metadata: Metadata = siteMetadata;
 
@@ -20,9 +21,12 @@ export default function RootLayout({
     <html lang="pt-BR" className={fontVariables} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: themeStylesheet }} />
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body className="font-sans">
-        <ApplicationShell>{children}</ApplicationShell>
+        <DataProviders>
+          <ApplicationShell>{children}</ApplicationShell>
+        </DataProviders>
       </body>
     </html>
   );

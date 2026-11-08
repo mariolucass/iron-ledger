@@ -28,7 +28,7 @@ export function HeroSection() {
         <ParallaxOrb x={x} y={y} depth={44} color="blue" position="-top-24 right-[2%] size-[480px]" opacity={0.4} motion={1} blur={90} />
         <ParallaxOrb x={x} y={y} depth={-36} color="violet" position="top-[42%] left-[30%] size-[560px]" opacity={0.36} motion={2} blur={100} />
         <ParallaxOrb x={x} y={y} depth={60} color="pink" position="top-[55%] -right-16 size-[360px]" opacity={0.28} motion={3} blur={90} />
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.14)_1px,transparent_1px)] bg-[size:28px_28px] opacity-25 [mask-image:radial-gradient(ellipse_at_50%_30%,black_10%,transparent_65%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgb(var(--ink-rgb)/0.14)_1px,transparent_1px)] bg-[size:28px_28px] opacity-25 [mask-image:radial-gradient(ellipse_at_50%_30%,black_10%,transparent_65%)]" />
       </div>
 
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="mx-auto w-full max-w-[980px] text-center">
@@ -38,7 +38,7 @@ export function HeroSection() {
 
         <motion.h1
           variants={staggerItem}
-          className="m-0 mb-7 text-[clamp(2.75rem,7.4vw,5.75rem)] leading-[1.02] font-semibold tracking-[-0.055em] text-balance text-white"
+          className="m-0 mb-7 text-[clamp(2.75rem,7.4vw,5.75rem)] leading-[1.02] font-semibold tracking-[-0.055em] text-balance text-foreground"
         >
           O estoque que você
           <br />
@@ -47,7 +47,7 @@ export function HeroSection() {
 
         <motion.p
           variants={staggerItem}
-          className="mx-auto mb-10 max-w-[640px] text-[clamp(1.0625rem,2vw,1.3125rem)] leading-relaxed tracking-[-0.012em] text-white/70"
+          className="mx-auto mb-10 max-w-[640px] text-[clamp(1.0625rem,2vw,1.3125rem)] leading-relaxed tracking-[-0.012em] text-ink/70"
         >
           Movimentações, reservas e transações coordenadas, com o histórico de quem fez o quê e quando. Do cadastro do produto à conferência do saldo.
         </motion.p>
@@ -72,7 +72,7 @@ export function HeroSection() {
         <WindowFrame url="app.ironledger.com/dashboard">
           <OverviewPanel />
         </WindowFrame>
-        <p className="m-0 mt-5 text-center text-[12.5px] text-white/45">Prévia ilustrativa, com dados de exemplo.</p>
+        <p className="m-0 mt-5 text-center text-[12.5px] text-ink/45">Prévia ilustrativa, com dados de exemplo.</p>
       </motion.div>
     </section>
   );

@@ -59,7 +59,7 @@ export function SettingsPage() {
   return (
     <Layout title="Configurações">
       <PageHeader title="Configurações" description="Preferências da conta, segurança, notificações e integrações." />
-      <div className="grid max-w-[1200px] items-start gap-6 lg:grid-cols-[240px_1fr] lg:gap-10">
+      <div className="grid max-w-[1440px] items-start gap-6 lg:grid-cols-[240px_1fr] lg:gap-10">
         <nav
           aria-label="Seções de configurações"
           className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-3 lg:flex-col"

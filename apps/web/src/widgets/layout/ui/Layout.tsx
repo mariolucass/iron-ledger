@@ -7,6 +7,8 @@ import { CurrentUserProvider } from "@/entities/user";
 import { ThemeProvider } from "@/shared/lib/use-theme";
 import { isNavigationItemActive, navigationItems, navigationShortcutItems } from "@/shared/config/app-navigation";
 import { useTrackRecentPage } from "@/features/platform/search-navigation";
+import { pageWidth } from "@/shared/ui/page-width";
+import { AlertFeedProvider } from "../model/alert-feed";
 import type { LayoutProps } from "../model/types";
 import { AppHeader } from "../elements/header/ui/AppHeader";
 import { Sidebar } from "../elements/sidebar/ui/Sidebar";
@@ -73,6 +75,7 @@ function PersistentLayout({ children, title }: LayoutProps) {
     <ShellContext.Provider value={true}>
       <ThemeProvider>
       <CurrentUserProvider>
+      <AlertFeedProvider>
         <div className="relative flex h-dvh overflow-hidden bg-background font-sans text-foreground">
           <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
             <div className="absolute -top-[15%] left-1/4 size-[600px] rounded-full bg-primary/[0.055] blur-[60px]" />
@@ -113,13 +116,13 @@ function PersistentLayout({ children, title }: LayoutProps) {
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_-10%,var(--canvas-glow),transparent_55%),linear-gradient(180deg,transparent_60%,var(--canvas-vignette))]" />
                 <div className="absolute inset-0 opacity-[0.035] mix-blend-overlay [background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22><filter id=%22n%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%222%22/></filter><rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/></svg>')]" />
               </div>
-              <main className="absolute inset-0 z-10 overflow-x-hidden overflow-y-auto px-4 pt-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] md:px-6 md:py-6 xl:px-8 xl:py-8">
+              <main className="absolute inset-0 z-10 overflow-x-hidden overflow-y-auto px-4 pt-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] md:px-6 md:py-6 xl:px-8 xl:py-8 2xl:px-12 2xl:py-10">
                 <motion.div
                   key={pathname}
                   initial={reducedMotion ? false : { y: 6 }}
                   animate={{ y: 0 }}
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="w-full min-w-0 max-w-[1280px]"
+                  className={`min-w-0 ${pageWidth.full}`}
                 >
                   {children}
                 </motion.div>
@@ -127,6 +130,7 @@ function PersistentLayout({ children, title }: LayoutProps) {
             </div>
           </div>
         </div>
+      </AlertFeedProvider>
       </CurrentUserProvider>
       </ThemeProvider>
     </ShellContext.Provider>

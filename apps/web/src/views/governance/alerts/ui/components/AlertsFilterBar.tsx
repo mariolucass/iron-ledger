@@ -83,9 +83,8 @@ export function AlertsFilterBar(props: Props) {
           <SelectContent>
             <SelectItem value="ALL">Severidade</SelectItem>
             <SelectItem value="CRITICAL">Crítico</SelectItem>
-            <SelectItem value="HIGH">Alto</SelectItem>
-            <SelectItem value="MEDIUM">Médio</SelectItem>
-            <SelectItem value="LOW">Baixo</SelectItem>
+            <SelectItem value="WARNING">Atenção</SelectItem>
+            <SelectItem value="INFO">Informativo</SelectItem>
           </SelectContent>
         </Select>
         <Select

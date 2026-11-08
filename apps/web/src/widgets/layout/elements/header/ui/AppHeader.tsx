@@ -4,8 +4,8 @@ import dynamic from "next/dynamic";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Bell, ChevronDown, Clock, Menu, Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { unreadNotificationsCount } from "../api/mock-notifications";
 import { firstNameOf, useCurrentUser } from "@/entities/user";
+import { useAlertFeed } from "../../../model/alert-feed";
 import { useClock } from "../model/use-clock";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { NotificationDropdown } from "./NotificationDropdown";
@@ -26,6 +26,7 @@ const CommandPalette = dynamic(
 export function AppHeader({ title, onMenuClick, mobileMenuOpen }: { title: string; onMenuClick: () => void; mobileMenuOpen: boolean }) {
   const clock = useClock();
   const { profile } = useCurrentUser();
+  const { openCount } = useAlertFeed();
   const reducedMotion = useReducedMotion();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -107,15 +108,15 @@ export function AppHeader({ title, onMenuClick, mobileMenuOpen }: { title: strin
               setNotificationsOpen((current) => !current);
               setUserOpen(false);
             }}
-            aria-label="Notificações"
+            aria-label={openCount > 0 ? `Notificações, ${openCount} alertas em aberto` : "Notificações"}
             aria-haspopup="dialog"
             aria-expanded={notificationsOpen}
             className={`${control} relative flex size-10 items-center justify-center rounded-xl`}
           >
             <Bell size={16} strokeWidth={1.65} />
-            {unreadNotificationsCount > 0 && (
+            {openCount > 0 && (
               <span className="absolute -top-1 -right-1 flex size-[18px] items-center justify-center rounded-full border-2 border-[rgb(var(--surface-rgb))] bg-destructive text-[10px] font-bold text-white">
-                {unreadNotificationsCount}
+                {openCount > 99 ? "99+" : openCount}
               </span>
             )}
           </motion.button>

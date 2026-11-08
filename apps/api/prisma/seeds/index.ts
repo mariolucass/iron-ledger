@@ -1,4 +1,5 @@
 import { loadWorkspaceEnv } from "../../../../scripts/lib/app-env.cjs";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { catalogSeed } from "./catalog.seed";
 import { identitySeed } from "./identity.seed";
@@ -42,7 +43,10 @@ function selectSeeds(argv: readonly string[]): Seed[] {
 }
 
 async function main(): Promise<void> {
-  const prisma = new PrismaClient();
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL não configurada");
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  });
   try {
     for (const seed of selectSeeds(process.argv.slice(2))) {
       const startedAt = Date.now();

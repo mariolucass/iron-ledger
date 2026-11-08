@@ -1,0 +1,10 @@
+{
+  "workspaces": {
+    ".": {
+      "ignoreDependencies": ["prisma"]
+    },
+    "apps/temporal-worker": {
+      "entry": ["src/**/*.ts", "tests/**/*.ts"]
+    }
+  }
+}

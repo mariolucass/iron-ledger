@@ -44,7 +44,7 @@ const sections: NavigationSectionConfig[] = [
         label: "Alertas",
         path: "/alerts",
         shortcut: "2",
-        badge: 3,
+        badge: "alerts",
         children: [
           { label: "Todos os alertas", path: "/alerts" },
           { label: "Regras", path: "/alerts/rules" },

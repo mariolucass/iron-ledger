@@ -1,5 +1,6 @@
 "use client";
 
+import { formGrid } from "@/shared/ui/page-width";
 import { Save } from "lucide-react";
 import { WAREHOUSE_TYPES, warehouseTypeLabel, type WarehouseDetail } from "@/entities/warehouse";
 import { Form, FormField, FormFieldRow, FormItem, FormMessage } from "@/shared/ui/kit/form";
@@ -29,7 +30,7 @@ export function WarehouseForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={submit} noValidate className="grid gap-9">
+      <form onSubmit={submit} noValidate className={formGrid}>
         <FormSection title="Identificação">
           <FormFieldRow
             control={form.control}

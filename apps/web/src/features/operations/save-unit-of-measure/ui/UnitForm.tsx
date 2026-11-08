@@ -1,4 +1,5 @@
 "use client";
+import { formGrid } from "@/shared/ui/page-width";
 import { Save } from "lucide-react";
 import { UNIT_TYPES, unitTypeLabels, type UnitOfMeasure } from "@/entities/unit-of-measure";
 import { inputClass } from "@/shared/ui/form-primitives";
@@ -9,7 +10,7 @@ import { useUnitForm } from "../model/use-unit-form";
 
 export function UnitForm({ onSaved, onCancel }: { onSaved: (unit: UnitOfMeasure) => void; onCancel: () => void }) {
   const { form, submit, status } = useUnitForm(onSaved);
-  return <Form {...form}><form onSubmit={submit} noValidate className="grid gap-9">
+  return <Form {...form}><form onSubmit={submit} noValidate className={formGrid}>
     <FormSection title="Identificação">
       <FormFieldRow control={form.control} name="code" label="Código" description="Identificador único usado nos produtos.">
         {(field) => <input {...field} className={`${inputClass} uppercase font-mono`} autoComplete="off" />}
