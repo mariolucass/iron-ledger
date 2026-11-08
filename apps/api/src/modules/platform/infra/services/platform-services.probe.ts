@@ -220,6 +220,7 @@ export class PlatformServicesProbe implements ServicesProbe {
   }
 
   private async kafka(): Promise<ServiceStatus> {
+    // S1: Analytics fica em lote com Olist; Kafka segue opcional até haver relay e consumidor operacionais.
     const brokers = this.config.kafkaBrokers;
     const result = await timed(() =>
       Promise.any(brokers.map((broker) => {
@@ -230,7 +231,7 @@ export class PlatformServicesProbe implements ServicesProbe {
     return {
       key: "kafka",
       name: "Kafka",
-      role: "Stream durável previsto para auditoria e analytics; ainda sem relay operacional.",
+      role: "Kafka opcional; sem relay da auditoria ou consumidor no Analytics em lote.",
       optional: true,
       status: result.ok ? "up" : "down",
       latencyMs: result.ok ? result.latencyMs : null,

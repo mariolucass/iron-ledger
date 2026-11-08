@@ -166,8 +166,9 @@ export function ReportsPage() {
               Gerar Novo Relatório
             </h2>
             <div style={{ fontSize: 13, color: theme.textSecondary }}>
-              Extraia dados dos logs imutáveis do Kafka ou da base de dados
-              transacional.
+              Demonstração: esta tela não gera relatórios reais nem consulta o
+              Kafka. O Analytics processa dados históricos da Olist em lote e
+              não consome eventos operacionais.
             </div>
           </div>
         </div>

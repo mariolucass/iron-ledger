@@ -20,8 +20,8 @@ export function TechSection() {
         <Reveal>
           <SectionHeading
             eyebrow="Arquitetura"
-            title="O evento nasce junto com o dado"
-            description="O dado e o evento são gravados na mesma transação. Depois seguem por mensageria até a orquestração e até quem precisa reagir."
+            title="Eventos com trilha de entrega"
+            description="No fluxo ativo, a API grava o evento no outbox e o RabbitMQ o entrega à auditoria. O Analytics roda separadamente, em lote com dados históricos da Olist; Kafka é opcional e ainda não tem relay operacional."
           />
         </Reveal>
 

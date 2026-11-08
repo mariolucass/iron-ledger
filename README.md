@@ -6,14 +6,15 @@
 
 ## Visão Geral
 
-O **iron-ledger** é uma plataforma backend-first para ambientes que exigem rastreabilidade completa, consistência transacional e controle de inventário em tempo real. O sistema é construído sobre princípios de DDD, event-driven architecture e orquestração de workflows de longa duração via Temporal.io.
+O **iron-ledger** é uma plataforma backend-first para operações de estoque com rastreabilidade e consistência transacional. O sistema é construído sobre princípios de DDD, arquitetura orientada a eventos e orquestração de workflows de longa duração via Temporal.io. O Analytics atual processa dados históricos da Olist em lote; não consome eventos operacionais em tempo real.
 
 Para entender o estado real de cada área, consulte o [guia de estudo do projeto](./docs/guia-do-projeto.md), que separa funcionalidades conectadas, demonstrações e próximos passos.
 
 ```
-Mutação de Estoque → Evento de Domínio → Auditoria Imutável → Análise de Dados
-       ↓
-  Temporal Workflow (Saga) → Compensação em caso de falha
+Operação de estoque → API/Outbox → RabbitMQ → Auditoria imutável
+                         └→ Temporal Workflow (Saga) → Compensação
+Analytics em lote ← dados históricos da Olist
+Kafka opcional      (sem relay operacional nem consumidor no Analytics)
 ```
 
 ---
@@ -39,9 +40,9 @@ Mutação de Estoque → Evento de Domínio → Auditoria Imutável → Análise
 - **ORM:** Prisma
 - **Banco de dados:** PostgreSQL
 - **Cache:** Redis
-- **Mensageria:** RabbitMQ (eventos de domínio e auditoria); Kafka disponível como infraestrutura opcional, sem relay operacional neste fluxo
+- **Mensageria:** RabbitMQ no fluxo de eventos de domínio e auditoria; Kafka é infraestrutura opcional para evolução futura, sem relay operacional neste fluxo
 - **Orquestração:** Temporal.io (Sagas e workflows de longa duração)
-- **Análise de dados:** Python (serviço isolado; pipeline batch da Olist e API HTTP)
+- **Análise de dados:** Python (serviço isolado; pipeline em lote da Olist e API HTTP)
 - **Infraestrutura:** Docker + Docker Compose
 
 ### Frontend
@@ -254,7 +255,7 @@ BFF do Next.js e mantém os dados mockados somente como fallback de leitura.
 **Para que serve.** Inventário e auditoria registram *o que aconteceu* (cada
 movimento, cada reserva). O analytics responde *o que mudou*: quais vendedores e
 categorias saíram do comportamento habitual e não voltaram. É a camada que
-transforma o histórico em alertas acionáveis:
+transforma o histórico em sinais para orientar investigação:
 
 | Sinal detectado | Por que importa para o estoque |
 | --- | --- |
@@ -264,7 +265,7 @@ transforma o histórico em alertas acionáveis:
 | Atraso e prazo de entrega sobem | Gargalo de expedição; costuma anteceder queda na avaliação |
 | Avaliação média cai | Efeito no cliente; cruze com atraso e cancelamento do período |
 
-**Como funciona.** O pipeline agrupa os pedidos em observações
+**Como funciona.** O pipeline em lote agrupa os pedidos em observações
 `vendedor + categoria + semana`. Para cada métrica, compara a mediana das 8
 semanas anteriores com a das 3 seguintes e só gera um *ponto de inflexão* quando
 a mudança é grande, foge da oscilação normal daquele vendedor (mediana e MAD) e
@@ -276,6 +277,11 @@ de laboratório para validar o método com dados reais. O modelo de observação
 independente da fonte: o próximo passo é alimentá-lo com os movimentos de
 `inventory` e as transações das Sagas, e publicar
 `Analytics.InflectionPointDetected` para virar alerta no painel.
+
+**Integração atual.** O serviço Python processa dados históricos da Olist em
+lote. Não existe relay de eventos da auditoria para Kafka nem consumidor Kafka
+no Analytics; o Kafka configurado no Compose é infraestrutura opcional e sua
+sonda de saúde não significa que esse fluxo esteja conectado.
 
 **Limites.** Os sinais mostram *quando* algo mudou, não *por quê*. A Olist não
 tem saldo de estoque, então nenhuma ruptura é confirmada aqui. `confidence` é um

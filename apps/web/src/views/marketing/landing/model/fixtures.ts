@@ -62,19 +62,18 @@ export const landingFeatures: LandingFeature[] = [
     icon: "trending-up",
     title: "Análise de mudanças",
     description:
-      "Detecta alterações persistentes em vendas, cancelamentos e atrasos, por vendedor e por categoria, e explica cada uma.",
+      "Pipeline em lote sobre dados históricos da Olist: detecta mudanças persistentes em vendas, cancelamentos e atrasos por vendedor e categoria.",
     span: 3,
     tone: "red",
   },
 ];
 
-/** Caminho de um evento, da API até quem o consome. */
+/** Fluxo de eventos ativo: a auditoria consome eventos publicados pelo RabbitMQ. */
 export const landingFlow: LandingFlowNode[] = [
   { icon: "globe", title: "API", detail: "Node.js, módulos por domínio", tone: "primary" },
-  { icon: "database", title: "Outbox", detail: "PostgreSQL, na mesma transação do dado", tone: "blue" },
-  { icon: "zap", title: "Mensageria", detail: "Kafka e RabbitMQ", tone: "orange" },
-  { icon: "git-branch", title: "Orquestração", detail: "Temporal: saga e compensação", tone: "purple" },
-  { icon: "activity", title: "Consumidores", detail: "Auditoria e analytics", tone: "emerald" },
+  { icon: "database", title: "Outbox", detail: "PostgreSQL, junto com a mudança", tone: "blue" },
+  { icon: "zap", title: "RabbitMQ", detail: "Entrega eventos de domínio", tone: "orange" },
+  { icon: "activity", title: "Auditoria", detail: "Consumidor ativo e idempotente", tone: "emerald" },
 ];
 
 export const landingStack = [
@@ -82,7 +81,7 @@ export const landingStack = [
   "Node.js",
   "PostgreSQL",
   "Redis",
-  "Kafka",
+  "Kafka · opcional",
   "RabbitMQ",
   "Temporal",
   "OpenTelemetry",
