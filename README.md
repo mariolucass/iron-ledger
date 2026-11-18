@@ -118,7 +118,7 @@ Projeto acadêmico em equipe, em desenvolvimento. Estado honesto:
 
 | Área | Estado |
 | --- | --- |
-| Modelagem de dados (Prisma: 15 modelos, locking otimista, `CompensationLog`, `AuditLog`) | Pronto |
+| Modelagem de dados (Prisma: 16 modelos, locking otimista, `CompensationLog`, `AuditLog`) | Pronto |
 | Estrutura DDD dos módulos, ADRs, roteiro de demo | Pronto |
 | Implementação dos casos de uso, workflows Temporal, consumers | Em andamento |
 | Docker Compose, serviço de analytics | Planejado |
