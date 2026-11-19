@@ -117,7 +117,14 @@ export function ReportsPage() {
         @keyframes spin { 100% { transform: rotate(360deg); } }
       `}</style>
 
-      <PageHeader title="Relatórios" description="Gere e exporte relatórios de atividades, auditoria e controle de estoque." />
+      <PageHeader
+        title="Relatórios"
+        badges={
+          <span className="rounded-full bg-warning/15 px-2.5 py-0.5 text-[10px] font-bold tracking-[0.05em] text-warning uppercase">
+            Dados de demonstração
+          </span>
+        }
+        description="Gere e exporte relatórios de atividades, auditoria e controle de estoque." />
 
       {/* Control Panel (Gerador de Relatórios) */}
       <div
